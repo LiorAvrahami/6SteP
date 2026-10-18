@@ -121,11 +121,11 @@ class PlayerActivity : AppCompatActivity() {
                 val off = old.beatNow() - mc.beatNow()
                 clock = SlewClock(mc, off, 1200)
                 metronome.clock = clock; metronome.enabled = overlay; metronome.resync()
-                status.text = "${t.title} — ${t.artist}"
+                status.text = "${t.title} — ${t.artist}" + (if (t.difficulty.isNotBlank()) "  · " + t.difficulty else "")
             }, 220)
         }
         metronome.clock = clock; metronome.swing = g.swing; metronome.enabled = overlay; metronome.resync(); metronome.start()
-        status.text = "${t.title} — ${t.artist}"
+        status.text = "${t.title} — ${t.artist}" + (if (t.difficulty.isNotBlank()) "  · " + t.difficulty else "")
     }
 
     /** the music ran out: keep the beat going on the snare and hi-hat, start the next track at the next block */

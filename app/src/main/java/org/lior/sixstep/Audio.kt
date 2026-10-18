@@ -54,14 +54,14 @@ class BeatGrid(val bpm: Double, val beat: Double, val swing: Double, val duratio
     }
 }
 
-class Track(val key: String, val title: String, val artist: String, val licence: String, val bpm: Double, val duration: Double, val file: String, val gridPath: String) {
+class Track(val key: String, val title: String, val artist: String, val licence: String, val bpm: Double, val duration: Double, val file: String, val gridPath: String, val difficulty: String = "") {
     companion object {
         fun loadAll(ctx: Context): List<Track> {
             val o = JSONObject(ctx.assets.open("dance/tracks.json").bufferedReader().readText())
             val a = o.getJSONArray("tracks")
             return (0 until a.length()).map { i ->
                 val t = a.getJSONObject(i)
-                Track(t.getString("key"), t.getString("title"), t.getString("artist"), t.getString("licence"), t.getDouble("bpm"), t.getDouble("duration"), t.getString("file"), t.getString("grid"))
+                Track(t.getString("key"), t.getString("title"), t.getString("artist"), t.getString("licence"), t.getDouble("bpm"), t.getDouble("duration"), t.getString("file"), t.getString("grid"), t.optString("difficulty", ""))
             }
         }
     }

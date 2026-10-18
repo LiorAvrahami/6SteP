@@ -8,7 +8,9 @@
    "bpm": 144.0,
    "duration": 314.969,
    "file": "music/hot.mp3",
-   "grid": "dance/beatgrids/hot.json"
+   "grid": "dance/beatgrids/hot.json",
+   "difficulty": "steady (sequenced)",
+   "grid_kind": "fixed"
   },
   {
    "key": "sunday",
@@ -18,17 +20,21 @@
    "bpm": 126.8,
    "duration": 154.68,
    "file": "music/sunday.mp3",
-   "grid": "dance/beatgrids/sunday.json"
+   "grid": "dance/beatgrids/sunday.json",
+   "difficulty": "steady",
+   "grid_kind": "tracked"
   },
   {
    "key": "slow",
    "title": "Slow Your Roll",
    "artist": "Laughing Manny & The Swinging Dicks",
    "licence": "CC BY-NC-SA",
-   "bpm": 123.3,
+   "bpm": 122.8,
    "duration": 129.84,
    "file": "music/slow.mp3",
-   "grid": "dance/beatgrids/slow.json"
+   "grid": "dance/beatgrids/slow.json",
+   "difficulty": "hard: the tempo moves, the band plays with the beat",
+   "grid_kind": "annotated"
   }
  ]
 }
