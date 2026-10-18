@@ -18,9 +18,17 @@ class Timeline(val composed: Composed, val swing: Double) {
     class Landing(val tLand: Double, val tRelease: Double, val p: Placement)
     class FootTrack(start: Placement) {
         val landings = ArrayList<Landing>().apply { add(Landing(-1e9, -1e9, start)) }
+        private var cursor = 0
+        private fun indexAt(t: Double): Int {
+            // landings are sorted by time; start from the last answer, which is usually right or one off
+            var i = cursor.coerceIn(0, landings.size - 1)
+            while (i > 0 && landings[i].tLand > t) i--
+            while (i + 1 < landings.size && landings[i + 1].tLand <= t) i++
+            cursor = i
+            return i
+        }
         fun placementAt(t: Double): Placement {
-            var i = 0
-            for (j in landings.indices) if (landings[j].tLand <= t) i = j
+            val i = indexAt(t)
             val cur = landings[i]
             if (i + 1 < landings.size) {
                 val nx = landings[i + 1]
@@ -34,8 +42,7 @@ class Timeline(val composed: Composed, val swing: Double) {
         }
         /** the landing in force at beat t (the last one at or before t) and the one after it */
         fun around(t: Double): Pair<Landing, Landing?> {
-            var i = 0
-            for (j in landings.indices) if (landings[j].tLand <= t) i = j
+            val i = indexAt(t)
             return Pair(landings[i], landings.getOrNull(i + 1))
         }
     }
@@ -43,6 +50,7 @@ class Timeline(val composed: Composed, val swing: Double) {
 
     val dancers: Map<Char, DancerTracks>
     val length: Double get() = composed.length
+    private val elementStarts: DoubleArray = composed.elements.map { it.start }.toDoubleArray()
 
     init {
         val m = HashMap<Char, DancerTracks>()
@@ -79,18 +87,32 @@ class Timeline(val composed: Composed, val swing: Double) {
         return w
     }
 
+    /** the instant just after the weight has settled on whatever landed at t (the longest ramp of the landings at t) */
+    fun settledAfter(t: Double): Double {
+        var r = 0.0
+        for (d in dancers.values) for ((tl, ramp, _) in d.ramps) if (abs(tl - t) < 1e-6) r = max(r, ramp)
+        return t + (if (r > 0) r else RAMP) + 1e-6
+    }
+
     fun handsAt(t: Double): List<String> {
         var h = composed.startHands
         for (s in composed.steps) { if (s.t <= t) h = s.hands else break }
         return h
     }
 
-    fun elementAt(t: Double): CElement? = composed.elements.firstOrNull { t >= it.start && t < it.start + it.beats }
+    fun elementIndexAt(t: Double): Int {
+        var i = -1
+        for (k in elementStarts.indices) if (elementStarts[k] <= t) i = k else break
+        if (i < 0) return -1
+        val e = composed.elements[i]
+        return if (t < e.start + e.beats) i else -1
+    }
+    fun elementAt(t: Double): CElement? { val i = elementIndexAt(t); return if (i < 0) null else composed.elements[i] }
 
     /** The musical count being danced: the element's own numbering; "&" only where a step exists. */
     fun countLabel(t: Double): String {
-        val e = elementAt(t) ?: return ""
-        val k = composed.elements.indexOf(e)
+        val k = elementIndexAt(t); if (k < 0) return ""
+        val e = composed.elements[k]
         val counts = composed.steps.filter { it.element == k }.map { it.count }
         if (counts.isEmpty()) return ""
         val base = counts.first().trimEnd('&').toInt()
@@ -119,7 +141,7 @@ class Timeline(val composed: Composed, val swing: Double) {
     }
 }
 
-/** A smoothing helper for the following camera. */
+/** A smoothing helper for a following camera. */
 class Smoother(private val tau: Double) {
     private var x = Double.NaN; private var y = Double.NaN; private var last = 0L
     fun update(nx: Double, ny: Double, nowMs: Long): Pair<Double, Double> {

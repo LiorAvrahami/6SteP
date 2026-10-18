@@ -7,10 +7,13 @@ import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PointF
+import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.cos
+import kotlin.math.exp
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
@@ -31,11 +34,18 @@ class Scene(
     val titleColor: Int? = null
 )
 
-/** The dance floor from above: feet (opacity = weight over a grey base), heading arrows, bodies, arms, labels. */
+/** The dance floor from above: feet (opacity = weight over a grey base), heading arrows, bodies, arms, labels.
+ *
+ *  The camera (user 2026-10-19): the feet of a couple standing side by side fill about half the screen width; when the
+ *  feet's bounding box gets close to an edge the view glides to centre it; when the box is too big for the screen the
+ *  view zooms out just enough, and zooms back in once the box is small again. */
 class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
     companion object {
         const val FOOT_LEN = 26.0; const val FOOT_WID = 10.0; const val ARROW = 9.0
         const val SHOULDER = 18.0; const val ARM_MAX = 65.0; const val BODY_R = 10.0
+        const val STANCE_BOX = 92.0      // cm: the width of two pairs of feet side by side, toes and arrows included
+        const val EDGE = 0.10            // the box must stay out of this fraction of the screen at each edge
+        const val BOX_MARGIN = 16.0      // cm around the foot centres for the silhouettes and arrows
     }
     private val leader = context.getColor(R.color.leader)
     private val follower = context.getColor(R.color.follower)
@@ -47,19 +57,130 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
     private val path = Path()
 
     var scene: Scene? = null
-        set(v) { field = v; invalidate() }
-    var cx = 10.0; var cy = 20.0; var scale = 4.0   // world centre (cm) and px per cm
+        set(v) { field = v; if (autoCamera) updateCamera(); invalidate() }
+    /** world centre (cm) and px per cm */
+    var cx = 10.0; var cy = 20.0; var scale = 4.0
+    var autoCamera = true
+    var showLabels = true
+    private var baseScale = 0.0
+    private var targetScale = 0.0
+    private var targetCx = Double.NaN; private var targetCy = Double.NaN
+    private var tracking = false
+    private var lastFrame = 0L
 
     fun px(x: Double, y: Double): PointF = PointF((width / 2 + (x - cx) * scale).toFloat(), (height / 2 - (y - cy) * scale).toFloat())
 
-    /** centre the camera on a set of points with a margin, at a scale between the limits */
-    fun fitTo(xs: List<Double>, ys: List<Double>, minScale: Double = 2.2, maxScale: Double = 6.0) {
-        if (xs.isEmpty() || width == 0) return
-        val x0 = xs.min(); val x1 = xs.max(); val y0 = ys.min(); val y1 = ys.max()
-        cx = (x0 + x1) / 2; cy = (y0 + y1) / 2
-        val s = min(width / (x1 - x0 + 110.0), height / (y1 - y0 + 110.0))
-        scale = s.coerceIn(minScale, maxScale)
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        baseScale = w / 2.0 / STANCE_BOX
+        if (autoCamera) { scale = baseScale; targetScale = baseScale; scene?.let { snapTo(it) } }
+    }
+
+    /** put the camera straight on the scene's feet at the base zoom (no glide) */
+    fun snapTo(s: Scene) {
+        val b = box(s) ?: return
+        cx = (b[0] + b[2]) / 2; cy = (b[1] + b[3]) / 2; targetCx = cx; targetCy = cy
+        scale = fitScale(b); targetScale = scale; tracking = false
         invalidate()
+    }
+
+    /** the feet's bounding box in cm: x0, y0, x1, y1 */
+    private fun box(s: Scene): DoubleArray? {
+        if (s.feet.isEmpty()) return null
+        val xs = s.feet.values.map { it.x }; val ys = s.feet.values.map { it.y }
+        return doubleArrayOf(xs.min() - BOX_MARGIN, ys.min() - BOX_MARGIN, xs.max() + BOX_MARGIN, ys.max() + BOX_MARGIN)
+    }
+
+    /** the base zoom, or less when the box does not fit inside the screen with its edge margins */
+    private fun fitScale(b: DoubleArray): Double {
+        if (baseScale <= 0 || width == 0) return scale
+        val w = b[2] - b[0]; val h = b[3] - b[1]
+        val fit = min(width * (1 - 2 * EDGE) / max(1.0, w), height * (1 - 2 * EDGE) / max(1.0, h))
+        return min(baseScale, fit)
+    }
+
+    private fun updateCamera() {
+        val s = scene ?: return
+        val b = box(s) ?: return
+        if (width == 0) return
+        if (targetCx.isNaN()) { snapTo(s); return }
+        targetScale = fitScale(b)
+        // does the box come close to an edge at the current zoom? then glide to centre it
+        val left = width / 2 + (b[0] - cx) * scale; val rightEdge = width / 2 + (b[2] - cx) * scale
+        val top = height / 2 - (b[3] - cy) * scale; val bottom = height / 2 - (b[1] - cy) * scale
+        val near = left < width * EDGE || rightEdge > width * (1 - EDGE) || top < height * EDGE || bottom > height * (1 - EDGE)
+        if (near || targetScale < scale * 0.999) tracking = true
+        if (tracking) { targetCx = (b[0] + b[2]) / 2; targetCy = (b[1] + b[3]) / 2 }
+        val now = SystemClock.uptimeMillis()
+        val dt = if (lastFrame == 0L) 0.016 else ((now - lastFrame) / 1000.0).coerceIn(0.0, 0.1)
+        lastFrame = now
+        val k = 1 - exp(-dt / 0.45)
+        cx += (targetCx - cx) * k; cy += (targetCy - cy) * k; scale += (targetScale - scale) * k
+        val settled = abs(targetCx - cx) * scale < 1.5 && abs(targetCy - cy) * scale < 1.5 && abs(targetScale - scale) < 0.01
+        if (settled) { cx = targetCx; cy = targetCy; scale = targetScale; tracking = false }
+        else postInvalidateOnAnimation()
+    }
+
+    override fun onDraw(c: Canvas) {
+        super.onDraw(c)
+        if (autoCamera && scene != null && lastFrame != 0L) {
+            // keep gliding between scene updates (a static exploration view still animates its camera)
+            val s = scene!!
+            if (abs(targetCx - cx) * scale >= 1.5 || abs(targetCy - cy) * scale >= 1.5 || abs(targetScale - scale) >= 0.01) {
+                val now = SystemClock.uptimeMillis(); val dt = ((now - lastFrame) / 1000.0).coerceIn(0.0, 0.1); lastFrame = now
+                val k = 1 - exp(-dt / 0.45)
+                cx += (targetCx - cx) * k; cy += (targetCy - cy) * k; scale += (targetScale - scale) * k
+                postInvalidateOnAnimation()
+            }
+            if (box(s) == null) return
+        }
+        drawScene(c, scene, width, height)
+    }
+
+    /** draw a scene with the current camera onto any canvas */
+    fun drawScene(c: Canvas, s: Scene?, w: Int, h: Int) {
+        c.drawColor(context.getColor(R.color.floor))
+        val g = 50.0; val halfW = w / scale / 2; val halfH = h / scale / 2
+        var x = Math.floor((cx - halfW) / g) * g
+        while (x < cx + halfW) { val p = px(x, 0.0); c.drawLine(p.x, 0f, p.x, h.toFloat(), gridPaint); x += g }
+        var y = Math.floor((cy - halfH) / g) * g
+        while (y < cy + halfH) { val p = px(0.0, y); c.drawLine(0f, p.y, w.toFloat(), p.y, gridPaint); y += g }
+        if (s == null) return
+        val bodies = HashMap<Char, Placement>()
+        for (d in listOf('L', 'F')) {
+            val a = s.feet["$d.L"] ?: continue; val b = s.feet["$d.R"] ?: continue
+            val bx = (a.x + b.x) / 2; val by = (a.y + b.y) / 2
+            val sx = sin(Math.toRadians(a.h)) + sin(Math.toRadians(b.h)); val sy = cos(Math.toRadians(a.h)) + cos(Math.toRadians(b.h))
+            val body = Placement(bx, by, Math.toDegrees(Math.atan2(sx, sy)))
+            bodies[d] = body
+            val color = if (d == 'L') leader else follower
+            val p = px(bx, by)
+            fill.color = withAlpha(color, 0.12); c.drawCircle(p.x, p.y, (BODY_R * scale).toFloat(), fill)
+            stroke.color = withAlpha(color, 0.5); stroke.strokeWidth = 1.5f; stroke.pathEffect = null; c.drawCircle(p.x, p.y, (BODY_R * scale).toFloat(), stroke)
+            val f = fwd(body.h); val t = px(bx + f.first * 16, by + f.second * 16); c.drawLine(p.x, p.y, t.x, t.y, stroke)
+        }
+        drawHands(c, s.hands, bodies)
+        for (ar in s.arrows) drawDashedArrow(c, if (ar.dancer == 'L') leader else follower, ar.from, ar.to)
+        val order = s.feet.keys.sortedBy { k -> s.weights[k[0]]?.get(k[2]) ?: 0.0 }
+        for (k in order) {
+            val d = k[0]; val f = k[2]; val p = s.feet[k]!!
+            drawFoot(c, p, f, if (d == 'L') leader else follower, s.weights[d]?.get(f) ?: 0.0)
+        }
+        if (!showLabels) return
+        text.textAlign = Paint.Align.LEFT; text.textSize = (h * 0.045f).coerceAtLeast(18f); text.color = s.titleColor ?: Color.rgb(34, 34, 34)
+        c.drawText(s.title, h * 0.03f, h * 0.03f + text.textSize, text)
+        text.textAlign = Paint.Align.RIGHT; text.textSize = (h * 0.11f).coerceAtLeast(32f); text.isFakeBoldText = true; text.color = Color.rgb(34, 34, 34)
+        c.drawText(s.count, w - h * 0.03f, h * 0.03f + text.textSize * 0.85f, text)
+        text.isFakeBoldText = false
+        if (!s.banner.isNullOrBlank()) {
+            text.textAlign = Paint.Align.CENTER; text.textSize = (h * 0.12f).coerceAtLeast(28f); text.isFakeBoldText = true
+            val lines = wrap(s.banner, text, w * 0.9f)
+            val bh = lines.size * text.textSize * 1.15f
+            fill.color = withAlpha(Color.rgb(17, 17, 24), 0.78); c.drawRoundRect(w * 0.04f, h / 2f - bh / 2 - text.textSize * 0.5f, w * 0.96f, h / 2f + bh / 2 + text.textSize * 0.3f, 24f, 24f, fill)
+            text.color = context.getColor(R.color.accent)
+            lines.forEachIndexed { i, ln -> c.drawText(ln, w / 2f, h / 2f - bh / 2 + text.textSize * (i + 0.9f) * 1.15f, text) }
+            text.isFakeBoldText = false
+        }
     }
 
     private fun footPoly(p: Placement, side: Char): List<Pair<Double, Double>> {
@@ -81,20 +202,14 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
 
     private fun withAlpha(color: Int, alpha: Double): Int = (color and 0x00FFFFFF) or ((alpha.coerceIn(0.0, 1.0) * 255).toInt() shl 24)
 
-    private fun drawFoot(c: Canvas, p: Placement, side: Char, color: Int, weight: Double, outlineOnly: Boolean = false, label: String? = null) {
+    private fun drawFoot(c: Canvas, p: Placement, side: Char, color: Int, weight: Double) {
         val poly = footPoly(p, side)
-        val pp = polyPath(poly)
-        if (outlineOnly) {
-            stroke.color = withAlpha(color, 0.5); stroke.strokeWidth = 2f; stroke.pathEffect = null; c.drawPath(pp, stroke)
-        } else {
-            fill.color = withAlpha(grey, 0.2); c.drawPath(pp, fill)
-            if (weight > 0.001) { fill.color = withAlpha(color, weight); c.drawPath(polyPath(poly), fill) }
-        }
-        // the arrow out of the toe
+        fill.color = withAlpha(grey, 0.2); c.drawPath(polyPath(poly), fill)
+        if (weight > 0.001) { fill.color = withAlpha(color, weight); c.drawPath(polyPath(poly), fill) }
         val f = fwd(p.h); val r = right(p.h)
         val toe = Pair(p.x + f.first * FOOT_LEN / 2, p.y + f.second * FOOT_LEN / 2)
         val tip = Pair(toe.first + f.first * ARROW, toe.second + f.second * ARROW)
-        val acol = withAlpha(if (weight > 0.5 || outlineOnly) color else grey, max(0.45, weight))
+        val acol = withAlpha(if (weight > 0.5) color else grey, max(0.45, weight))
         stroke.color = acol; stroke.strokeWidth = max(2.0, scale * 1.4).toFloat(); stroke.pathEffect = null
         val a = px(toe.first, toe.second); val b = px(tip.first, tip.second)
         c.drawLine(a.x, a.y, b.x, b.y, stroke)
@@ -102,15 +217,10 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         val h2 = px(tip.first - f.first * 5 - r.first * 3.5, tip.second - f.second * 5 - r.second * 3.5)
         path.reset(); path.moveTo(b.x, b.y); path.lineTo(h1.x, h1.y); path.lineTo(h2.x, h2.y); path.close()
         fill.color = acol; c.drawPath(path, fill)
-        // L / R at the heel
         val hp = px(p.x - f.first * FOOT_LEN * 0.22, p.y - f.second * FOOT_LEN * 0.22)
         text.textSize = max(10.0, scale * 6.5).toFloat(); text.textAlign = Paint.Align.CENTER
-        text.color = if (outlineOnly) withAlpha(color, 0.8) else withAlpha(Color.WHITE, min(1.0, weight + 0.35))
+        text.color = withAlpha(Color.WHITE, min(1.0, weight + 0.35))
         c.drawText(side.toString(), hp.x, hp.y + text.textSize / 3, text)
-        if (label != null) {
-            val tp = px(p.x + f.first * (FOOT_LEN / 2 + ARROW + 7), p.y + f.second * (FOOT_LEN / 2 + ARROW + 7))
-            text.color = color; text.textSize = max(11.0, scale * 5.5).toFloat(); c.drawText(label, tp.x, tp.y + text.textSize / 3, text)
-        }
     }
 
     private fun shoulder(b: Placement, side: Char): Pair<Double, Double> {
@@ -174,54 +284,6 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         path.lineTo((b.x - ux * s - uy * s * 0.55).toFloat(), (b.y - uy * s + ux * s * 0.55).toFloat())
         path.lineTo((b.x - ux * s + uy * s * 0.55).toFloat(), (b.y - uy * s - ux * s * 0.55).toFloat())
         path.close(); fill.color = withAlpha(color, 0.9); c.drawPath(path, fill)
-    }
-
-    override fun onDraw(c: Canvas) {
-        super.onDraw(c)
-        c.drawColor(context.getColor(R.color.floor))
-        // grid every 50 cm
-        val g = 50.0; val halfW = width / scale / 2; val halfH = height / scale / 2
-        var x = Math.floor((cx - halfW) / g) * g
-        while (x < cx + halfW) { val p = px(x, 0.0); c.drawLine(p.x, 0f, p.x, height.toFloat(), gridPaint); x += g }
-        var y = Math.floor((cy - halfH) / g) * g
-        while (y < cy + halfH) { val p = px(0.0, y); c.drawLine(0f, p.y, width.toFloat(), p.y, gridPaint); y += g }
-        val s = scene ?: return
-        val bodies = HashMap<Char, Placement>()
-        for (d in listOf('L', 'F')) {
-            val a = s.feet["$d.L"] ?: continue; val b = s.feet["$d.R"] ?: continue
-            val bx = (a.x + b.x) / 2; val by = (a.y + b.y) / 2
-            val sx = sin(Math.toRadians(a.h)) + sin(Math.toRadians(b.h)); val sy = cos(Math.toRadians(a.h)) + cos(Math.toRadians(b.h))
-            val body = Placement(bx, by, Math.toDegrees(Math.atan2(sx, sy)))
-            bodies[d] = body
-            val color = if (d == 'L') leader else follower
-            val p = px(bx, by)
-            fill.color = withAlpha(color, 0.12); c.drawCircle(p.x, p.y, (BODY_R * scale).toFloat(), fill)
-            stroke.color = withAlpha(color, 0.5); stroke.strokeWidth = 1.5f; stroke.pathEffect = null; c.drawCircle(p.x, p.y, (BODY_R * scale).toFloat(), stroke)
-            val f = fwd(body.h); val t = px(bx + f.first * 16, by + f.second * 16); c.drawLine(p.x, p.y, t.x, t.y, stroke)
-        }
-        drawHands(c, s.hands, bodies)
-        for (ar in s.arrows) drawDashedArrow(c, if (ar.dancer == 'L') leader else follower, ar.from, ar.to)
-        // weightless feet first so landed feet sit on top
-        val order = s.feet.keys.sortedBy { k -> s.weights[k[0]]?.get(k[2]) ?: 0.0 }
-        for (k in order) {
-            val d = k[0]; val f = k[2]; val p = s.feet[k]!!
-            drawFoot(c, p, f, if (d == 'L') leader else follower, s.weights[d]?.get(f) ?: 0.0)
-        }
-        // labels
-        text.textAlign = Paint.Align.LEFT; text.textSize = (height * 0.045f).coerceAtLeast(18f); text.color = s.titleColor ?: Color.rgb(34, 34, 34)
-        c.drawText(s.title, height * 0.03f, height * 0.03f + text.textSize, text)
-        text.textAlign = Paint.Align.RIGHT; text.textSize = (height * 0.11f).coerceAtLeast(32f); text.isFakeBoldText = true; text.color = Color.rgb(34, 34, 34)
-        c.drawText(s.count, width - height * 0.03f, height * 0.03f + text.textSize * 0.85f, text)
-        text.isFakeBoldText = false
-        if (!s.banner.isNullOrBlank()) {
-            text.textAlign = Paint.Align.CENTER; text.textSize = (height * 0.12f).coerceAtLeast(28f); text.isFakeBoldText = true
-            val lines = wrap(s.banner, text, width * 0.9f)
-            val bh = lines.size * text.textSize * 1.15f
-            fill.color = withAlpha(Color.rgb(17, 17, 24), 0.78); c.drawRoundRect(width * 0.04f, height / 2f - bh / 2 - text.textSize * 0.5f, width * 0.96f, height / 2f + bh / 2 + text.textSize * 0.3f, 24f, 24f, fill)
-            text.color = context.getColor(R.color.accent)
-            lines.forEachIndexed { i, ln -> c.drawText(ln, width / 2f, height / 2f - bh / 2 + text.textSize * (i + 0.9f) * 1.15f, text) }
-            text.isFakeBoldText = false
-        }
     }
 
     private fun wrap(s: String, p: Paint, maxW: Float): List<String> {

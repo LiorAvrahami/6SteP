@@ -6,18 +6,22 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.GestureDetector
+import android.view.Gravity
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewGroup
 import android.view.WindowManager
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.abs
-import kotlin.math.max
 
 /** The exploration dance floor: swipe through the beats, strategic view (skeleton + dashed arrows) or flow view (the
- *  transition plays), swipe down for the options bar (view toggle, play on the thump tick-tick, BPM). */
+ *  transition plays), swipe down for the options bar (view toggle, play on the snare and hi-hat, BPM, the element map). */
 class FloorActivity : AppCompatActivity() {
     private lateinit var floor: FloorView
     private lateinit var bar: View
@@ -25,6 +29,8 @@ class FloorActivity : AppCompatActivity() {
     private lateinit var playBtn: ImageButton
     private lateinit var bpmBar: SeekBar
     private lateinit var bpmLabel: TextView
+    private lateinit var mapOverlay: View
+    private lateinit var mapGrid: RecyclerView
     private lateinit var data: DanceData
     private lateinit var store: CompositionStore
     private lateinit var metronome: Metronome
@@ -34,7 +40,7 @@ class FloorActivity : AppCompatActivity() {
     private var stops: List<Double> = emptyList()
     private var idx = 0
     private var strategic = true
-    private var beat = 0.0               // the beat being shown (flow view animates it)
+    private var beat = 0.0
     private var anim: ValueAnimator? = null
     private var playing = false
     private var clock: TempoClock? = null
@@ -47,6 +53,7 @@ class FloorActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         floor = findViewById(R.id.floor); bar = findViewById(R.id.optionsBar); toggle = findViewById(R.id.viewToggle)
         playBtn = findViewById(R.id.playPause); bpmBar = findViewById(R.id.bpm); bpmLabel = findViewById(R.id.bpmLabel)
+        mapOverlay = findViewById(R.id.mapOverlay); mapGrid = findViewById(R.id.mapGrid)
         data = DanceData.load(this); store = CompositionStore(this); metronome = Metronome(this)
         val prefs = getSharedPreferences("6step", MODE_PRIVATE)
         strategic = prefs.getBoolean("strategic", true); bpm = prefs.getInt("bpm", 120)
@@ -65,12 +72,13 @@ class FloorActivity : AppCompatActivity() {
         }
         val tl = Timeline(composed, 0.67); timeline = tl
         stops = listOf(0.0) + tl.beatInstants().filter { it > 0 }
-        val xs = composed.steps.map { it.x } + composed.start.values.map { it.x }; val ys = composed.steps.map { it.y } + composed.start.values.map { it.y }
-        floor.post { floor.fitTo(xs, ys, 1.2, 6.0); show() }
+        floor.post { show() }
 
         toggle.setOnClickListener { strategic = !strategic; prefs.edit().putBoolean("strategic", strategic).apply(); updateBar(); show() }
         playBtn.setOnClickListener { if (playing) stopPlay() else startPlay() }
         findViewById<ImageButton>(R.id.closeBar).setOnClickListener { hideBar() }
+        findViewById<ImageButton>(R.id.showMap).setOnClickListener { showMap() }
+        findViewById<ImageButton>(R.id.closeMap).setOnClickListener { mapOverlay.visibility = View.GONE }
         bpmBar.max = 140; bpmBar.progress = bpm - 60
         bpmBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(s: SeekBar?, p: Int, fromUser: Boolean) { bpm = p + 60; bpmLabel.text = "$bpm BPM"; clock?.let { c -> c.reanchor(c.beatNow(), SystemClock.uptimeMillis()); c.bpm = bpm.toDouble() }; metronome.resync() }
@@ -103,12 +111,12 @@ class FloorActivity : AppCompatActivity() {
     private fun showBar() { if (!barShown) { barShown = true; bar.visibility = View.VISIBLE; bar.translationY = -bar.height.toFloat(); bar.animate().translationY(0f).setDuration(180).start() } }
     private fun hideBar() { if (barShown) { barShown = false; bar.animate().translationY(-bar.height.toFloat()).setDuration(180).withEndAction { bar.visibility = View.GONE }.start() } }
 
-    /** the scene at a beat: in strategic view the landed feet of that instant carry their weight and the feet that
-     *  moved onto this instant get a dashed arrow from where they were, both dancers at once */
+    /** the scene at a beat. settled: the weight has arrived on whatever landed at this instant (the stop view).
+     *  In strategic view every foot that landed on this instant gets a dashed arrow from where it was, both dancers at once. */
     private fun sceneAt(b: Double, settled: Boolean): Scene {
         val tl = timeline!!
         val feet = tl.feetAt(b)
-        val wt = if (settled) b + Timeline.RAMP else b
+        val wt = if (settled) tl.settledAfter(b) else b
         val weights = mapOf('L' to tl.weights('L', wt), 'F' to tl.weights('F', wt))
         val arrows = ArrayList<Arrow>()
         if (strategic) {
@@ -126,9 +134,10 @@ class FloorActivity : AppCompatActivity() {
         return Scene(feet, weights, tl.handsAt(b), title, tl.countLabel(b), arrows)
     }
 
-    private fun show() { val tl = timeline ?: return; beat = stops[idx]; floor.scene = sceneAt(beat, true) }
+    private fun show() { if (timeline == null) return; beat = stops[idx]; floor.scene = sceneAt(beat, true) }
 
-    /** move one beat instant forward or back; the flow view plays the transition with a short acceleration and deceleration */
+    /** move one beat instant forward or back; the flow view plays the transition from the settled state of one instant
+     *  to the settled state of the next, with a short acceleration and deceleration, so nothing flickers at the start */
     private fun step(dir: Int) {
         val tl = timeline ?: return
         val next = idx + dir
@@ -136,14 +145,16 @@ class FloorActivity : AppCompatActivity() {
         anim?.cancel()
         val from = stops[idx]; val to = stops[next]; idx = next
         if (strategic) { show(); return }
+        val tFrom = tl.settledAfter(from); val tTo = tl.settledAfter(to)
         val a = ValueAnimator.ofFloat(0f, 1f)
         a.duration = 450
         a.interpolator = TrapezoidInterpolator(1f / 6f / 0.45f)
-        a.addUpdateListener { v -> val u = v.animatedValue as Float; beat = from + (to - from) * u; floor.scene = sceneAt(beat, u >= 0.999f) }
+        a.addUpdateListener { v -> val u = (v.animatedValue as Float).toDouble(); val t = if (dir > 0) tFrom + (tTo - tFrom) * u else tFrom - (tFrom - tTo) * u
+            beat = t; floor.scene = sceneAt(t, false) }
         a.start(); anim = a
     }
 
-    /** the beat moves along the thump tick-tick at the slider's tempo; strategic view jumps from instant to instant */
+    /** the beat moves along the snare and hi-hat at the slider's tempo; strategic view jumps from instant to instant */
     private fun startPlay() {
         val tl = timeline ?: return
         anim?.cancel()
@@ -158,12 +169,57 @@ class FloorActivity : AppCompatActivity() {
                 var i = 0; for (k in stops.indices) if (stops[k] <= b + 1e-6) i = k
                 idx = i
                 beat = if (strategic) stops[i] else b
-                floor.scene = sceneAt(beat, strategic || b - stops[i] > Timeline.RAMP)
+                floor.scene = if (strategic) sceneAt(stops[i], true) else sceneAt(b, false)
                 handler.postDelayed(this, 16)
             }
         })
     }
     private fun stopPlay() { playing = false; metronome.stop(); clock = null; updateBar(); show() }
+
+    /** the map: one small floor per element of the composition, with its name, group and annotation; tap to jump there */
+    private fun showMap() {
+        val tl = timeline ?: return
+        hideBar()
+        val items = tl.composed.elements.mapIndexed { k, e -> Pair(k, e) }
+        mapGrid.layoutManager = GridLayoutManager(this, 4)
+        mapGrid.adapter = object : RecyclerView.Adapter<MapHolder>() {
+            override fun getItemCount() = items.size
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MapHolder {
+                val col = LinearLayout(parent.context); col.orientation = LinearLayout.VERTICAL; col.setPadding(8, 8, 8, 8)
+                col.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                val thumb = FloorView(parent.context); thumb.autoCamera = false; thumb.showLabels = false
+                val side = (parent.width / 4 - 16).coerceAtLeast(120)
+                thumb.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (side * 0.75).toInt())
+                val label = TextView(parent.context); label.textSize = 12f; label.setTextColor(parent.context.getColor(R.color.ink)); label.gravity = Gravity.CENTER_HORIZONTAL
+                val note = TextView(parent.context); note.textSize = 11f; note.setTextColor(parent.context.getColor(R.color.accent)); note.gravity = Gravity.CENTER_HORIZONTAL
+                col.addView(thumb); col.addView(label); col.addView(note)
+                return MapHolder(col, thumb, label, note)
+            }
+            override fun onBindViewHolder(h: MapHolder, position: Int) {
+                val (k, e) = items[position]
+                val t = tl.settledAfter(e.start)
+                val s = Scene(tl.feetAt(t), mapOf('L' to tl.weights('L', t), 'F' to tl.weights('F', t)), tl.handsAt(t), "", "")
+                h.thumb.scene = s
+                h.thumb.post { fitThumb(h.thumb, s) }
+                h.label.text = "${k + 1}. ${e.name}" + (if (e.group != null) "\n${e.group}" else "")
+                h.note.text = e.annotation ?: (if (e.entryStart && e.entryLabel != e.name) e.entryLabel else "")
+                h.itemView.setOnClickListener {
+                    if (playing) stopPlay()
+                    var i = 0; for (j in stops.indices) if (stops[j] <= e.start + 1e-6) i = j
+                    idx = i; mapOverlay.visibility = View.GONE; show()
+                }
+            }
+        }
+        mapOverlay.visibility = View.VISIBLE
+    }
+    private fun fitThumb(v: FloorView, s: Scene) {
+        if (v.width == 0 || s.feet.isEmpty()) return
+        val xs = s.feet.values.map { it.x }; val ys = s.feet.values.map { it.y }
+        v.cx = (xs.min() + xs.max()) / 2; v.cy = (ys.min() + ys.max()) / 2
+        v.scale = minOf(v.width / (xs.max() - xs.min() + 60.0), v.height / (ys.max() - ys.min() + 60.0))
+        v.invalidate()
+    }
+    class MapHolder(view: View, val thumb: FloorView, val label: TextView, val note: TextView) : RecyclerView.ViewHolder(view)
 
     override fun onPause() { super.onPause(); if (playing) stopPlay() }
     override fun onDestroy() { super.onDestroy(); handler.removeCallbacksAndMessages(null); metronome.release() }

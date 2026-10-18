@@ -19,4 +19,5 @@
     <string name="play">Play</string>
     <string name="pause">Pause</string>
     <string name="bpm">BPM</string>
+    <string name="element_map">Element map</string>
 </resources>
