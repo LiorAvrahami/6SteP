@@ -21,6 +21,10 @@ import kotlin.math.floor
 
 /** The beat grid of a track: when every count happens. */
 class BeatGrid(val bpm: Double, val beat: Double, val swing: Double, val duration: Double, val beats: DoubleArray, val bars: DoubleArray) {
+    /** which beat index (mod 4) is the 1 of the bar; from the analysis, or from the user's taps (Sync music) */
+    var phase: Int = if (bars.isEmpty() || beats.isEmpty()) 0 else { var k = 0; for (i in beats.indices) if (abs(beats[i] - bars[0]) < abs(beats[k] - bars[0])) k = i; k % 4 }
+    /** seconds: the beats as heard sit this much after the measured ones (output latency, analysis bias); from the taps */
+    var offset: Double = 0.0
     fun beatSeconds(b: Double): Double {
         val k = floor(b).toInt(); val frac = b - k
         if (k >= 0 && k + 1 < beats.size) return beats[k] + frac * (beats[k + 1] - beats[k])
@@ -33,12 +37,10 @@ class BeatGrid(val bpm: Double, val beat: Double, val swing: Double, val duratio
         while (j + 1 < beats.size - 1 && beats[j + 1] <= s) j++
         return j + (s - beats[j]) / (beats[j + 1] - beats[j])
     }
-    /** the beat index where the dance starts: the first bar that begins at or after 3 s */
+    /** the beat index where the dance starts: the first 1 of a bar at or after 3 s */
     fun startBeatIndex(): Int {
-        val barT = bars.firstOrNull { it >= 3.0 } ?: beats[0]
-        var k0 = 0
-        for (i in beats.indices) if (abs(beats[i] - barT) < abs(beats[k0] - barT)) k0 = i
-        return k0
+        for (i in beats.indices) if (beats[i] >= 3.0 && ((i - phase) % 4 + 4) % 4 == 0) return i
+        return 0
     }
     companion object {
         fun load(ctx: Context, path: String): BeatGrid {
@@ -46,6 +48,16 @@ class BeatGrid(val bpm: Double, val beat: Double, val swing: Double, val duratio
             val ba = o.getJSONArray("beats"); val beats = DoubleArray(ba.length()) { ba.getDouble(it) }
             val bb = o.optJSONArray("bars"); val bars = if (bb == null) DoubleArray(0) else DoubleArray(bb.length()) { bb.getDouble(it) }
             return BeatGrid(o.getDouble("bpm"), o.getDouble("beat"), o.optDouble("swing", 0.67), o.optDouble("duration", beats.last()), beats, bars)
+        }
+        /** the grid with the user's calibration (Sync music) applied, when there is one */
+        fun loadFor(ctx: Context, track: Track): BeatGrid {
+            val g = load(ctx, track.gridPath)
+            val p = ctx.getSharedPreferences("6step", Context.MODE_PRIVATE)
+            if (p.contains("sync_${track.key}_phase")) {
+                g.phase = p.getInt("sync_${track.key}_phase", g.phase)
+                g.offset = p.getInt("sync_${track.key}_offset_ms", 0) / 1000.0
+            }
+            return g
         }
     }
 }
@@ -98,9 +110,9 @@ class MusicClock(val player: MediaPlayer, val grid: BeatGrid, val k0: Int, val d
     }
     private fun safePos(): Double = try { player.currentPosition / 1000.0 } catch (e: Exception) { estPos }
     @Synchronized fun resync() { estPos = Double.NaN }
-    override fun beatNow(): Double = grid.beatAt(positionSec()) - k0 + danceBeatOffset
+    override fun beatNow(): Double = grid.beatAt(positionSec() - grid.offset) - k0 + danceBeatOffset
     override fun uptimeOfBeat(b: Double): Long {
-        val s = grid.beatSeconds(b - danceBeatOffset + k0)
+        val s = grid.beatSeconds(b - danceBeatOffset + k0) + grid.offset
         return SystemClock.uptimeMillis() + ((s - positionSec()) * 1000.0).toLong()
     }
 }

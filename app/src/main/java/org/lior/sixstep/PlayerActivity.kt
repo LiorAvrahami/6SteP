@@ -62,7 +62,7 @@ class PlayerActivity : AppCompatActivity() {
         if (comp == null) { status.text = "no composition named $name"; return }
         trackOrder = ArrayList(tracks.shuffled())
         val first = trackOrder[0]
-        val g = BeatGrid.load(this, first.gridPath)
+        val g = BeatGrid.loadFor(this, first)
         val composed = Composer.compose(data, store.sequence(comp), comp.startState, g.swing)
         if (composed.errors.isNotEmpty()) { status.text = composed.errors.joinToString("\n"); return }
         val tl = Timeline(composed, g.swing); timeline = tl
@@ -103,7 +103,7 @@ class PlayerActivity : AppCompatActivity() {
     /** start track i of the shuffled order so that its first dance bar is dance beat `atBeat` */
     private fun startTrack(i: Int, atBeat: Double, countIn: Boolean) {
         val t = trackOrder[i % trackOrder.size]; trackIdx = i
-        val g = BeatGrid.load(this, t.gridPath); grid = g; k0 = g.startBeatIndex()
+        val g = BeatGrid.loadFor(this, t); grid = g; k0 = g.startBeatIndex()
         val mp = music.prepare(t)
         val startSec = g.beats[(k0 - (if (countIn) 4 else 0)).coerceAtLeast(0)]
         music.onComplete = { onTrackEnded() }
@@ -159,7 +159,7 @@ class PlayerActivity : AppCompatActivity() {
         val c = clock
         val mc = when (c) { is MusicClock -> c; is SlewClock -> c.inner as? MusicClock; else -> null }
         if (mc != null && music.player != null) {
-            val sec = mc.grid.beatSeconds(b - mc.danceBeatOffset + mc.k0)
+            val sec = mc.grid.beatSeconds(b - mc.danceBeatOffset + mc.k0) + mc.grid.offset
             if (sec < mc.grid.duration - 1.0) {
                 music.seekTo(sec); mc.resync()
                 clock = mc
@@ -203,7 +203,7 @@ class PlayerActivity : AppCompatActivity() {
             paused = false
             val mc = when (c) { is MusicClock -> c; is SlewClock -> c.inner as? MusicClock; else -> null }
             if (mc != null && music.player != null) {
-                music.seekTo(mc.grid.beatSeconds(pausedAtBeat - mc.danceBeatOffset + mc.k0)); music.resume(); mc.resync(); clock = mc
+                music.seekTo(mc.grid.beatSeconds(pausedAtBeat - mc.danceBeatOffset + mc.k0) + mc.grid.offset); music.resume(); mc.resync(); clock = mc
             } else {
                 clock = TempoClock(grid?.bpm ?: 120.0, pausedAtBeat, SystemClock.uptimeMillis()); scheduleNextTrack(pausedAtBeat)
             }

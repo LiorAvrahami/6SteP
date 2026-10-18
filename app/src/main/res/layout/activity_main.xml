@@ -36,6 +36,14 @@
             android:textSize="18sp"
             android:text="@string/explore" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/syncMusic"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/sync_music" />
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

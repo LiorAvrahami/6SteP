@@ -17,11 +17,13 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 
-/** Elements, sub-compositions and compositions: tap to explore on the floor, long-press a composition for the pencil. */
+/** Elements, sub-compositions and compositions: tap to explore on the floor, long-press a composition for the pencil.
+ *  Anything with several versions for different starting conditions is a folding row: tap to open the versions, tap again to fold. */
 class ExploreActivity : AppCompatActivity() {
     private lateinit var data: DanceData
     private lateinit var store: CompositionStore
     private lateinit var list: LinearLayout
+    private val expanded = HashSet<String>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -43,12 +45,12 @@ class ExploreActivity : AppCompatActivity() {
         tv.setPadding(16, 36, 16, 8); list.addView(tv)
     }
 
-    private fun row(title: String, subtitle: String?, onTap: () -> Unit, onEdit: (() -> Unit)? = null) {
+    private fun row(title: String, subtitle: String?, indent: Int = 0, onTap: () -> Unit, onEdit: (() -> Unit)? = null) {
         val ll = LinearLayout(this); ll.orientation = LinearLayout.HORIZONTAL; ll.gravity = Gravity.CENTER_VERTICAL
-        ll.setPadding(24, 18, 24, 18); ll.isClickable = true; ll.setBackgroundResource(android.R.drawable.list_selector_background)
+        ll.setPadding(24 + indent, 18, 24, 18); ll.isClickable = true; ll.setBackgroundResource(android.R.drawable.list_selector_background)
         val col = LinearLayout(this); col.orientation = LinearLayout.VERTICAL
         col.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        val t = TextView(this); t.text = title; t.textSize = 17f; t.setTextColor(getColor(R.color.ink)); col.addView(t)
+        val t = TextView(this); t.text = title; t.textSize = if (indent > 0) 15f else 17f; t.setTextColor(getColor(R.color.ink)); col.addView(t)
         if (subtitle != null) { val s = TextView(this); s.text = subtitle; s.textSize = 13f; s.setTextColor(getColor(R.color.muted)); col.addView(s) }
         ll.addView(col)
         var pencil: ImageButton? = null
@@ -62,22 +64,60 @@ class ExploreActivity : AppCompatActivity() {
         list.addView(ll)
     }
 
+    private fun conditionLabel(state: String, free: Char) = "from ${state.replace('_', ' ')}, ${if (free == 'L') "left" else "right"} foot free"
+
+    /** the starting conditions a sub-composition can be danced from */
+    private fun subConditions(c: Composition): List<Pair<String, Char>> {
+        val out = ArrayList<Pair<String, Char>>()
+        val seq = store.sequence(c)
+        for (state in data.states.keys) for (free in listOf('L', 'R')) {
+            val r = Composer.compose(data, seq, state, 0.67, free)
+            if (r.errors.isEmpty() && r.elements.isNotEmpty()) out.add(Pair(state, free))
+        }
+        return out
+    }
+
+    private fun openFloor(kind: String, name: String, variant: Int = 0, state: String? = null, free: Char? = null) {
+        val i = Intent(this, FloorActivity::class.java).putExtra("kind", kind).putExtra("name", name).putExtra("variant", variant)
+        if (state != null) i.putExtra("state", state)
+        if (free != null) i.putExtra("free", free.toString())
+        startActivity(i)
+    }
+
     private fun rebuild() {
         list.removeAllViews()
         header(getString(R.string.elements))
         for (name in data.names) {
             val vs = data.variants(name)
-            for ((i, v) in vs.withIndex()) {
-                row(if (vs.size > 1) "$name — ${v.conditionLabel()}" else name, "${v.beats} beats" + (if (vs.size == 1) " · " + v.conditionLabel() else ""),
-                    { startActivity(Intent(this, FloorActivity::class.java).putExtra("kind", "element").putExtra("name", name).putExtra("variant", i)) })
+            if (vs.size == 1) {
+                val v = vs[0]
+                row(name, "${v.beats} beats · " + v.conditionLabel(), 0, { openFloor("element", name, 0) })
+            } else {
+                val open = name in expanded
+                row((if (open) "▾  " else "▸  ") + name, "${vs.size} versions, by starting condition", 0, { if (open) expanded.remove(name) else expanded.add(name); rebuild() })
+                if (open) for ((i, v) in vs.withIndex()) {
+                    row(v.conditionLabel(), "${v.beats} beats", 48, { openFloor("element", name, i) })
+                }
             }
         }
         header(getString(R.string.sub_compositions))
-        for (c in store.subs) row(c.name, c.elements.joinToString(", "),
-            { startActivity(Intent(this, FloorActivity::class.java).putExtra("kind", "sub").putExtra("name", c.name)) }, { editDialog(c, false) })
+        for (c in store.subs) {
+            val conds = subConditions(c)
+            val key = "sub:" + c.name
+            if (conds.size <= 1) {
+                row(c.name, c.elements.joinToString(", "), 0, { openFloor("sub", c.name, 0, conds.firstOrNull()?.first, conds.firstOrNull()?.second) }, { editDialog(c, false) })
+            } else {
+                val open = key in expanded
+                row((if (open) "▾  " else "▸  ") + c.name, c.elements.joinToString(", ") + "  · ${conds.size} starting conditions", 0,
+                    { if (open) expanded.remove(key) else expanded.add(key); rebuild() }, { editDialog(c, false) })
+                if (open) for ((state, free) in conds) {
+                    row(conditionLabel(state, free), null, 48, { openFloor("sub", c.name, 0, state, free) })
+                }
+            }
+        }
         header(getString(R.string.compositions))
-        for (c in store.compositions) row(c.name, c.elements.joinToString(", ") + (if (c.repeat > 1) "   (x${c.repeat})" else ""),
-            { startActivity(Intent(this, FloorActivity::class.java).putExtra("kind", "composition").putExtra("name", c.name)) }, { editDialog(c, false) })
+        for (c in store.compositions) row(c.name, c.elements.joinToString(", ") + (if (c.repeat > 1) "   (x${c.repeat})" else ""), 0,
+            { openFloor("composition", c.name) }, { editDialog(c, false) })
     }
 
     /** The edit dialog: name, start, repeat, the entries with move/remove, and an add row (element, sub-composition or annotation). */

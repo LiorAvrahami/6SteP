@@ -19,9 +19,12 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.abs
+import kotlin.math.floor
 
 /** The exploration dance floor: swipe through the beats, strategic view (skeleton + dashed arrows) or flow view (the
- *  transition plays), swipe down for the options bar (view toggle, play on the snare and hi-hat, BPM, the element map). */
+ *  transition plays), swipe down for the options bar (view toggle, play on the snare and hi-hat, BPM, the element map).
+ *  Play loops the piece; when it closes on itself (same state and free foot at the end) the loop is danced on from where
+ *  the dancers are, exactly as the player does, so the last beat flows into the first. */
 class FloorActivity : AppCompatActivity() {
     private lateinit var floor: FloorView
     private lateinit var bar: View
@@ -36,8 +39,11 @@ class FloorActivity : AppCompatActivity() {
     private lateinit var metronome: Metronome
     private val handler = Handler(Looper.getMainLooper())
 
-    private var timeline: Timeline? = null
+    private var timeline: Timeline? = null       // the piece itself: what the swipes step through
+    private var loopTl: Timeline? = null         // the piece padded and chained for play; null when it cannot close
+    private var loopBeats = 0.0                  // one padded loop inside loopTl
     private var stops: List<Double> = emptyList()
+    private var loopStops: List<Double> = emptyList()
     private var idx = 0
     private var strategic = true
     private var beat = 0.0
@@ -59,19 +65,22 @@ class FloorActivity : AppCompatActivity() {
         strategic = prefs.getBoolean("strategic", true); bpm = prefs.getInt("bpm", 120)
 
         val kind = intent.getStringExtra("kind") ?: "element"; val name = intent.getStringExtra("name") ?: ""
-        val composed = when (kind) {
-            "element" -> {
-                val v = data.variants(name).getOrNull(intent.getIntExtra("variant", 0))
-                if (v == null) null else Composer.compose(data, listOf(SeqItem(name, null, null, 0, true, name)), v.startState, 0.67, v.leaderFreeStart)
-            }
-            "sub" -> store.subs.firstOrNull { it.name == name }?.let { Composer.compose(data, store.sequence(it), it.startState, 0.67) }
-            else -> store.find(name)?.let { Composer.compose(data, store.sequence(it), it.startState, 0.67) }
+        val stateExtra = intent.getStringExtra("state"); val freeExtra = intent.getStringExtra("free")?.firstOrNull()
+        var seq: List<SeqItem>? = null; var startState = "side"; var free: Char? = null
+        when (kind) {
+            "element" -> { val v = data.variants(name).getOrNull(intent.getIntExtra("variant", 0)); if (v != null) { seq = listOf(SeqItem(name, null, null, 0, true, name)); startState = v.startState; free = v.leaderFreeStart } }
+            "sub" -> store.subs.firstOrNull { it.name == name }?.let { seq = store.sequence(it); startState = stateExtra ?: it.startState; free = freeExtra }
+            else -> store.find(name)?.let { seq = store.sequence(it); startState = it.startState }
         }
-        if (composed == null || composed.errors.isNotEmpty()) {
+        val s0 = seq
+        val composed = if (s0 == null) null else Composer.compose(data, s0, startState, 0.67, free)
+        if (s0 == null || composed == null || composed.errors.isNotEmpty()) {
             floor.scene = Scene(emptyMap(), emptyMap(), emptyList(), name, "", emptyList(), composed?.errors?.joinToString("\n") ?: "nothing to show"); return
         }
         val tl = Timeline(composed, 0.67); timeline = tl
         stops = listOf(0.0) + tl.beatInstants().filter { it > 0 }
+        loopTl = chainedLoop(s0, startState, free)
+        loopStops = loopTl?.let { listOf(0.0) + it.beatInstants().filter { b -> b > 0 } } ?: stops
         floor.post { show() }
 
         toggle.setOnClickListener { strategic = !strategic; prefs.edit().putBoolean("strategic", strategic).apply(); updateBar(); show() }
@@ -102,6 +111,22 @@ class FloorActivity : AppCompatActivity() {
         floor.setOnTouchListener { v, ev -> gestures.onTouchEvent(ev); if (ev.action == MotionEvent.ACTION_UP) v.performClick(); true }
     }
 
+    /** the piece padded with triple steps until it closes, then chained many times: the loop for play mode */
+    private fun chainedLoop(seq: List<SeqItem>, startState: String, free: Char?): Timeline? {
+        val one = Composer.compose(data, seq, startState, 0.67, free, padToLoop = true)
+        if (one.errors.isNotEmpty() || !one.closes) return null
+        loopBeats = one.length
+        val names = one.elements.map { SeqItem(it.name, it.group, null, it.entryIndex, it.entryStart, it.entryLabel) }
+        val n = (400.0 / one.length).toInt().coerceIn(2, 64)
+        val chain = ArrayList<SeqItem>(); repeat(n) { chain.addAll(names) }
+        val c = Composer.compose(data, chain, startState, 0.67, free)
+        if (c.errors.isNotEmpty()) return null
+        val m = one.elements.size
+        val elements = c.elements.mapIndexed { k, e -> e.copy(filler = one.elements[k % m].filler) }
+        val steps = c.steps.map { s -> s.copy(filler = elements[s.element].filler) }
+        return Timeline(Composed(steps, elements, c.start, c.startHands, c.startState, c.startFree, c.endState, c.endFree, c.length, c.errors), 0.67)
+    }
+
     private fun updateBar() {
         toggle.setImageResource(if (strategic) R.drawable.ic_strategic else R.drawable.ic_flow)
         toggle.contentDescription = getString(if (strategic) R.string.strategic_view else R.string.flow_view)
@@ -111,10 +136,9 @@ class FloorActivity : AppCompatActivity() {
     private fun showBar() { if (!barShown) { barShown = true; bar.visibility = View.VISIBLE; bar.translationY = -bar.height.toFloat(); bar.animate().translationY(0f).setDuration(180).start() } }
     private fun hideBar() { if (barShown) { barShown = false; bar.animate().translationY(-bar.height.toFloat()).setDuration(180).withEndAction { bar.visibility = View.GONE }.start() } }
 
-    /** the scene at a beat. settled: the weight has arrived on whatever landed at this instant (the stop view).
+    /** the scene at a beat of a timeline. settled: the weight has arrived on whatever landed at this instant (the stop view).
      *  In strategic view every foot that landed on this instant gets a dashed arrow from where it was, both dancers at once. */
-    private fun sceneAt(b: Double, settled: Boolean): Scene {
-        val tl = timeline!!
+    private fun sceneAt(tl: Timeline, b: Double, settled: Boolean): Scene {
         val feet = tl.feetAt(b)
         val wt = if (settled) tl.settledAfter(b) else b
         val weights = mapOf('L' to tl.weights('L', wt), 'F' to tl.weights('F', wt))
@@ -130,14 +154,15 @@ class FloorActivity : AppCompatActivity() {
             }
         }
         val el = tl.elementAt(b)
-        val title = when { el == null -> ""; el.group != null -> el.name + "   (" + el.group + ")"; else -> el.name }
-        return Scene(feet, weights, tl.handsAt(b), title, tl.countLabel(b), arrows)
+        val title = when { el == null -> ""; el.filler -> el.name + " — triple step filler"; el.group != null -> el.name + "   (" + el.group + ")"; else -> el.name }
+        return Scene(feet, weights, tl.handsAt(b), title, tl.countLabel(b), arrows, null, if (el?.filler == true) getColor(R.color.filler) else null)
     }
 
-    private fun show() { if (timeline == null) return; beat = stops[idx]; floor.scene = sceneAt(beat, true) }
+    private fun show() { val tl = timeline ?: return; beat = stops[idx]; floor.scene = sceneAt(tl, beat, true) }
 
-    /** move one beat instant forward or back; the flow view plays the transition from the settled state of one instant
-     *  to the settled state of the next, with a short acceleration and deceleration, so nothing flickers at the start */
+    /** move one beat instant forward or back. The flow view plays the transition from the settled state of one instant to
+     *  the settled state of the next, at twice the beat length of the BPM slider, with a constant acceleration and
+     *  deceleration of about a sixth of a second at each end. */
     private fun step(dir: Int) {
         val tl = timeline ?: return
         val next = idx + dir
@@ -146,17 +171,21 @@ class FloorActivity : AppCompatActivity() {
         val from = stops[idx]; val to = stops[next]; idx = next
         if (strategic) { show(); return }
         val tFrom = tl.settledAfter(from); val tTo = tl.settledAfter(to)
+        val durationMs = (abs(to - from) * 60.0 / bpm * 2.0 * 1000.0).coerceIn(250.0, 4000.0)
+        val ramp = (1.0 / 6.0 * 1000.0 / durationMs).coerceAtMost(0.45)
         val a = ValueAnimator.ofFloat(0f, 1f)
-        a.duration = 450
-        a.interpolator = TrapezoidInterpolator(1f / 6f / 0.45f)
-        a.addUpdateListener { v -> val u = (v.animatedValue as Float).toDouble(); val t = if (dir > 0) tFrom + (tTo - tFrom) * u else tFrom - (tFrom - tTo) * u
-            beat = t; floor.scene = sceneAt(t, false) }
+        a.duration = durationMs.toLong()
+        a.interpolator = TrapezoidInterpolator(ramp.toFloat())
+        a.addUpdateListener { v -> val u = (v.animatedValue as Float).toDouble(); val t = tFrom + (tTo - tFrom) * u
+            beat = t; floor.scene = sceneAt(tl, t, false) }
         a.start(); anim = a
     }
 
-    /** the beat moves along the snare and hi-hat at the slider's tempo; strategic view jumps from instant to instant */
+    /** the beat moves along the snare and hi-hat at the slider's tempo over the chained loop; strategic view jumps from instant to instant */
     private fun startPlay() {
         val tl = timeline ?: return
+        val lt = loopTl ?: tl
+        val lstops = if (loopTl != null) loopStops else stops
         anim?.cancel()
         val c = TempoClock(bpm.toDouble(), stops[idx], SystemClock.uptimeMillis()); clock = c
         metronome.clock = c; metronome.swing = 0.67; metronome.enabled = true; metronome.resync(); metronome.start()
@@ -165,18 +194,28 @@ class FloorActivity : AppCompatActivity() {
             override fun run() {
                 if (!playing) return
                 var b = c.beatNow()
-                if (b >= tl.length) { b -= tl.length; c.reanchor(b, SystemClock.uptimeMillis()); metronome.resync() }
-                var i = 0; for (k in stops.indices) if (stops[k] <= b + 1e-6) i = k
-                idx = i
-                beat = if (strategic) stops[i] else b
-                floor.scene = if (strategic) sceneAt(stops[i], true) else sceneAt(b, false)
+                if (b >= lt.length) { b -= lt.length; c.reanchor(b, SystemClock.uptimeMillis()); metronome.resync() }
+                var i = 0; for (k in lstops.indices) if (lstops[k] <= b + 1e-6) i = k
+                beat = b
+                floor.scene = if (strategic) sceneAt(lt, lstops[i], true) else sceneAt(lt, b, false)
                 handler.postDelayed(this, 16)
             }
         })
     }
-    private fun stopPlay() { playing = false; metronome.stop(); clock = null; updateBar(); show() }
 
-    /** the map: one small floor per element of the composition, with its name, group and annotation; tap to jump there */
+    private fun stopPlay() {
+        val tl = timeline
+        playing = false; metronome.stop(); clock = null; updateBar()
+        if (tl != null) {
+            // back to the piece itself, at the beat the loop was showing
+            val local = if (loopTl != null && loopBeats > 0) beat - floor(beat / loopBeats) * loopBeats else beat
+            var i = 0; if (local < tl.length) for (k in stops.indices) if (stops[k] <= local + 1e-6) i = k
+            idx = i
+        }
+        show()
+    }
+
+    /** the map: one small floor per element of the piece, with its name, group and annotation; tap to jump there */
     private fun showMap() {
         val tl = timeline ?: return
         hideBar()

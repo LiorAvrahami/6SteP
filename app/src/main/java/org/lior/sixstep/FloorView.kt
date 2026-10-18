@@ -201,6 +201,11 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
     }
 
     private fun withAlpha(color: Int, alpha: Double): Int = (color and 0x00FFFFFF) or ((alpha.coerceIn(0.0, 1.0) * 255).toInt() shl 24)
+    private fun blend(a: Int, b: Int, u0: Double): Int {
+        val u = u0.coerceIn(0.0, 1.0)
+        fun ch(shift: Int) = (((a shr shift) and 0xFF) * (1 - u) + ((b shr shift) and 0xFF) * u).toInt().coerceIn(0, 255)
+        return Color.rgb(ch(16), ch(8), ch(0))
+    }
 
     private fun drawFoot(c: Canvas, p: Placement, side: Char, color: Int, weight: Double) {
         val poly = footPoly(p, side)
@@ -209,7 +214,7 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         val f = fwd(p.h); val r = right(p.h)
         val toe = Pair(p.x + f.first * FOOT_LEN / 2, p.y + f.second * FOOT_LEN / 2)
         val tip = Pair(toe.first + f.first * ARROW, toe.second + f.second * ARROW)
-        val acol = withAlpha(if (weight > 0.5) color else grey, max(0.45, weight))
+        val acol = withAlpha(blend(grey, color, weight), max(0.45, weight))
         stroke.color = acol; stroke.strokeWidth = max(2.0, scale * 1.4).toFloat(); stroke.pathEffect = null
         val a = px(toe.first, toe.second); val b = px(tip.first, tip.second)
         c.drawLine(a.x, a.y, b.x, b.y, stroke)
