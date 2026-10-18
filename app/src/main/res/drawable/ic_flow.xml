@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp" android:height="40dp" android:viewportWidth="40" android:viewportHeight="40">
+    <!-- a circle with five short speed lines to its left: the transition in motion -->
+    <path android:fillColor="#EB50A0" android:pathData="M26,20 m-9,0 a9,9 0 1 0 18,0 a9,9 0 1 0 -18,0" />
+    <path android:strokeColor="#F8F6F0" android:strokeWidth="2.4" android:strokeLineCap="round" android:fillColor="#00000000"
+        android:pathData="M4,12 L11,12 M2,16 L10,16 M3,20 L12,20 M2,24 L10,24 M4,28 L11,28" />
+</vector>

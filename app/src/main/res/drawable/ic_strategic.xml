@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="40dp" android:height="40dp" android:viewportWidth="40" android:viewportHeight="40">
+    <!-- an equilateral triangle with a small arc at its top corner: the skeleton with its turn -->
+    <path android:fillColor="#F0B432" android:pathData="M20,6 L34,30 L6,30 Z" />
+    <path android:fillColor="#00000000" android:strokeColor="#2E6EE6" android:strokeWidth="3"
+        android:pathData="M12,12 A10,10 0 0 1 28,12" />
+    <path android:fillColor="#2E6EE6" android:pathData="M28,12 L25,8 L31,9 Z" />
+</vector>

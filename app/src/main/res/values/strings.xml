@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">6SteP</string>
+    <string name="start_daily">Start daily exercise</string>
+    <string name="explore">Explore</string>
+    <string name="other_compositions">Other compositions</string>
+    <string name="metronome_over_music">Thump tick-tick over the music</string>
+    <string name="speak_annotations">Read annotations aloud</string>
+    <string name="elements">Elements</string>
+    <string name="sub_compositions">Sub-compositions</string>
+    <string name="compositions">Compositions</string>
+    <string name="new_composition">New composition</string>
+    <string name="edit">Edit</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="strategic_view">Strategic view</string>
+    <string name="flow_view">Flow view</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="bpm">BPM</string>
+</resources>

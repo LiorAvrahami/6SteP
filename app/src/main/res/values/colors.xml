@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="ic_launcher_background">#1C1C22</color>
+    <color name="floor">#F8F6F0</color>
+    <color name="floor_grid">#E6E3DA</color>
+    <color name="leader">#2E6EE6</color>
+    <color name="follower">#EB50A0</color>
+    <color name="ink">#222222</color>
+    <color name="muted">#777777</color>
+    <color name="accent">#F0B432</color>
+    <color name="panel">#E6111118</color>
+    <color name="filler">#8A6D00</color>
+</resources>

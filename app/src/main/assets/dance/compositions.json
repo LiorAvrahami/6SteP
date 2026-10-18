@@ -1,0 +1,115 @@
+{
+ "_about": "Compositions: named sequences of entries. An entry is an element name, a sub-composition name, or either followed by ' x N'. Sub-compositions (made of elements) are used inside compositions by name; the composer picks each element's starting condition from the previous element's end.",
+ "compositions": [
+  {
+   "name": "5 minutes exercise",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "RTT x12",
+    "follower underarm pass x8",
+    "RTT x4",
+    "lead underarm pass x8",
+    "recapture underarm pass",
+    "RTT x4",
+    "pass+recapture x8",
+    "RTT x4",
+    "rock back cutoff x12",
+    "RTT x4",
+    "pass+circle x6",
+    "RTT x6"
+   ],
+   "notes": "Daily exercise (user 2026-10-18): similar things kept together. 558 beats: 3:52 on Hot Swing (144), 4:24 on Sunday Reflection (127, longer than that track), 4:31 on Slow Your Roll (123)."
+  },
+  {
+   "name": "rock double triple step",
+   "start_state": "side",
+   "repeat": 4,
+   "elements": [
+    "rock step",
+    "triple step",
+    "triple step"
+   ],
+   "notes": "The six-count basic side by side (user 2026-10-18): rock step, left triple step drifting left, right triple step drifting right, and repeat. Four times = 24 beats."
+  },
+  {
+   "name": "rock triple step facing",
+   "start_state": "facing",
+   "repeat": 4,
+   "elements": [
+    "rock step",
+    "triple step",
+    "triple step"
+   ],
+   "notes": "The same six-count from open position with the notes' side-close-side triples (m_closed_basic)."
+  },
+  {
+   "name": "all elements demo",
+   "start_state": "side",
+   "repeat": 3,
+   "elements": [
+    "rock step",
+    "triple step",
+    "triple step",
+    "follower underarm pass",
+    "lead underarm pass",
+    "rock step",
+    "triple step",
+    "triple step",
+    "recapture underarm pass",
+    "rock back cutoff",
+    "triple step",
+    "triple step"
+   ],
+   "notes": "Every element once, for review. The cutoff ends side by side facing back; two side-by-side triples close the sequence."
+  },
+  {
+   "name": "test",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "rock step",
+    "triple step",
+    "triple step",
+    "follower underarm pass",
+    "lead underarm pass",
+    "lead underarm pass",
+    "rock step"
+   ],
+   "notes": ""
+  }
+ ],
+ "sub_compositions": [
+  {
+   "name": "RTT",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "rock step",
+    "triple step",
+    "triple step"
+   ],
+   "notes": "Rock step, triple step, triple step: the six-count basic (user 2026-10-18). Works from side and from facing."
+  },
+  {
+   "name": "pass+recapture",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "follower underarm pass",
+    "recapture underarm pass"
+   ],
+   "notes": "Out to face to face and back to side by side."
+  },
+  {
+   "name": "pass+circle",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "follower underarm pass",
+    "circle"
+   ],
+   "notes": "Out with the pass, home with the circle."
+  }
+ ]
+}

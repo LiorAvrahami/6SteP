@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:textColor="@color/ink" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/startDaily"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:paddingTop="18dp"
+            android:paddingBottom="18dp"
+            android:textSize="20sp"
+            android:text="@string/start_daily" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/explore"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:textSize="18sp"
+            android:text="@string/explore" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/other_compositions"
+            android:textColor="@color/muted" />
+
+        <LinearLayout
+            android:id="@+id/compositionList"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/metronomeOverMusic"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:text="@string/metronome_over_music" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/speakAnnotations"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/speak_annotations" />
+    </LinearLayout>
+</ScrollView>

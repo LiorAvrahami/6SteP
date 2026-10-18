@@ -1,0 +1,34 @@
+{
+ "tracks": [
+  {
+   "key": "hot",
+   "title": "Hot Swing",
+   "artist": "Kevin MacLeod (incompetech.com)",
+   "licence": "CC BY 4.0",
+   "bpm": 144.0,
+   "duration": 314.969,
+   "file": "music/hot.mp3",
+   "grid": "dance/beatgrids/hot.json"
+  },
+  {
+   "key": "sunday",
+   "title": "Sunday Reflection",
+   "artist": "Laughing Manny & The Swinging Dicks",
+   "licence": "CC BY-NC-SA",
+   "bpm": 126.8,
+   "duration": 154.68,
+   "file": "music/sunday.mp3",
+   "grid": "dance/beatgrids/sunday.json"
+  },
+  {
+   "key": "slow",
+   "title": "Slow Your Roll",
+   "artist": "Laughing Manny & The Swinging Dicks",
+   "licence": "CC BY-NC-SA",
+   "bpm": 123.3,
+   "duration": 129.84,
+   "file": "music/slow.mp3",
+   "grid": "dance/beatgrids/slow.json"
+  }
+ ]
+}
