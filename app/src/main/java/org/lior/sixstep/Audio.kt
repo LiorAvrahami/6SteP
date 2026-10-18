@@ -49,16 +49,8 @@ class BeatGrid(val bpm: Double, val beat: Double, val swing: Double, val duratio
             val bb = o.optJSONArray("bars"); val bars = if (bb == null) DoubleArray(0) else DoubleArray(bb.length()) { bb.getDouble(it) }
             return BeatGrid(o.getDouble("bpm"), o.getDouble("beat"), o.optDouble("swing", 0.67), o.optDouble("duration", beats.last()), beats, bars)
         }
-        /** the grid with the user's calibration (Sync music) applied, when there is one */
-        fun loadFor(ctx: Context, track: Track): BeatGrid {
-            val g = load(ctx, track.gridPath)
-            val p = ctx.getSharedPreferences("6step", Context.MODE_PRIVATE)
-            if (p.contains("sync_${track.key}_phase")) {
-                g.phase = p.getInt("sync_${track.key}_phase", g.phase)
-                g.offset = p.getInt("sync_${track.key}_offset_ms", 0) / 1000.0
-            }
-            return g
-        }
+        /** the grid of a track (the beats annotated by ear in the beat annotator when that was done) */
+        fun loadFor(ctx: Context, track: Track): BeatGrid = load(ctx, track.gridPath)
     }
 }
 

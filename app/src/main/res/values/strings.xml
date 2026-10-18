@@ -20,8 +20,4 @@
     <string name="pause">Pause</string>
     <string name="bpm">BPM</string>
     <string name="element_map">Element map</string>
-    <string name="sync_music">Sync music (tap the 1)</string>
-    <string name="sync_start">Start</string>
-    <string name="sync_reset">Reset</string>
-    <string name="sync_tap">tap here on every 1</string>
 </resources>

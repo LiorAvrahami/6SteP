@@ -38,7 +38,9 @@ class ExploreActivity : AppCompatActivity() {
         }
     }
 
-    override fun onResume() { super.onResume(); store.load(); rebuild() }
+    // the store is loaded once in onCreate; nothing else writes it while this screen is up, and reloading here would
+    // orphan a composition held by an open edit dialog (review finding)
+    override fun onResume() { super.onResume(); rebuild() }
 
     private fun header(text: String) {
         val tv = TextView(this); tv.text = text; tv.textSize = 20f; tv.setTypeface(null, Typeface.BOLD)
@@ -167,17 +169,21 @@ class ExploreActivity : AppCompatActivity() {
             renderEntries()
         }
         val scroll = ScrollView(this); scroll.addView(root)
+        val originalName = c.name
+        fun target(): Composition = (if (c.isSub) store.subs.firstOrNull { it.name == originalName } else store.find(originalName)) ?: c
         val b = AlertDialog.Builder(this).setTitle(if (isNew) getString(R.string.new_composition) else getString(R.string.edit)).setView(scroll)
             .setPositiveButton(R.string.save) { _, _ ->
-                c.name = name.text.toString().trim().ifEmpty { c.name }; c.startState = states[start.selectedItemPosition]
-                c.repeat = maxOf(1, repeat.text.toString().toIntOrNull() ?: 1)
-                c.elements.clear(); c.elements.addAll(entries)
-                if (isNew) store.compositions.add(c)
+                val t = if (isNew) c else target()
+                t.name = name.text.toString().trim().ifEmpty { t.name }; t.startState = states[start.selectedItemPosition]
+                t.repeat = maxOf(1, repeat.text.toString().toIntOrNull() ?: 1)
+                t.elements.clear(); t.elements.addAll(entries)
+                if (isNew) store.compositions.add(t)
                 store.save(); rebuild()
             }
             .setNegativeButton(R.string.cancel, null)
         if (!isNew) b.setNeutralButton(R.string.delete) { _, _ ->
-            if (c.isSub) store.subs.remove(c) else store.compositions.remove(c)
+            val t = target()
+            if (t.isSub) store.subs.remove(t) else store.compositions.remove(t)
             store.save(); rebuild()
         }
         b.show()

@@ -21,7 +21,6 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, PlayerActivity::class.java).putExtra("composition", daily.name).putExtra("daily", true))
         }
         findViewById<MaterialButton>(R.id.explore).setOnClickListener { startActivity(Intent(this, ExploreActivity::class.java)) }
-        findViewById<MaterialButton>(R.id.syncMusic).setOnClickListener { startActivity(Intent(this, SyncActivity::class.java)) }
 
         val metro = findViewById<MaterialSwitch>(R.id.metronomeOverMusic)
         metro.isChecked = prefs.getBoolean("metronome_over_music", false)
