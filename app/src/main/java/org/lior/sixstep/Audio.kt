@@ -142,12 +142,16 @@ class Metronome(ctx: Context) {
 /** Reads annotations aloud: Google Translate's speech endpoint, cached per phrase; the phone's own voice when offline. */
 class Speaker(private val ctx: Context) {
     private var ready = false
-    private val tts: TextToSpeech = TextToSpeech(ctx) { status ->
-        ready = status == TextToSpeech.SUCCESS
-        if (ready) tts.language = Locale.US
-    }
+    private lateinit var tts: TextToSpeech
     private var player: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
+
+    init {
+        tts = TextToSpeech(ctx) { status ->
+            ready = status == TextToSpeech.SUCCESS
+            if (ready) tts.language = Locale.US
+        }
+    }
 
     private fun cacheFile(text: String): File {
         val md = MessageDigest.getInstance("MD5").digest(text.toByteArray(Charsets.UTF_8))
