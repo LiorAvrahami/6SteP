@@ -272,7 +272,7 @@ def main():
         d.text((24, 18), name, fill=(30, 30, 30), font=font)
         if e is not None:
             d.text((W - 24, 12), count_label(comp, b, swing), fill=(30, 30, 30), font=big, anchor='ra')
-        d.text((24, H - 30), 'leader blue, follower pink; opacity = weight; L/R at the heel', fill=(110, 110, 110), font=small)
+        d.text((24, H - 30), 'leader blue, follower pink; opacity = weight; the pointed toe is on the big-toe side', fill=(110, 110, 110), font=small)
         frame = img.convert('RGB')
         try:
             proc.stdin.write(frame.tobytes())

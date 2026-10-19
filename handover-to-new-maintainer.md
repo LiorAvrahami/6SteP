@@ -232,6 +232,8 @@ beat annotator (`python music/tools/beat_annotator/server.py`, port 8772). After
   step is seen leaving it), a piece that does not close restarts from there when played, a double tap plays or stops, and
   a loop is padded with triple steps only to bring the free foot back (a rock step alone plays as rock steps; the editor's
   `model.compose` follows the same rule). The lurklurk zip is in `reference/lurklurk/` on this clone (git-ignored).
+  After v15 (PC side only, no release): the storyboards and videos draw the app's shoe soles (`dance/shoe.py`, shared with
+  `design/make_icon.py`; the app's `FloorView.kt` holds a Kotlin copy of the same numbers).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

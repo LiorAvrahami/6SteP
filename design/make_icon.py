@@ -17,34 +17,20 @@ FONT = '/usr/share/fonts/opentype/inter/Inter-ExtraBold.otf'
 
 def px(v): return int(round(v * S))
 
-# the shoe sole of the app's floor (FloorView.kt: `sole` and `heel`), for a LEFT shoe: u across (+ = the big-toe side),
-# v along (+ = the toe), in cm; a start point, then cubic segments (control 1, control 2, end). A right shoe is the mirror.
-SOLE = [(2.6, -3.0), ((3.0, 0.5), (4.8, 3.0), (4.6, 6.0)), ((4.4, 9.5), (2.8, 12.4), (1.2, 13.0)),
-        ((-0.6, 13.4), (-5.2, 8.5), (-5.0, 4.5)), ((-4.9, 1.5), (-3.6, -1.0), (-3.4, -3.0)), ((-1.5, -2.7), (0.8, -2.7), (2.6, -3.0))]
-HEEL = [(2.7, -4.4), ((2.9, -6.5), (2.9, -9.5), (2.4, -11.0)), ((1.9, -12.5), (0.9, -13.0), (-0.4, -13.0)),
-        ((-1.8, -13.0), (-2.8, -12.4), (-3.3, -11.0)), ((-3.8, -9.5), (-3.6, -6.5), (-3.4, -4.4)), ((-1.3, -4.1), (0.6, -4.1), (2.7, -4.4))]
-SOLE_LEN = 26.4   # cm from the heel's back to the toe's point
-
-
-def _bezier(shape, n=24):
-    pts = [shape[0]]; p0 = shape[0]
-    for c1, c2, p3 in shape[1:]:
-        for i in range(1, n + 1):
-            t = i / n; a, b, c, d = (1 - t) ** 3, 3 * (1 - t) ** 2 * t, 3 * (1 - t) * t * t, t ** 3
-            pts.append((a * p0[0] + b * c1[0] + c * c2[0] + d * p3[0], a * p0[1] + b * c1[1] + c * c2[1] + d * p3[1]))
-        p0 = p3
-    return pts
+# the shoe sole of every picture (dance/shoe.py; the app has a Kotlin copy in FloorView.kt)
+sys.path.insert(0, os.path.join(HERE, '..', 'dance'))
+import shoe as SHOE
 
 
 def shoe(draw, cx, cy, length, angle_deg, side, colour):
     """a shoe sole `length` long (512 units) centred on (cx, cy); angle 0 = toe up, positive = clockwise; side 'L' or 'R'"""
-    k = length / SOLE_LEN; m = 1 if side == 'L' else -1
+    k = length / SHOE.LENGTH
     a = math.radians(angle_deg); ca, sa = math.cos(a), math.sin(a)
-    centre_v = (13.4 - 13.0) / 2   # the outline runs from v = -13.0 to 13.4
-    for shape in (SOLE, HEEL):
+    centre_v = (SHOE.V_MAX + SHOE.V_MIN) / 2
+    for piece in SHOE.outlines(side, n=24):
         out = []
-        for u, v in _bezier(shape):
-            u, v = u * m * k, (v - centre_v) * k
+        for u, v in piece:
+            u, v = u * k, (v - centre_v) * k
             out.append((px(cx + u * ca + v * sa), px(cy + u * sa - v * ca)))
         draw.polygon(out, fill=colour)
 

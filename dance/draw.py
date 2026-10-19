@@ -2,12 +2,12 @@
 import math
 from PIL import Image, ImageDraw, ImageFont
 from model import fwd, right, add, dist, SHOULDER_HALF, ARM_MAX, BODY_DIAM, FOOT_DIAM
+import shoe
 
 LEADER_RGB = (46, 110, 230)
 FOLLOWER_RGB = (235, 80, 160)
 GREY = (120, 120, 120)
-FOOT_LEN, FOOT_WID = 26.0, 10.0   # cm, silhouette size
-ARROW_LEN = 9.0                   # cm, the heading arrow out of the toe
+FOOT_LEN = shoe.LENGTH            # cm, the shoe from heel to toe
 
 def _font(size):
     for name in ('arial.ttf', 'DejaVuSans.ttf'):
@@ -24,27 +24,11 @@ class View:
     def px(self, p):
         return (self.w / 2 + (p[0] - self.cx) * self.scale, self.h / 2 - (p[1] - self.cy) * self.scale)
 
-def foot_polygon(x, y, heading, side):
-    """Outline of a foot silhouette (toe forward, slight asymmetry so left and right differ), in cm."""
+def foot_polygons(x, y, heading, side):
+    """The shoe sole of a foot (shoe.py: the front sole and the heel, as two polygons), in world cm. Its pointed toe shows
+    where the foot faces; the big-toe side tells left from right (user 2026-10-19: the same shoes as the app)."""
     f = fwd(heading); r = right(heading)
-    s = 1.0 if side == 'R' else -1.0
-    pts = []
-    # a rounded sole: heel semicircle, toe wider on the big-toe side
-    n = 10
-    for i in range(n + 1):  # toe arc, from outer side to inner side
-        a = math.pi * i / n
-        px = math.cos(a) * FOOT_WID / 2 * (1.0 + 0.25 * (1 if math.cos(a) * s < 0 else 0))
-        py = FOOT_LEN / 2 - FOOT_WID / 2 + math.sin(a) * FOOT_WID / 2 * 1.15
-        pts.append((px, py))
-    for i in range(n + 1):  # heel arc
-        a = math.pi + math.pi * i / n
-        pts.append((math.cos(a) * FOOT_WID / 2 * 0.85, -FOOT_LEN / 2 + FOOT_WID / 2 * 0.85 + math.sin(a) * FOOT_WID / 2 * 0.85))
-    out = []
-    for px, py in pts:
-        wx = x + px * r[0] + py * f[0]
-        wy = y + px * r[1] + py * f[1]
-        out.append((wx, wy))
-    return out
+    return [[(x + u * r[0] + v * f[0], y + u * r[1] + v * f[1]) for u, v in piece] for piece in shoe.outlines(side)]
 
 def _blend(img, pts, draw_fn, pad=6):
     """Draw translucent shapes through a layer the size of their bounding box (not the whole frame) and composite it.
@@ -59,29 +43,14 @@ def _blend(img, pts, draw_fn, pad=6):
     img.alpha_composite(layer, dest=(x0, y0))
 
 def draw_foot(img, view, x, y, heading, side, rgb, weight, outline=None):
-    """Grey base at 0.2 under the colour at opacity = weight (user Q7)."""
-    poly = [view.px(p) for p in foot_polygon(x, y, heading, side)]
-    _blend(img, poly, lambda d, ox, oy: d.polygon([(px - ox, py - oy) for px, py in poly], fill=GREY + (int(255 * 0.2),)))
-    if weight > 0.001:
-        _blend(img, poly, lambda d, ox, oy: d.polygon([(px - ox, py - oy) for px, py in poly], fill=rgb + (int(255 * max(0.0, min(1.0, weight))),)))
-    if outline:
-        ImageDraw.Draw(img).polygon(poly, outline=outline)
-    # arrow out of the toe, pointing where the foot faces (user 2026-10-18)
-    f = fwd(heading); r = right(heading)
-    toe = (x + f[0] * FOOT_LEN / 2, y + f[1] * FOOT_LEN / 2)
-    tip = (toe[0] + f[0] * ARROW_LEN, toe[1] + f[1] * ARROW_LEN)
-    acol = (rgb if weight > 0.5 else GREY) + (int(255 * max(0.45, weight)),)
-    lw = max(2, int(view.scale * 1.6))
-    head = [tip, (tip[0] - f[0] * 5 + r[0] * 3.5, tip[1] - f[1] * 5 + r[1] * 3.5), (tip[0] - f[0] * 5 - r[0] * 3.5, tip[1] - f[1] * 5 - r[1] * 3.5)]
-    pts = [view.px(toe), view.px(tip)] + [view.px(q) for q in head]
-    def arrow(d, ox, oy):
-        d.line([(pts[0][0] - ox, pts[0][1] - oy), (pts[1][0] - ox, pts[1][1] - oy)], fill=acol, width=lw)
-        d.polygon([(q[0] - ox, q[1] - oy) for q in pts[2:]], fill=acol)
-    _blend(img, pts, arrow, pad=lw + 4)
-    # letter L/R at the heel
-    hp = view.px((x - f[0] * FOOT_LEN * 0.22, y - f[1] * FOOT_LEN * 0.22))
-    fnt = _font(max(9, int(view.scale * 7)))
-    ImageDraw.Draw(img).text(hp, side, fill=(255, 255, 255), font=fnt, anchor='mm')
+    """A shoe: grey base at 0.2 under the colour at opacity = weight (user Q7). No arrow or letter, as in the app."""
+    for piece in foot_polygons(x, y, heading, side):
+        poly = [view.px(p) for p in piece]
+        _blend(img, poly, lambda d, ox, oy: d.polygon([(px - ox, py - oy) for px, py in poly], fill=GREY + (int(255 * 0.2),)))
+        if weight > 0.001:
+            _blend(img, poly, lambda d, ox, oy: d.polygon([(px - ox, py - oy) for px, py in poly], fill=rgb + (int(255 * max(0.0, min(1.0, weight))),)))
+        if outline:
+            ImageDraw.Draw(img).polygon(poly, outline=outline)
 
 def body(feet, weights=None):
     """Body centre and heading from the two feet (dict 'L','R' -> (x,y,h))."""

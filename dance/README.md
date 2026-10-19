@@ -14,7 +14,8 @@ Built 2026-10-17, revised 2026-10-18 from the user's feedback. Sources: `handove
 | `model.py` | Shared model: units, rule constants, facing states, element lookup, composing a sequence of elements into a world timeline, compositions. |
 | `check.py` | Checks every skeleton against the hard rules and the notation; `--storyboard` draws one PNG per skeleton into `out/` for review by eye. Exit 1 on any error. |
 | `render.py` | Element names or `--composition NAME` -> MP4 with the music, timed on the track's beat grid. |
-| `draw.py` | Foot silhouettes with heading arrows, bodies, arms (shared by the storyboards and the video). |
+| `draw.py` | Feet as shoe soles (no arrow or letter, as in the app), bodies, arms (shared by the storyboards and the video). |
+| `shoe.py` | The shoe-sole outline every picture uses: `draw.py`, `design/make_icon.py`, and a Kotlin copy in the app's `FloorView.kt`. |
 | `diff.py` | Prints the user's edits (current vs baseline) step by step; `--accept` moves the baseline forward. |
 | `editor/server.py`, `editor/index.html` | The web app on <http://127.0.0.1:8771> : element editor and composition viewer. |
 | `out/` | Storyboards and rendered videos (generated; safe to delete). |
@@ -52,8 +53,8 @@ previous one, so the composer picks the variant itself and refuses a sequence th
 
 ## Conventions
 
-- **Units**: cm. Natural stance 20 cm between a dancer's feet (user). Foot silhouette 26 x 10 cm with a 9 cm arrow out of the toe
-  showing where the foot faces (drawing only).
+- **Units**: cm. Natural stance 20 cm between a dancer's feet (user). Feet are drawn as shoe soles 26 x 10 cm (`shoe.py`): the
+  pointed toe shows where the foot faces and sits on the big-toe side (drawing only; the editor still draws arrows).
 - **Frame**: each skeleton is written in the frame of its start: the leader's left foot at (0, 0), heading 0 = +y = the leader's
   forward, +x = his right. Heading in degrees, clockwise seen from above (lurklurk's `R` is positive).
 - **Facing states** (`states` in the JSON) fix all four feet relative to the leader's left foot:
