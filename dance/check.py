@@ -13,7 +13,8 @@ import sys, os, re, math, argparse
 from PIL import Image, ImageDraw
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import model
-from model import dist, right, add, norm_angle, STANCE, MAX_SPREAD, FOOT_DIAM, BODY_DIAM, ARM_MAX
+from model import dist, right, add, norm_angle, STANCE, MAX_SPREAD, FOOT_DIAM, BODY_DIAM, ARM_MAX, MIN_GAP
+import shoe
 import draw
 
 OWN_FEET_MIN = 10.0   # own feet may touch; below this they overlap (agent threshold, warn only)
@@ -98,12 +99,13 @@ def check_element(elem, states, out):
         anyex = any(exempt.values())
         for lf in ('L.L', 'L.R'):
             for ff in ('F.L', 'F.R'):
-                dd = dist(feet[lf], feet[ff])
-                if dd < FOOT_DIAM - 1e-6:
+                # the shoe outlines stay MIN_GAP apart (user 2026-10-19; until then 20 cm circles on the foot centres)
+                dd = shoe.gap(feet[lf], lf[2], feet[ff], ff[2])
+                if dd < MIN_GAP - 0.05:
                     if exempt[lf] or exempt[ff]:
-                        exempted.append(f"count {count}: {lf} and {ff} {dd:.0f} cm apart, exempt (close hold in the notes)")
+                        exempted.append(f"count {count}: {lf} and {ff} shoes {dd:.1f} cm apart, exempt (close hold in the notes)")
                     else:
-                        errs.append(f"count {count}: feet collide: {lf} and {ff} are {dd:.0f} cm apart (min {FOOT_DIAM:.0f})")
+                        errs.append(f"count {count}: feet too close: the shoes of {lf} and {ff} are {dd:.1f} cm apart (min {MIN_GAP:.0f})")
         bl = draw.body({'L': feet['L.L'], 'R': feet['L.R']})
         bf = draw.body({'L': feet['F.L'], 'R': feet['F.R']})
         bd = dist(bl, bf)
@@ -122,8 +124,8 @@ def check_element(elem, states, out):
         for conn in hands:
             for (d, hs, sh, hand, raised, ok) in draw.resolve_hand(conn, bodies):
                 reach = dist(sh, hand)
-                if not ok:
-                    errs.append(f"count {count}: hand {conn}: {d}'s {hs} shoulder is {reach:.0f} cm from the hand point (arm max {ARM_MAX:.0f})")
+                if not ok:   # hands are set aside for now (user 2026-10-19): out of reach is a warning, not an error
+                    warns.append(f"count {count}: hand {conn}: {d}'s {hs} shoulder is {reach:.0f} cm from the hand point (arm max {ARM_MAX:.0f})")
     # 4. end state
     end_frame = model.element_end_frame(elem)
     nom_end = model.state_feet({'states': states}, elem['end_state'])
@@ -184,9 +186,10 @@ def storyboard(elem, states, path):
         if count in changes and count != 'start':
             hands = list(changes[count])
         bodies = {'L': draw.body({'L': feet['L.L'], 'R': feet['L.R']}), 'F': draw.body({'L': feet['F.L'], 'R': feet['F.R']})}
-        draw.draw_body(sub, view, bodies['L'], draw.LEADER_RGB)
-        draw.draw_body(sub, view, bodies['F'], draw.FOLLOWER_RGB)
-        for conn in hands:
+        if draw.SHOW_BODIES:
+            draw.draw_body(sub, view, bodies['L'], draw.LEADER_RGB)
+            draw.draw_body(sub, view, bodies['F'], draw.FOLLOWER_RGB)
+        for conn in (hands if draw.SHOW_HANDS else []):
             for (dn, hs, sh, hand, raised, ok) in draw.resolve_hand(conn, bodies):
                 draw.draw_arm(sub, view, dn, hs, sh, hand, raised, ok, alpha=200)
         for key, (x, y, h) in feet.items():

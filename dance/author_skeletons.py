@@ -33,17 +33,19 @@ REVERSED_SIDE_HANDS = ['LL-back', 'FR-lshoulder']   # m_closed_changing_places c
 OPEN_HANDS = ['LL-FR']                              # m_dance_positions: Open
 CLOSED_HANDS = ['LL-FR', 'LR-back', 'FL-rshoulder']
 
-# face to face: the facing feet 20 cm apart toe to toe (user 2026-10-19), so with 26 cm feet their centres are 46 cm apart
-FOOT_LEN = 26
-FACE = 20 + FOOT_LEN
+# face to face: the facing shoes 5 cm apart toe to toe, so their centres are 31 cm apart; side by side: his right shoe and her
+# left shoe 4 cm apart, so their centres are 14 cm apart (user 2026-10-19; measured with dance/shoe.py: shoe.gap)
+FACE = 31.0
+SIDE = 14.0
+SL, SR = 20 + SIDE, 40 + SIDE   # her feet's x in the side state
 
 STATES = {
-    'side': {'desc': "Side by side, both facing the same way, follower on the leader's right (the user's basic position). 45 cm between body centres (agent guess).",
-             'feet': {'L.L': (0, 0, 0), 'L.R': (20, 0, 0), 'F.L': (45, 0, 0), 'F.R': (65, 0, 0)}, 'leader_free': 'L', 'hands': SIDE_HANDS},
-    'facing': {'desc': f"Facing each other, open hold, leader's left hand holding the follower's right. {FACE:.0f} cm between body centres: a 20 cm gap between the toes of the facing feet (user 2026-10-19; it was 70, user Q5).",
+    'side': {'desc': f"Side by side, both facing the same way, follower on the leader's right (the user's basic position). His right shoe and her left shoe 4 cm apart: {SIDE + 20:.0f} cm between body centres (user 2026-10-19; it was 45, an agent guess).",
+             'feet': {'L.L': (0, 0, 0), 'L.R': (20, 0, 0), 'F.L': (SL, 0, 0), 'F.R': (SR, 0, 0)}, 'leader_free': 'L', 'hands': SIDE_HANDS},
+    'facing': {'desc': f"Facing each other, open hold, leader's left hand holding the follower's right. {FACE:.0f} cm between body centres: a 5 cm gap between the toes of the facing shoes (user 2026-10-19; it was 70, user Q5).",
                'feet': {'L.L': (0, 0, 0), 'L.R': (20, 0, 0), 'F.L': (20, FACE, 180), 'F.R': (0, FACE, 180)}, 'leader_free': 'L', 'hands': OPEN_HANDS},
-    'reversed_side': {'desc': "Side by side, follower on the leader's LEFT, his left arm around her back (lurklurk Closed Changing Places; user Q1). 45 cm between centres.",
-                      'feet': {'L.L': (0, 0, 0), 'L.R': (20, 0, 0), 'F.L': (-45, 0, 0), 'F.R': (-25, 0, 0)}, 'leader_free': 'L', 'hands': REVERSED_SIDE_HANDS},
+    'reversed_side': {'desc': "Side by side, follower on the leader's LEFT, his left arm around her back (lurklurk Closed Changing Places; user Q1). Her right shoe 4 cm from his left.",
+                      'feet': {'L.L': (0, 0, 0), 'L.R': (20, 0, 0), 'F.L': (-SIDE - 20, 0, 0), 'F.R': (-SIDE, 0, 0)}, 'leader_free': 'L', 'hands': REVERSED_SIDE_HANDS},
 }
 
 elements = []
@@ -55,7 +57,7 @@ def E(name, start, end, beats, source, notes, steps, hands=None, leader_free_sta
 
 
 # ---------------------------------------------------------------- rock step (2 beats): one element, variants by start state and free foot (user 2026-10-18: merge)
-SIDE_LIKE = [('side', 45, 65)]   # reversed_side (follower on his left) is defined as a state but no element leads there since the 2026-10-18 cutoff rebuild
+SIDE_LIKE = [('side', SL, SR)]   # reversed_side (follower on his left) is defined as a state but no element leads there since the 2026-10-18 cutoff rebuild
 for st, flx, frx in SIDE_LIKE:
     E('rock step', st, st, 2, 'm_closed_basic / m_closed_changing_places counts 1-2 (M:BL W:BR, M:RR W:RL); side position per the user',
       "Back step length 30 cm is a guess. Weight ends on the leader's right / follower's left; the free feet stay back until the next element moves them.",
@@ -100,6 +102,9 @@ E('triple step', 'facing', 'facing', 2, 'm_closed_basic counts 5&6: M:eSR W:eSL,
    S('6', 'L', 'R', 'eSR', 40, 0, 0), S('6', 'F', 'L', 'eSL', 40, FACE, 180)], leader_free_start='R')
 
 # ---------------------------------------------------------------- rock back cutoff (6 beats), side -> side, the couple turned 180 and moved forward
+# On 2026-10-19 the side state moved her start 11 cm closer to him (his right shoe and her left 4 cm apart); her counts 1-4,
+# which the user placed from the old start, move with it (CUT_DX); her counts 5-6 and all his steps are exactly the user's.
+CUT_DX = 65 - SR
 # Every placement below is the user's, made in the editor on 2026-10-18 (both dancers). The agent's earlier version (he lunges
 # to (58,20), she swings round behind him to (-25,45)) was replaced by this tighter one. Codes are the agent's description of
 # each step; the user's headings are not on the 45-degree grid, so the notation checks only warn for these steps.
@@ -109,11 +114,11 @@ E('rock back cutoff', 'side', 'side', 6,
   "closes on 4, comes forward-left round behind him on 5 turning right, back on 5& and 6, ending on his right, both facing back.",
   "As placed, the couple ends 35 cm apart (the side state says 45) and her left foot is 15 cm from his right (the rule says 20): open questions for the user. "
   "Her 5& step is 83 cm (she is dragged to her final spot in one step).",
-  [S(1, 'L', 'L', 'BL', 0, -30, 0, 'user'), S(1, 'F', 'R', 'BR', 65, -30, 0, 'user'),
-   S(2, 'L', 'R', 'BR', 21, -31, 0, 'user', 'right foot back as well'), S(2, 'F', 'L', 'BL', 44, -29, 0, 'user', 'left foot back as well'),
-   S(3, 'L', 'L', 'DfL2R', 52, 19, 80, 'user', 'the cutoff: across her path'), S(3, 'F', 'R', 'RR', 65, -30, 5, 'user', 'cut off: stays, turned a little'),
-   S('3&', 'L', 'R', 'FR2R', 38, 1, 155, 'user', 'right matches'), S('3&', 'F', 'L', 'SL', 31, -23, 20, 'user', 'slides left'),
-   S(4, 'L', 'L', 'SL', 61, 8, 150, 'user', 'a small step'), S(4, 'F', 'R', 'TR', 53, -29, 20, 'user', 'right closes'),
+  [S(1, 'L', 'L', 'BL', 0, -30, 0, 'user'), S(1, 'F', 'R', 'BR', 65 - CUT_DX, -30, 0, 'user', 'shifted with her start (agent 2026-10-19)'),
+   S(2, 'L', 'R', 'BR', 21, -31, 0, 'user', 'right foot back as well'), S(2, 'F', 'L', 'BL', 44 - CUT_DX + 2, -29, 0, 'user', 'left foot back as well; shifted with her start, and 2 cm more so that her shoe stays 4 cm from his'),
+   S(3, 'L', 'L', 'DfL2R', 52, 19, 80, 'user', 'the cutoff: across her path'), S(3, 'F', 'R', 'RR', 65 - CUT_DX, -30, 5, 'user', 'cut off: stays, turned a little; shifted with her start'),
+   S('3&', 'L', 'R', 'FR2R', 38, 1, 155, 'user', 'right matches'), S('3&', 'F', 'L', 'SL', 31 - CUT_DX, -23, 20, 'user', 'slides left; shifted with her start'),
+   S(4, 'L', 'L', 'SL', 61, 8, 150, 'user', 'a small step'), S(4, 'F', 'R', 'TR', 53 - CUT_DX, -29, 20, 'user', 'right closes; shifted with her start'),
    S(5, 'L', 'R', 'BR1R', 32, 23, 180, 'user', 'right foot back onto the line, facing back'), S(5, 'F', 'L', 'DfL2R', 14, 12, 125, 'user', 'forward-left round behind him, turning right'),
    S('5&', 'L', 'L', 'DbL', 50, 31, 180, 'user', 'left matches'), S('5&', 'F', 'R', 'BR1R', -6, 29, 180, 'user', 'back, 83 cm, to her final spot'),
    S(6, 'L', 'R', 'eBR', 31, 35, 180, 'user', 'a small back step; she is on his right'), S(6, 'F', 'L', 'BL', 16, 37, 180, 'user', 'back, beside him')],
@@ -123,8 +128,8 @@ E('rock back cutoff', 'side', 'side', 6,
 E('follower underarm pass', 'side', 'facing', 6, 'Counts and feet: m_changing_places (rock step, triple, triple). Shape: user Q2: from side by side she goes under the raised left arm and turns CLOCKWISE 180 in the two triples, ending in front of the leader facing him; the leader stays put. The cross step on 4 is written the way m_turn_under writes her turn (XL4R there). Confirmed by the user 2026-10-18.',
   "She walks forward and across his front (3, 3&), crosses her right foot in front turning 90 R under the hands (4), then backs round the remaining 90 (5, 5&) and settles facing him (6). Headings 0, 0, 90, 135, 180, 180. "
   "He takes her right hand in his left on count 1 (which hands are held in side position is an open question), lifts it on 3, lowers it on 5, and triples in place. Her last three landings are at least 20 cm apart (fix of 2026-10-18).",
-  [S(1, 'L', 'L', 'BL', 0, -30, 0), S(1, 'F', 'R', 'BR', 65, -30, 0),
-   S(2, 'L', 'R', 'RR', 20, 0, 0), S(2, 'F', 'L', 'RL', 45, 0, 0),
+  [S(1, 'L', 'L', 'BL', 0, -30, 0), S(1, 'F', 'R', 'BR', SR, -30, 0),
+   S(2, 'L', 'R', 'RR', 20, 0, 0), S(2, 'F', 'L', 'RL', SL, 0, 0),
    S(3, 'L', 'L', 'eFL', 0, 0, 0, 'guess', 'leader stays put (user)'), S(3, 'F', 'R', 'FR', 54, 18, 0, 'user+guess', 'forward; his hand lifts'),
    S('3&', 'L', 'R', 'TR', 20, 0, 0, 'guess'), S('3&', 'F', 'L', 'TL', 38, 30, 0, 'user+guess', 'a travelling close, across his front'),
    S(4, 'L', 'L', 'RL', 0, 0, 0, 'guess'), S(4, 'F', 'R', 'XR2R', 22, 42, 90, 'user+guess', 'right crosses in front, turning 90 R under the hands'),
@@ -142,12 +147,12 @@ E('follower underarm pass', 'facing', 'facing', 6,
   "Hands: open hold, raised with her under them on 3&-4, open again from 5. Her steps are 40-52 cm (his first is 65 from the rocked-back foot). Every distance is a guess.",
   [S(1, 'L', 'L', 'BL', 0, -30, 0), S(1, 'F', 'R', 'BR', 0, FACE + 30, 180),
    S(2, 'L', 'R', 'RR', 20, 0, 0), S(2, 'F', 'L', 'RL', 20, FACE, 180),
-   S(3, 'L', 'L', 'FL2R', 10, 24, 90, 'user+guess', 'one step forward, turned 90 right, behind her'), S(3, 'F', 'R', 'FR1L', 38, 34, 135, 'notes+guess', 'forward, turning left; the hands lift'),
-   S('3&', 'L', 'R', 'TR', 10, 4, 90, 'user+guess'), S('3&', 'F', 'L', 'TL', 46, 54, 135, 'notes+guess', 'left closes, under the hands'),
-   S(4, 'L', 'L', 'RL', 10, 24, 90, 'user+guess', 'triple in place'), S(4, 'F', 'R', 'FR1L', 62, 34, 90, 'notes+guess', 'forward, now facing east with him behind her'),
-   S(5, 'L', 'R', 'FR2R', 40, 18, 180, 'user+guess', 'one more step forward, turned 90 right'), S(5, 'F', 'L', 'BL1L', 62, -6, 45, 'notes+guess', 'backing round to his new front; hands lowered'),
-   S('5&', 'L', 'L', 'TL', 60, 18, 180, 'user+guess'), S('5&', 'F', 'R', 'TR', 76, -20, 45, 'notes+guess'),
-   S(6, 'L', 'R', 'RR', 40, 18, 180, 'user+guess', 'triple in place, facing her'), S(6, 'F', 'L', 'BL1L', 40, 18 - FACE, 0, 'notes+guess', 'in front of him, facing him')],
+   S(3, 'L', 'L', 'FL2R', -4, 18, 90, 'user+guess', 'one step forward, turned 90 right, behind her'), S(3, 'F', 'R', 'FR1L', 38, 24, 135, 'notes+guess', 'forward, turning left; the hands lift'),
+   S('3&', 'L', 'R', 'TR', -4, -2, 90, 'user+guess'), S('3&', 'F', 'L', 'TL', 48, 40, 135, 'notes+guess', 'left closes, under the hands'),
+   S(4, 'L', 'L', 'RL', -4, 18, 90, 'user+guess', 'triple in place'), S(4, 'F', 'R', 'FR1L', 60, 22, 90, 'notes+guess', 'forward, now facing east with him behind her'),
+   S(5, 'L', 'R', 'FR2R', 20, 10, 180, 'user+guess', 'one more step forward, turned 90 right'), S(5, 'F', 'L', 'BL1L', 44, -6, 45, 'notes+guess', 'backing round to his new front; hands lowered'),
+   S('5&', 'L', 'L', 'TL', 38, 14, 180, 'user+guess'), S('5&', 'F', 'R', 'TR', 58, -20, 45, 'notes+guess'),
+   S(6, 'L', 'R', 'RR', 20, 10, 180, 'user+guess', 'triple in place, facing her'), S(6, 'F', 'L', 'BL1L', 20, 10 - FACE, 0, 'notes+guess', 'in front of him, facing him')],
   hands=[{'count': '3&', 'hands': ['LL-FR^F']}, {'count': '5', 'hands': OPEN_HANDS}])
 
 # ---------------------------------------------------------------- recapture underarm pass (6 beats), facing -> side   (user 2026-10-19: she turns LEFT)
@@ -160,12 +165,12 @@ E('recapture underarm pass', 'facing', 'side', 6,
   "Hands: open hold on 1-3, raised with her under them on 3&, open hold again on 4 once she is through, side hold from 5 (his right arm around her back). All distances are guesses.",
   [S(1, 'L', 'L', 'BL', 0, -30, 0), S(1, 'F', 'R', 'BR', 0, FACE + 30, 180),
    S(2, 'L', 'R', 'RR', 20, 0, 0), S(2, 'F', 'L', 'RL', 20, FACE, 180),
-   S(3, 'L', 'L', 'eFL', 0, 0, 0, 'guess', 'leader stays put'), S(3, 'F', 'R', 'FR1L', 30, 24, 135, 'notes+guess', 'forward, turning left; his hand lifts'),
+   S(3, 'L', 'L', 'eFL', 0, 0, 0, 'guess', 'leader stays put'), S(3, 'F', 'R', 'FR1L', 36, 18, 135, 'notes+guess', 'forward, turning left; his hand lifts'),
    S('3&', 'L', 'R', 'TR', 20, 0, 0, 'guess'), S('3&', 'F', 'L', 'TL', 44, 38, 135, 'notes+guess', 'left closes, under the hands'),
    S(4, 'L', 'L', 'RL', 0, 0, 0, 'guess'), S(4, 'F', 'R', 'FR1L', 58, 24, 90, 'notes+guess', 'forward, turning left: she is through and faces east, away from him; the hands come down'),
-   S(5, 'L', 'R', 'RR', 20, 0, 0, 'guess'), S(5, 'F', 'L', 'BL1L', 42, 10, 45, 'notes+guess', 'backing round to his right side; his right arm takes her back'),
-   S('5&', 'L', 'L', 'TL', 0, 0, 0, 'guess'), S('5&', 'F', 'R', 'TR', 64, 6, 45, 'notes+guess'),
-   S(6, 'L', 'R', 'RR', 20, 0, 0, 'guess'), S(6, 'F', 'L', 'BL1L', 45, 0, 0, 'notes+guess', 'on his right, side position')],
+   S(5, 'L', 'R', 'RR', 20, 0, 0, 'guess'), S(5, 'F', 'L', 'BL1L', 40, 12, 45, 'notes+guess', 'backing round to his right side; his right arm takes her back'),
+   S('5&', 'L', 'L', 'TL', 0, 0, 0, 'guess'), S('5&', 'F', 'R', 'TR', 58, 2, 45, 'notes+guess'),
+   S(6, 'L', 'R', 'RR', 20, 0, 0, 'guess'), S(6, 'F', 'L', 'BL1L', SL, 0, 0, 'notes+guess', 'on his right, side position')],
   hands=[{'count': '3&', 'hands': ['LL-FR^F']}, {'count': '4', 'hands': OPEN_HANDS}, {'count': '5', 'hands': SIDE_HANDS}])
 
 # ---------------------------------------------------------------- lead underarm pass (6 beats), facing -> facing, places swapped   (user 2026-10-18: perfect)
@@ -173,11 +178,11 @@ E('lead underarm pass', 'facing', 'facing', 6, "m_changing_places with the roles
   "Leader (the notes' follower codes on the other feet): forward 1L, close, forward 1L, back 1L, close, back 1L; ends weight R, 70 cm beyond his start. Follower (the notes' leader codes): slightly forward 1R, close, slightly forward 1R, slightly forward 1R, close, close 1R; her 'small' steps are 8-37 cm because she has to cover 70 cm to keep the 70 cm open distance. Distances are guesses; they pass with 32 cm between body centres.",
   [S(1, 'L', 'L', 'BL', 0, -30, 0), S(1, 'F', 'R', 'BR', 0, FACE + 30, 180),
    S(2, 'L', 'R', 'RR', 20, 0, 0), S(2, 'F', 'L', 'RL', 20, FACE, 180),
-   S(3, 'L', 'L', 'FL1L', -16, 12, 315, 'user+guess', 'lifts the joined hands'), S(3, 'F', 'R', 'eFR1R', 30, 28, 225, 'user+guess'),
-   S('3&', 'L', 'R', 'TR', -4, 26, 315, 'user+guess'), S('3&', 'F', 'L', 'TL', 46, 14, 225, 'user+guess', 'a travelling close'),
-   S(4, 'L', 'L', 'FL1L', -20, 32, 270, 'user+guess', 'under the hands, on her right side, facing away'), S(4, 'F', 'R', 'eFR1R', 30, 34, 270, 'user+guess', 'facing him as he passes'),
-   S(5, 'L', 'R', 'BR1L', -16, 52, 225, 'user+guess', 'hands lowered'), S(5, 'F', 'L', 'eFL1R', 24, 12, 315, 'user+guess'),
-   S('5&', 'L', 'L', 'TL', -6, 26, 225, 'user+guess'), S('5&', 'F', 'R', 'TR', 38, 26, 315, 'user+guess'),
+   S(3, 'L', 'L', 'FL1L', -16, 12, 315, 'user+guess', 'lifts the joined hands'), S(3, 'F', 'R', 'eFR1R', 6, 44, 225, 'user+guess'),
+   S('3&', 'L', 'R', 'TR', -10, 30, 315, 'user+guess'), S('3&', 'F', 'L', 'TL', 24, 30, 225, 'user+guess', 'a travelling close'),
+   S(4, 'L', 'L', 'FL1L', -26, 40, 270, 'user+guess', 'under the hands, on her right side, facing away'), S(4, 'F', 'R', 'eFR1R', 14, 16, 270, 'user+guess', 'facing him as he passes'),
+   S(5, 'L', 'R', 'BR1L', -14, 56, 225, 'user+guess', 'hands lowered'), S(5, 'F', 'L', 'eFL1R', 26, 2, 315, 'user+guess'),
+   S('5&', 'L', 'L', 'TL', 16, 44, 225, 'user+guess'), S('5&', 'F', 'R', 'TR', 34, 22, 315, 'user+guess'),
    S(6, 'L', 'R', 'eBR1L', 0, FACE, 180, 'user+guess', 'facing her'), S(6, 'F', 'L', 'TL1R', 0, 0, 0, 'user+guess', 'in his old place, facing him')],
   hands=[{'count': '3', 'hands': ['LL-FR^L']}, {'count': '5', 'hands': OPEN_HANDS}])
 
@@ -187,7 +192,7 @@ E('circle', 'facing', 'side', 8, "m_lindy_circle (all codes and rotations). End:
   "Counts 5 and 6 are the notes' close hold ('between the legs'): marked exempt from the collision rule (user Q6); with these distances only count 6 needs it (bodies 19 cm). "
   "The 7&8 hinge-out to side position makes her steps long (27-50 cm) and leaves her free right foot 31 cm ahead of its side-position spot. Every distance is a guess.",
   [S(1, 'L', 'L', 'BL', 0, -30, 0), S(1, 'F', 'R', 'TweFR', 0, FACE - 6, 180, note='twist step slightly forward'),
-   S(2, 'L', 'R', 'RR', 20, 0, 0), S(2, 'F', 'L', 'TwFL', 20, FACE - 10, 180, note='twist step forward'),
+   S(2, 'L', 'R', 'RR', 20, 0, 0), S(2, 'F', 'L', 'TwFL', 20, FACE, 180, note='twist step in place: face to face there is no room forward (2026-10-19)'),
    S(3, 'L', 'L', 'FL2R', -11, 33, 90, note='forward and off to his left; right hand to her back'), S(3, 'F', 'R', 'FR2R', 31, 57, 270, note='left hand to his right shoulder'),
    S('3&', 'L', 'R', 'TR1R', -20, 28, 135), S('3&', 'F', 'L', 'TL1R', 8, 20, 315, note='a travelling close: 30 cm'),
    S(4, 'L', 'L', 'FL1R', 20, 55, 180, note='facing the opposite way to the start'), S(4, 'F', 'R', 'FR1R', 20, 15, 0),
@@ -195,8 +200,18 @@ E('circle', 'facing', 'side', 8, "m_lindy_circle (all codes and rotations). End:
    S(6, 'L', 'L', 'SL2R', 0, 15, 0, exempt=True), S(6, 'F', 'R', 'XR2R', 10, 38, 180, note='crosses in front, between his feet (close hold in the notes)', exempt=True),
    S(7, 'L', 'R', 'BR', 20, 20, 0), S(7, 'F', 'L', 'BL2R', 40, 38, 270, note='hinging out to his right: 50 cm'),
    S('7&', 'L', 'L', 'TL', 0, 20, 0), S('7&', 'F', 'R', 'TR1R', 59, 45, 315, note='swings around: 50 cm'),
-   S(8, 'L', 'R', 'eBR', 20, 15, 0), S(8, 'F', 'L', 'eBL1R', 45, 15, 0, note='side position, on his right')],
+   S(8, 'L', 'R', 'eBR', 20, 15, 0), S(8, 'F', 'L', 'eBL1R', 20 + SIDE, 15, 0, note='side position, on his right')],
   hands=[{'count': '3', 'hands': CLOSED_HANDS}, {'count': '7', 'hands': SIDE_HANDS}])
+# the circle was placed for a 70 cm open position; from 3 on the whole circle comes CIRCLE_DY closer (2026-10-19)
+CIRCLE_DY = -10.0
+for _s in elements[-1]['steps']:
+    if _s['count'] not in ('1', '2'):
+        _s['y'] += CIRCLE_DY
+# with her so close, two steps of the closing circle need their own spots (agent 2026-10-19, shoes 4 cm apart)
+CIRCLE_SPOTS = {('3&', 'F'): (10.0, 6.0)}
+for _s in elements[-1]['steps']:
+    if (_s['count'], _s['dancer']) in CIRCLE_SPOTS:
+        _s['x'], _s['y'] = CIRCLE_SPOTS[(_s['count'], _s['dancer'])]
 
 data = {
     '_about': 'Swing5 footwork skeletons. cm; local frame per element: leader left foot at (0,0), heading 0 = +y, clockwise positive. '

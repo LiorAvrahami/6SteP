@@ -67,8 +67,8 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
 
 - **Model.** Units cm. A skeleton is written in the frame of its start: leader's left foot at (0, 0), heading 0 = +y = his
   forward, +x = his right, headings clockwise in degrees. **Facing states** fix all four feet relative to the leader's left
-  foot: `side` (follower on his right, both facing the same way, 45 cm between body centres: an agent guess), `facing`
-  (open hold, 46 cm between body centres = a 20 cm gap between the facing toes, user 2026-10-19; it was 70), `reversed_side` (defined, unused). The user dances the basic side by side; animations
+  foot: `side` (follower on his right, both facing the same way, his right shoe and her left 4 cm apart = 34 cm between body centres, user 2026-10-19), `facing`
+  (open hold, the facing toes 5 cm apart = 31 cm between body centres, user 2026-10-19; it was 70), `reversed_side` (defined, unused). The user dances the basic side by side; animations
   must start there or they look wrong to them.
 - **Lookup key** of a skeleton: (element name, start state, which of the leader's feet is free) = the element and its
   *starting condition*. Elements are merged by name (rock step and triple step each have four starting conditions); a
@@ -79,7 +79,7 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
   clockwise; from facing: anticlockwise as lurklurk's Changing Places, he follows her round from behind), lead underarm
   pass (facing), recapture underarm pass (facing to side; the user's name), circle (facing, 8 beats).
 - **Rules** (checked by `check.py`, no exceptions beyond an explicit close hold): a weighted foot never moves or rotates;
-  a dancer's feet never more than 70 cm apart; 20 cm foot collision circles and 20 cm body circles never overlap; hands
+  a dancer's feet never more than 70 cm apart; the two dancers' shoe outlines at least 4 cm apart (until 2026-10-19: 20 cm circles) and 20 cm body circles never overlap; hands
   in reach (65 cm, a guess); the end state reached. `check.py --storyboard` draws every skeleton to `dance/out/` and you
   review them by eye; the user judged every element by eye too.
 - **Timing** (`model.py`, `render.py`, `Timeline.kt`): a foot lands exactly on its count; its weight ramps up over 0.3
@@ -98,9 +98,9 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
 - **Tools.** `render.py` makes an MP4 on the music (about 40 fps, stops where a short track ends); the editor
   (`dance/editor/server.py`, port 8771) edits skeletons and compositions, plays in the browser with Web Audio and
   autosaves; a Node test with a stubbed DOM covers the page logic: `node dance/editor/test/test_editor.js`.
-- **`python dance/check.py` reports 2 errors, both known**: the rock back cutoff as the user placed it ends with her left
-  foot 15 cm from his right (rule: 20 cm) and 10 cm away from where the side state puts it. This is the user's own
-  placement and an open question to them (section 7), not a regression; do not "fix" it without their answer.
+- **`python dance/check.py` reports 0 errors** since v17 (2026-10-19). Until then it reported 2 known errors in the rock
+  back cutoff (her end 15 cm from his right foot, and 10 cm off the old side spot); the new side spacing and the shoe rule
+  agree with the user's own placement, so both are gone. Any error now is a real regression.
 
 ## 4. The music side (`music/`, reference: `music/README.md`)
 
@@ -240,6 +240,14 @@ beat annotator (`python music/tools/beat_annotator/server.py`, port 8772). After
   (`render.weights_at`), the editor (`weightsAt`) and the storyboards' start panel. This also fixes the right-foot rock
   step, which used to start with the weight on the foot that moves. The user's rules for the foot paths (not built yet):
   a weighted foot never moves; a moving foot keeps about 4 cm clear of every other foot.
+  v17: face to face the toes are 5 cm apart (31 cm between centres), side by side his right shoe and her left are 4 cm
+  apart (34 cm between centres). The collision rule of check.py is now "shoe outlines at least 4 cm apart" (`shoe.gap`,
+  `model.MIN_GAP`) instead of 20 cm circles, and hand reach is a warning. The facing and side elements were placed again
+  (agent guesses; the circle from count 3 on is moved 10 cm closer by CIRCLE_DY with two own spots); the cutoff's
+  follower counts 1-4 move with her start (CUT_DX), the user's own counts 5-6 and all his steps are unchanged, and its
+  two old errors are gone: `check.py` reports 0 errors in 14 skeletons. Not drawn any more, anywhere (app, editor,
+  storyboards, videos): the body circle with its heading line and the arms. The editor draws the shoes. The camera
+  follows twice as fast (`FloorView.CAMERA_TAU` 0.225 s).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

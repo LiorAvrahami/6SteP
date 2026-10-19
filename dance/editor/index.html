@@ -112,7 +112,8 @@
 </div>
 <script>
 (function () {
-  const FOOT_LEN = 26, FOOT_WID = 10, ARROW = 9, SHOULDER = 18, ARM_MAX = 65, BODY_R = 10;
+  const FOOT_LEN = 26.4, SHOULDER = 18, ARM_MAX = 65, BODY_R = 10;
+  const SHOW_BODIES = false, SHOW_HANDS = false;   // not drawn for now (user 2026-10-19), as in the app
   const RAMP = 0.3, RAMP_FRACTION = 0.45, DEFAULT_SWING = 0.67, SHIFT = 0.3;   // SHIFT: neutral stance to the standing foot
   const COL = { L: '#2e6ee6', F: '#eb50a0' }, RGB = { L: [46, 110, 230], F: [235, 80, 160] };
   let data = null, ei = 0;
@@ -155,13 +156,26 @@
   // ---------- geometry helpers
   function px(p) { return [cv.width / 2 + (p[0] - view.cx) * view.scale, cv.height / 2 - (p[1] - view.cy) * view.scale]; }
   function world(sx, sy) { return [(sx - cv.width / 2) / view.scale + view.cx, -(sy - cv.height / 2) / view.scale + view.cy]; }
+  // the shoe sole of every picture (dance/shoe.py: SOLE and HEEL, a LEFT shoe; u across, + = the big-toe side; v along,
+  // + = the toe; a start point, then cubic segments). The same numbers are in shoe.py and the app's FloorView.kt.
+  const SOLE = [[2.6, -3.0], [3.0, 0.5, 4.8, 3.0, 4.6, 6.0], [4.4, 9.5, 2.8, 12.4, 1.2, 13.0], [-0.6, 13.4, -5.2, 8.5, -5.0, 4.5],
+                [-4.9, 1.5, -3.6, -1.0, -3.4, -3.0], [-1.5, -2.7, 0.8, -2.7, 2.6, -3.0]];
+  const HEEL = [[2.7, -4.4], [2.9, -6.5, 2.9, -9.5, 2.4, -11.0], [1.9, -12.5, 0.9, -13.0, -0.4, -13.0], [-1.8, -13.0, -2.8, -12.4, -3.3, -11.0],
+                [-3.8, -9.5, -3.6, -6.5, -3.4, -4.4], [-1.3, -4.1, 0.6, -4.1, 2.7, -4.4]];
+  function bezierPts(shape, n) {
+    const pts = [shape[0]]; let p0 = shape[0];
+    for (const [c1x, c1y, c2x, c2y, ex, ey] of shape.slice(1)) {
+      for (let i = 1; i <= n; i++) { const t = i / n, a = (1 - t) ** 3, b = 3 * (1 - t) ** 2 * t, c = 3 * (1 - t) * t * t, d = t ** 3;
+        pts.push([a * p0[0] + b * c1x + c * c2x + d * ex, a * p0[1] + b * c1y + c * c2y + d * ey]); }
+      p0 = [ex, ey];
+    }
+    return pts;
+  }
+  const SHOE_L = [bezierPts(SOLE, 10), bezierPts(HEEL, 10)];
+  /** the two pieces of the shoe of a foot (front sole, heel) as world polygons; a right shoe is the mirror */
   function footPoly(x, y, h, side) {
-    const f = fwd(h), r = right(h), s = side === 'R' ? 1 : -1, pts = [], N = 10;
-    for (let i = 0; i <= N; i++) { const a = Math.PI * i / N; const c = Math.cos(a);
-      pts.push([c * FOOT_WID / 2 * (1 + 0.25 * (c * s < 0 ? 1 : 0)), FOOT_LEN / 2 - FOOT_WID / 2 + Math.sin(a) * FOOT_WID / 2 * 1.15]); }
-    for (let i = 0; i <= N; i++) { const a = Math.PI + Math.PI * i / N;
-      pts.push([Math.cos(a) * FOOT_WID / 2 * 0.85, -FOOT_LEN / 2 + FOOT_WID / 2 * 0.85 + Math.sin(a) * FOOT_WID / 2 * 0.85]); }
-    return pts.map(([a, b]) => [x + a * r[0] + b * f[0], y + a * r[1] + b * f[1]]);
+    const f = fwd(h), r = right(h), m = side === 'L' ? 1 : -1;
+    return SHOE_L.map(piece => piece.map(([u, v]) => [x + u * m * r[0] + v * f[0], y + u * m * r[1] + v * f[1]]));
   }
   function feetBefore(upto) {
     const e = elem(); const feet = startFeet();
@@ -219,25 +233,16 @@
 
   // ---------- drawing
   function drawFoot(x, y, h, side, color, alpha, label, outlineOnly, greyBase) {
-    const poly = footPoly(x, y, h, side).map(px);
-    const path = () => { ctx.beginPath(); poly.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); };
+    const pieces = footPoly(x, y, h, side).map(poly => poly.map(px));
+    const path = () => { ctx.beginPath(); for (const poly of pieces) { poly.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); } };
     if (greyBase) { path(); ctx.globalAlpha = 0.2; ctx.fillStyle = '#777'; ctx.fill(); }
     path(); ctx.globalAlpha = alpha;
     if (outlineOnly) { ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke(); }
     else if (alpha > 0.001) { ctx.fillStyle = color; ctx.fill(); }
-    const f = fwd(h), r = right(h);
-    const toe = [x + f[0] * FOOT_LEN / 2, y + f[1] * FOOT_LEN / 2], tip = [toe[0] + f[0] * ARROW, toe[1] + f[1] * ARROW];
-    const a = px(toe), b = px(tip);
-    ctx.globalAlpha = greyBase ? Math.max(0.45, alpha) : alpha;
-    const acol = (greyBase && alpha < 0.5) ? '#777' : color;
-    ctx.strokeStyle = acol; ctx.lineWidth = Math.max(1.5, view.scale * 1.2); ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke();
-    const h1 = px([tip[0] - f[0] * 5 + r[0] * 3.5, tip[1] - f[1] * 5 + r[1] * 3.5]), h2 = px([tip[0] - f[0] * 5 - r[0] * 3.5, tip[1] - f[1] * 5 - r[1] * 3.5]);
-    ctx.fillStyle = acol; ctx.beginPath(); ctx.moveTo(b[0], b[1]); ctx.lineTo(h1[0], h1[1]); ctx.lineTo(h2[0], h2[1]); ctx.closePath(); ctx.fill();
+    // no arrow and no letter, as in the app: the pointed toe shows the heading and sits on the big-toe side (user 2026-10-19)
     ctx.globalAlpha = 1;
-    const hp = px([x - f[0] * FOOT_LEN * 0.22, y - f[1] * FOOT_LEN * 0.22]);
-    ctx.fillStyle = outlineOnly ? color : '#fff'; ctx.font = Math.max(9, view.scale * 6) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-    ctx.globalAlpha = Math.min(1, alpha + 0.3); ctx.fillText(side, hp[0], hp[1]); ctx.globalAlpha = 1;
-    if (label) { const tp = px([x + f[0] * (FOOT_LEN / 2 + ARROW + 6), y + f[1] * (FOOT_LEN / 2 + ARROW + 6)]); ctx.fillStyle = color; ctx.font = 'bold ' + Math.max(10, view.scale * 5) + 'px sans-serif'; ctx.fillText(label, tp[0], tp[1]); }
+    const f = fwd(h);
+    if (label) { const tp = px([x + f[0] * (FOOT_LEN / 2 + 6), y + f[1] * (FOOT_LEN / 2 + 6)]); ctx.fillStyle = color; ctx.font = 'bold ' + Math.max(10, view.scale * 5) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, tp[0], tp[1]); }
   }
   function drawBody(b, d, alpha) {
     const p = px([b[0], b[1]]); ctx.beginPath(); ctx.arc(p[0], p[1], BODY_R * view.scale, 0, Math.PI * 2);
@@ -270,12 +275,12 @@
     const idx = selIndices(); const before = feetBefore(idx[0]);
     for (const k in before) { const s = k.split('.')[1]; drawFoot(before[k][0], before[k][1], before[k][2], s, '#777', 0.18, '', false); }
     const after = feetBefore(selLast() + 1);
-    drawBody(bodyOf(after['L.L'], after['L.R']), 'L'); drawBody(bodyOf(after['F.L'], after['F.R']), 'F');
+    if (SHOW_BODIES) { drawBody(bodyOf(after['L.L'], after['L.R']), 'L'); drawBody(bodyOf(after['F.L'], after['F.R']), 'F'); }
     const lastOf = {}; idx.forEach(i => { const s = e.steps[i]; lastOf[s.dancer + '.' + s.foot] = i; });
     idx.forEach(i => { const s = e.steps[i]; const key = s.dancer + '.' + s.foot;
       drawFoot(s.x, s.y, s.heading, s.foot, COL[s.dancer], lastOf[key] === i ? 0.9 : 0.45, s.count, false); });
-    const ls = e.steps[selLast()]; const poly = footPoly(ls.x, ls.y, ls.heading, ls.foot).map(px);
-    ctx.beginPath(); poly.forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath();
+    const ls = e.steps[selLast()];
+    ctx.beginPath(); for (const piece of footPoly(ls.x, ls.y, ls.heading, ls.foot)) { piece.map(px).forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }
     ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.stroke();
   }
 
@@ -539,8 +544,8 @@
     const feet = {}, weights = {};
     for (const d of ['L', 'F']) { for (const f of ['L', 'R']) feet[d + '.' + f] = placementAt(tl.tracks[d].tracks[f], b); weights[d] = weightsAt(tl.tracks[d], b); }
     const bodies = { L: bodyOf(feet['L.L'], feet['L.R']), F: bodyOf(feet['F.L'], feet['F.R']) };
-    drawBody(bodies.L, 'L', 0.12); drawBody(bodies.F, 'F', 0.12);
-    for (const conn of handsAtTime(tl, b)) for (const [d, side, sh, hand, raised, ok] of resolveHand(conn, bodies)) drawArm(d, side, sh, hand, raised, ok);
+    if (SHOW_BODIES) { drawBody(bodies.L, 'L', 0.12); drawBody(bodies.F, 'F', 0.12); }
+    if (SHOW_HANDS) for (const conn of handsAtTime(tl, b)) for (const [d, side, sh, hand, raised, ok] of resolveHand(conn, bodies)) drawArm(d, side, sh, hand, raised, ok);
     const order = Object.keys(feet).sort((a, c) => weights[a[0]][a[2]] - weights[c[0]][c[2]]);
     for (const key of order) { const [d, f] = key.split('.'); const p = feet[key]; drawFoot(p[0], p[1], p[2], f, COL[d], weights[d][f], '', false, true); }
     let [name, count] = labelAt(tl, b);

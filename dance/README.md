@@ -58,8 +58,8 @@ previous one, so the composer picks the variant itself and refuses a sequence th
 - **Frame**: each skeleton is written in the frame of its start: the leader's left foot at (0, 0), heading 0 = +y = the leader's
   forward, +x = his right. Heading in degrees, clockwise seen from above (lurklurk's `R` is positive).
 - **Facing states** (`states` in the JSON) fix all four feet relative to the leader's left foot:
-  `side` (follower on his right, both facing the same way, 45 cm between body centres: agent guess),
-  `facing` (open hold, 46 cm between centres: a 20 cm gap between the toes of the facing feet, user 2026-10-19; it was 70, user Q5), `reversed_side` (follower on his left; defined, no element leads there now).
+  `side` (follower on his right, both facing the same way, his right shoe and her left shoe 4 cm apart = 34 cm between body centres, user 2026-10-19; it was 45, an agent guess),
+  `facing` (open hold, the facing shoes 5 cm apart toe to toe = 31 cm between centres, user 2026-10-19; it was 70, user Q5), `reversed_side` (follower on his left; defined, no element leads there now).
   Each state also lists its default hand connections and that the leader starts with his left foot free (6-beat_rhythm.html).
 - **Lookup key** for a skeleton: (element name, start state, which of the leader's feet is free) = the element and its starting condition.
 - **Counts**: musical labels (`1`..`8`, `3&`). A two-beat triple keeps its own numbering (5, 5&, 6). The `&` lands at the
@@ -73,7 +73,8 @@ previous one, so the composer picks the variant itself and refuses a sequence th
   the follower's right; `LR-back` his right hand on her back; `FL-rshoulder` her left hand on his right shoulder; `LR-lhip`
   his right hand on her left hip; `LL-FR^F` the joined hands raised with the follower passing under them (`^L`: the leader).
   An empty list means no connection. Arms are drawn shoulder -> elbow -> hand; each has a maximum length (65 cm: agent guess)
-  and no minimum, so the elbow is a slight outward bend. A red arm in the storyboard means the hand is out of reach.
+  and no minimum, so the elbow is a slight outward bend. Since 2026-10-19 the arms and the body circles are not drawn
+  (`draw.SHOW_HANDS`, `draw.SHOW_BODIES`; the app and the editor have the same switches): hands are set aside for now.
 - **Weight and the free foot**: a state fixes the weighted feet and the headings strictly; the free foot's resting place is
   nominal. `check.py` warns if an element leaves a free foot more than 30 cm from its spot; the next element moves it from
   where it actually is.
@@ -82,11 +83,12 @@ previous one, so the composer picks the variant itself and refuses a sequence th
 
 1. A weighted foot never moves or rotates: by construction (a step moves only the stepping foot) and by the replace check.
 2. A dancer's two feet are never more than 70 cm apart: checked at every count.
-3. Foot collision circles (diameter 20) of the two dancers never overlap: checked at every count.
+3. The shoe outlines of the two dancers (`shoe.py`) stay at least 4 cm apart (`model.MIN_GAP`): checked at every count with
+   `shoe.gap`. User 2026-10-19; until then 20 cm circles on the foot centres, which forbade the 4 cm side gap.
 4. Body circles (diameter 20 at the midpoint of the feet) never overlap: checked at every count.
 5. Exemption (user Q6): steps marked `exempt` where the notes explicitly describe a close hold (the circle's counts 5 and 6).
    The report lists every exempted overlap; only the circle's count 6 (bodies 19 cm) uses it.
-6. Hands in reach, end state reached (the follower's weighted foot matches the end state's geometry to 3 cm / 10 degrees),
+6. Hands in reach (a warning since 2026-10-19: hands are set aside), end state reached (the follower's weighted foot matches the end state's geometry to 3 cm / 10 degrees),
    counts span the declared number of beats.
 
 A failed check means the placements are wrong. There is no nudging, repulsion or correction layer anywhere; fix the data

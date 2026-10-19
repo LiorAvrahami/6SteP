@@ -266,9 +266,10 @@ def main():
                 feet[f'{dn}.{fo}'] = tracks[dn]['tracks'][fo].placement_at(b)
             weights[dn] = weights_at(tracks[dn], b)
         bodies = {'L': draw.body({'L': feet['L.L'], 'R': feet['L.R']}), 'F': draw.body({'L': feet['F.L'], 'R': feet['F.R']})}
-        draw.draw_body(img, view, bodies['L'], draw.LEADER_RGB, alpha=40)
-        draw.draw_body(img, view, bodies['F'], draw.FOLLOWER_RGB, alpha=40)
-        for conn in hands_at(comp, b):
+        if draw.SHOW_BODIES:
+            draw.draw_body(img, view, bodies['L'], draw.LEADER_RGB, alpha=40)
+            draw.draw_body(img, view, bodies['F'], draw.FOLLOWER_RGB, alpha=40)
+        for conn in (hands_at(comp, b) if draw.SHOW_HANDS else []):
             for (dn, hs, sh, hand, raised, ok) in draw.resolve_hand(conn, bodies):
                 draw.draw_arm(img, view, dn, hs, sh, hand, raised, ok, alpha=230)
         # draw the travelling (weightless) feet first so landed feet sit on top

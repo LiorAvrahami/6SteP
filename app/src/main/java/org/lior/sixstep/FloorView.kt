@@ -46,6 +46,7 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         const val STANCE_BOX = 92.0      // cm: the width of two pairs of feet side by side, toes and arrows included
         const val EDGE = 0.10            // the box must stay out of this fraction of the screen at each edge
         const val BOX_MARGIN = 16.0      // cm around the foot centres for the silhouettes and arrows
+        const val CAMERA_TAU = 0.225     // s: how fast the camera glides after the couple (user 2026-10-19: twice as fast as 0.45)
     }
     private val leader = context.getColor(R.color.leader)
     private val follower = context.getColor(R.color.follower)
@@ -62,6 +63,9 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
     var cx = 10.0; var cy = 20.0; var scale = 4.0
     var autoCamera = true
     var showLabels = true
+    /** not drawn for now (user 2026-10-19): the body circle with its heading line, and the arms (hands are a research project of their own) */
+    var showBodies = false
+    var showHands = false
     private var baseScale = 0.0
     private var targetScale = 0.0
     private var targetCx = Double.NaN; private var targetCy = Double.NaN
@@ -114,7 +118,7 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         val now = SystemClock.uptimeMillis()
         val dt = if (lastFrame == 0L) 0.016 else ((now - lastFrame) / 1000.0).coerceIn(0.0, 0.1)
         lastFrame = now
-        val k = 1 - exp(-dt / 0.45)
+        val k = 1 - exp(-dt / CAMERA_TAU)
         cx += (targetCx - cx) * k; cy += (targetCy - cy) * k; scale += (targetScale - scale) * k
         val settled = abs(targetCx - cx) * scale < 1.5 && abs(targetCy - cy) * scale < 1.5 && abs(targetScale - scale) < 0.01
         if (settled) { cx = targetCx; cy = targetCy; scale = targetScale; tracking = false }
@@ -128,7 +132,7 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
             val s = scene!!
             if (abs(targetCx - cx) * scale >= 1.5 || abs(targetCy - cy) * scale >= 1.5 || abs(targetScale - scale) >= 0.01) {
                 val now = SystemClock.uptimeMillis(); val dt = ((now - lastFrame) / 1000.0).coerceIn(0.0, 0.1); lastFrame = now
-                val k = 1 - exp(-dt / 0.45)
+                val k = 1 - exp(-dt / CAMERA_TAU)
                 cx += (targetCx - cx) * k; cy += (targetCy - cy) * k; scale += (targetScale - scale) * k
                 postInvalidateOnAnimation()
             }
@@ -153,13 +157,14 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
             val sx = sin(Math.toRadians(a.h)) + sin(Math.toRadians(b.h)); val sy = cos(Math.toRadians(a.h)) + cos(Math.toRadians(b.h))
             val body = Placement(bx, by, Math.toDegrees(Math.atan2(sx, sy)))
             bodies[d] = body
+            if (!showBodies) continue
             val color = if (d == 'L') leader else follower
             val p = px(bx, by)
             fill.color = withAlpha(color, 0.12); c.drawCircle(p.x, p.y, (BODY_R * scale).toFloat(), fill)
             stroke.color = withAlpha(color, 0.5); stroke.strokeWidth = 1.5f; stroke.pathEffect = null; c.drawCircle(p.x, p.y, (BODY_R * scale).toFloat(), stroke)
             val f = fwd(body.h); val t = px(bx + f.first * 16, by + f.second * 16); c.drawLine(p.x, p.y, t.x, t.y, stroke)
         }
-        drawHands(c, s.hands, bodies)
+        if (showHands) drawHands(c, s.hands, bodies)
         for (ar in s.arrows) drawDashedArrow(c, if (ar.dancer == 'L') leader else follower, ar.from, ar.to)
         val order = s.feet.keys.sortedBy { k -> s.weights[k[0]]?.get(k[2]) ?: 0.0 }
         for (k in order) {

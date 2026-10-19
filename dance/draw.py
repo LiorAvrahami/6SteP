@@ -8,6 +8,10 @@ LEADER_RGB = (46, 110, 230)
 FOLLOWER_RGB = (235, 80, 160)
 GREY = (120, 120, 120)
 FOOT_LEN = shoe.LENGTH            # cm, the shoe from heel to toe
+# not drawn for now (user 2026-10-19): the body circle with its heading line, and the arms (hands are a research project
+# of their own). The hand data and the reach check (a warning) stay; set these to True to see them again.
+SHOW_BODIES = False
+SHOW_HANDS = False
 
 def _font(size):
     for name in ('arial.ttf', 'DejaVuSans.ttf'):
