@@ -113,7 +113,7 @@
 <script>
 (function () {
   const FOOT_LEN = 26, FOOT_WID = 10, ARROW = 9, SHOULDER = 18, ARM_MAX = 65, BODY_R = 10;
-  const RAMP = 0.3, RAMP_FRACTION = 0.45, DEFAULT_SWING = 0.67;
+  const RAMP = 0.3, RAMP_FRACTION = 0.45, DEFAULT_SWING = 0.67, SHIFT = 0.3;   // SHIFT: neutral stance to the standing foot
   const COL = { L: '#2e6ee6', F: '#eb50a0' }, RGB = { L: [46, 110, 230], F: [235, 80, 160] };
   let data = null, ei = 0;
   let mode = 'elements';
@@ -499,7 +499,11 @@
         if (dist(prev, [s.x, s.y]) < 0.5 && Math.abs(norm(prev[2] - s.heading)) < 0.5) release = s.t;
         tr[s.foot].landings.push([s.t, Math.min(release, s.t), [s.x, s.y, s.heading]]);
       });
-      tracks[d] = { tracks: tr, ramps, w0: d === 'L' ? 'R' : 'L' };
+      // before the first step: the neutral stance, weight on both feet; it moves onto the foot that stays (the other one
+      // steps first) over SHIFT beats, ending as the first foot leaves (user 2026-10-19)
+      const firstFoot = ds.length ? ds[0].foot : (d === 'L' ? 'L' : 'R');
+      const firstRelease = ds.length ? tr[firstFoot].landings[1][1] : -1e9;
+      tracks[d] = { tracks: tr, ramps, w0: firstFoot === 'L' ? 'R' : 'L', shiftEnd: firstRelease };
     }
     const length = composed ? (composed.length || 0) : (e.composition ? (compView.length || 0) : e.beats);
     return { steps, elements, start, startHands, tracks, length, swing, fillers: elements.filter(x => x.filler).length };
@@ -514,6 +518,10 @@
   }
   function weightsAt(dt, t) {
     const w = { L: 0, R: 0 }; w[dt.w0] = 1;
+    if (dt.shiftEnd !== undefined && t < dt.shiftEnd) {
+      const u = smoothstep((t - (dt.shiftEnd - SHIFT)) / SHIFT); const other = dt.w0 === 'L' ? 'R' : 'L';
+      w[dt.w0] = 0.5 + 0.5 * u; w[other] = 0.5 - 0.5 * u; return w;
+    }
     for (const [tl, ramp, foot] of dt.ramps) { if (t < tl) break; const u = smoothstep((t - tl) / Math.max(1e-6, ramp)); const other = foot === 'L' ? 'R' : 'L';
       if (u >= 1) { w[foot] = 1; w[other] = 0; } else { w[foot] = Math.max(w[foot], u); w[other] = Math.min(w[other], 1 - u); } }
     return w;

@@ -234,6 +234,12 @@ beat annotator (`python music/tools/beat_annotator/server.py`, port 8772). After
   `model.compose` follows the same rule). The lurklurk zip is in `reference/lurklurk/` on this clone (git-ignored).
   After v15 (PC side only, no release): the storyboards and videos draw the app's shoe soles (`dance/shoe.py`, shared with
   `design/make_icon.py`; the app's `FloorView.kt` holds a Kotlin copy of the same numbers).
+  v16: before the first step every dancer stands in the neutral stance (feet parallel, 20 cm apart) with the weight on
+  both feet; the weight moves onto the foot that stays over 0.3 beat, ending as the first foot leaves (user 2026-10-19:
+  "a foot that has weight on it can not move, period"). The same in the app (`Timeline.weights`), the videos
+  (`render.weights_at`), the editor (`weightsAt`) and the storyboards' start panel. This also fixes the right-foot rock
+  step, which used to start with the weight on the foot that moves. The user's rules for the foot paths (not built yet):
+  a weighted foot never moves; a moving foot keeps about 4 cm clear of every other foot.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

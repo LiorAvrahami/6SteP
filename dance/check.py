@@ -192,11 +192,12 @@ def storyboard(elem, states, path):
         for key, (x, y, h) in feet.items():
             dn, f = key.split('.')
             rgb = draw.LEADER_RGB if dn == 'L' else draw.FOLLOWER_RGB
-            wt = 1.0 if weighted[dn] == f else 0.0
+            # the start panel is the neutral stance: the weight on both feet (user 2026-10-19)
+            wt = 0.5 if count == 'start' else (1.0 if weighted[dn] == f else 0.0)
             outline = (200, 0, 0) if exempt.get(key) else None
             draw.draw_foot(sub, view, x, y, h, f, rgb, wt, outline=outline)
         img.paste(sub, (c * panel, r * (panel + 24)))
-        label = 'start' if count == 'start' else f"count {count}"
+        label = 'start (neutral stance)' if count == 'start' else f"count {count}"
         ImageDraw.Draw(img).text((c * panel + 6, r * (panel + 24) + panel + 4), label, fill=(0, 0, 0), font=fnt)
     img.convert('RGB').save(path)
 

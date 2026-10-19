@@ -94,6 +94,8 @@ or ask the user.
 
 ## The video (`render.py`)
 
+- Before the first step both dancers stand in the neutral stance with the weight on both feet; the weight moves onto the
+  foot that stays over 0.3 beat, ending as the first foot leaves (user 2026-10-19). The storyboard's start panel shows it.
 - A foot lands exactly on its count. Its weight then ramps up over 0.3 beat (or 45 percent of the gap to the dancer's next
   step if that is shorter) while the other foot's weight ramps down. A foot travels only while its weight is zero: it is
   released when the other foot has taken the weight and arrives on its own count, with an ease-in-out. A replace does not

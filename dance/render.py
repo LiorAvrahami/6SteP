@@ -97,12 +97,26 @@ def build_tracks(comp, swing):
             if dist(prev, (s['x'], s['y'])) < 0.5 and abs(norm_angle(prev[2] - s['heading'])) < 0.5:
                 release = s['t']  # replace: no travel
             tr.landings.append((s['t'], min(release, s['t']), (s['x'], s['y'], s['heading'])))
-        out[d] = {'tracks': tracks, 'ramps': ramps, 'w0': w0}
+        # before the first step: the neutral stance, weight on both feet; it moves onto the foot that stays (the other one
+        # steps first) over SHIFT beats, ending as the first foot leaves (user 2026-10-19)
+        if steps:
+            w0 = 'R' if steps[0]['foot'] == 'L' else 'L'
+            shift_end = tracks[steps[0]['foot']].landings[1][1]
+        else:
+            shift_end = -1e9
+        out[d] = {'tracks': tracks, 'ramps': ramps, 'w0': w0, 'shift_end': shift_end}
     return out
+
+SHIFT = 0.3   # beats: the neutral stance's weight moving onto the standing foot before the first step
 
 def weights_at(dancer_tracks, t):
     w0 = dancer_tracks['w0']
     w = {'L': 0.0, 'R': 0.0}; w[w0] = 1.0
+    se = dancer_tracks.get('shift_end', -1e9)
+    if t < se:
+        u = smoothstep((t - (se - SHIFT)) / SHIFT); other = 'R' if w0 == 'L' else 'L'
+        w[w0] = 0.5 + 0.5 * u; w[other] = 0.5 - 0.5 * u
+        return w
     for tl, ramp, foot in dancer_tracks['ramps']:
         if t < tl: break
         u = smoothstep((t - tl) / max(1e-6, ramp))

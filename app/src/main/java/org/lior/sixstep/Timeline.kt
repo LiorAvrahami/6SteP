@@ -7,11 +7,14 @@ import kotlin.math.max
 import kotlin.math.min
 
 /** Where every foot is and how much weight it carries at any beat: a foot lands on its count, its weight ramps up over
- *  the next 0.3 beat while the other foot's ramps down, and a foot travels only while its weight is zero. */
+ *  the next 0.3 beat while the other foot's ramps down, and a foot travels only while its weight is zero.
+ *  Before the first step a dancer stands in the neutral stance with the weight on both feet; the weight moves onto the foot
+ *  that stays over SHIFT beats, ending as the first foot leaves (user 2026-10-19). */
 class Timeline(val composed: Composed, val swing: Double) {
     companion object {
         const val RAMP = 0.3
         const val RAMP_FRACTION = 0.45
+        const val SHIFT = 0.3
         fun smoothstep(u0: Double): Double { val u = max(0.0, min(1.0, u0)); return u * u * (3 - 2 * u) }
     }
 
@@ -46,11 +49,13 @@ class Timeline(val composed: Composed, val swing: Double) {
             return Pair(landings[i], landings.getOrNull(i + 1))
         }
     }
-    class DancerTracks(val tracks: Map<Char, FootTrack>, val ramps: List<Triple<Double, Double, Char>>, val w0: Char)
+    /** w0: the foot that carries the weight when the first step leaves (the other one steps first); shiftEnd: that moment */
+    class DancerTracks(val tracks: Map<Char, FootTrack>, val ramps: List<Triple<Double, Double, Char>>, val w0: Char, val shiftEnd: Double)
 
     val dancers: Map<Char, DancerTracks>
     val length: Double get() = composed.length
     private val elementStarts: DoubleArray = composed.elements.map { it.start }.toDoubleArray()
+    private val firstStep: Double = composed.steps.minOfOrNull { it.t } ?: 0.0
 
     init {
         val m = HashMap<Char, DancerTracks>()
@@ -68,7 +73,10 @@ class Timeline(val composed: Composed, val swing: Double) {
                 if (hypot(prev.x - s.x, prev.y - s.y) < 0.5 && abs(normAngle(prev.h - s.heading)) < 0.5) release = s.t
                 track.landings.add(Landing(s.t, min(release, s.t), Placement(s.x, s.y, s.heading)))
             }
-            m[d] = DancerTracks(tr, ramps, if (d == 'L') 'R' else 'L')
+            val first = ds.firstOrNull()
+            val w0 = if (first == null) (if (d == 'L') 'R' else 'L') else if (first.foot == 'L') 'R' else 'L'
+            val shiftEnd = if (first == null) -1e9 else tr[first.foot]!!.landings[1].tRelease
+            m[d] = DancerTracks(tr, ramps, w0, shiftEnd)
         }
         dancers = m
     }
@@ -78,6 +86,11 @@ class Timeline(val composed: Composed, val swing: Double) {
     fun weights(d: Char, t: Double): Map<Char, Double> {
         val dt = dancers[d]!!
         val w = hashMapOf('L' to 0.0, 'R' to 0.0); w[dt.w0] = 1.0
+        if (t < dt.shiftEnd) {
+            val u = smoothstep((t - (dt.shiftEnd - SHIFT)) / SHIFT); val other = if (dt.w0 == 'L') 'R' else 'L'
+            w[dt.w0] = 0.5 + 0.5 * u; w[other] = 0.5 - 0.5 * u
+            return w
+        }
         for ((tl, ramp, foot) in dt.ramps) {
             if (t < tl) break
             val u = smoothstep((t - tl) / max(1e-6, ramp))
@@ -89,6 +102,7 @@ class Timeline(val composed: Composed, val swing: Double) {
 
     /** the instant just after the weight has settled on whatever landed at t (the longest ramp of the landings at t) */
     fun settledAfter(t: Double): Double {
+        if (t < firstStep - 1e-6) return t   // the neutral stance before the first step: shown as it is
         var r = 0.0
         for (d in dancers.values) for ((tl, ramp, _) in d.ramps) if (abs(tl - t) < 1e-6) r = max(r, ramp)
         return t + (if (r > 0) r else RAMP) + 1e-6
