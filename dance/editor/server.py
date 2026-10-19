@@ -1,0 +1,282 @@
+"""The skeleton editor: a local web page on http://127.0.0.1:8771 (8765 is taken on this PC).
+
+    python dance/editor/server.py [--port 8771]
+
+GET  /                      -> the editor page
+GET  /api/skeletons         -> dance/skeletons.json
+GET  /api/baseline          -> dance/skeletons.baseline.json (what the agent wrote; never changed by the editor)
+POST /api/save              -> writes dance/skeletons.json (body: the whole JSON document)
+GET  /api/diff              -> text of `python dance/diff.py` (the user's edits as a message)
+GET  /api/check             -> text of `python dance/check.py`
+GET  /api/compositions      -> dance/compositions.json
+GET  /api/composition?name= -> the composed world timeline of that composition (model.compose), read-only
+POST /api/render            -> {"composition": name, "track": hot|sunday|slow} or {"elements": [...], "start": state, "track": ...};
+                               runs render.py, returns {"ok", "url", "log"}; the video is served under /out/
+GET  /out/<file>            -> files from dance/out (videos, storyboards), with byte ranges for the <video> element
+GET  /api/track/<key>       -> the beat grid JSON of a track (hot|sunday|slow)
+GET  /music/<key>.mp3       -> the track itself (for in-browser playback)
+POST /api/compose           -> {"start_state", "elements": [...], "repeat", "leader_free"?, "pad"?}: the composed timeline of a draft;
+                               pad=true appends triple-step fillers (flagged) until it loops (>= 4 beats, free foot restored);
+                               chain_beats=N then chains a closing loop across N beats (chained = how many times), so the dance
+                               continues from where the dancers are instead of restarting
+POST /api/compositions      -> {"compositions": [...], "sub_compositions": [...]}: writes dance/compositions.json
+                               (an entry in an element list is an element name, a sub-composition name, or either followed by ' x N')
+"""
+import sys, os, re, json, argparse, subprocess, urllib.parse
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+DANCE = os.path.dirname(HERE)
+OUT = os.path.join(DANCE, 'out')
+MUSIC = os.path.join(os.path.dirname(DANCE), 'music', 'chosen')
+sys.path.insert(0, DANCE)
+import model
+TRACKS = {
+    'hot': 'Hot Swing - Kevin MacLeod - 5min loop (144bpm, CC BY)',
+    'sunday': '15 - Laughing Manny - Sunday Reflection (127bpm)',
+    'slow': '16 - Laughing Manny - Slow Your Roll (123bpm)',
+}
+
+TYPES = {'.mp4': 'video/mp4', '.png': 'image/png', '.json': 'application/json', '.txt': 'text/plain; charset=utf-8', '.mp3': 'audio/mpeg'}
+
+def slug(s):
+    return re.sub(r'[^a-z0-9]+', '_', s.lower()).strip('_')
+
+class H(BaseHTTPRequestHandler):
+    def _send(self, code, body, ctype='text/plain; charset=utf-8', extra=None):
+        if isinstance(body, str):
+            body = body.encode('utf-8')
+        self.send_response(code)
+        self.send_header('Content-Type', ctype)
+        self.send_header('Content-Length', str(len(body)))
+        self.send_header('Cache-Control', 'no-store')
+        for k, v in (extra or {}).items():
+            self.send_header(k, v)
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _json(self, obj, code=200):
+        self._send(code, json.dumps(obj, ensure_ascii=False), 'application/json')
+
+    def _file(self, path):
+        """Serve a file from dance/out with HTTP range support (needed for seeking in <video>)."""
+        size = os.path.getsize(path)
+        ctype = TYPES.get(os.path.splitext(path)[1].lower(), 'application/octet-stream')
+        rng = self.headers.get('Range')
+        start, end = 0, size - 1
+        code = 200
+        if rng and rng.startswith('bytes='):
+            a, _, b = rng[6:].partition('-')
+            start = int(a) if a else max(0, size - int(b))
+            end = int(b) if (b and a) else size - 1
+            end = min(end, size - 1)
+            code = 206
+        length = end - start + 1
+        self.send_response(code)
+        self.send_header('Content-Type', ctype)
+        self.send_header('Accept-Ranges', 'bytes')
+        self.send_header('Content-Length', str(length))
+        self.send_header('Cache-Control', 'no-store')
+        if code == 206:
+            self.send_header('Content-Range', f'bytes {start}-{end}/{size}')
+        self.end_headers()
+        with open(path, 'rb') as f:
+            f.seek(start)
+            remaining = length
+            while remaining > 0:
+                chunk = f.read(min(1 << 20, remaining))
+                if not chunk:
+                    break
+                try:
+                    self.wfile.write(chunk)
+                except (ConnectionAbortedError, BrokenPipeError):
+                    return
+                remaining -= len(chunk)
+
+    def do_GET(self):
+        url = urllib.parse.urlparse(self.path)
+        p = url.path
+        q = urllib.parse.parse_qs(url.query)
+        if p in ('/', '/index.html'):
+            with open(os.path.join(HERE, 'index.html'), 'rb') as f:
+                return self._send(200, f.read(), 'text/html; charset=utf-8')
+        if p == '/api/skeletons':
+            with open(model.SKELETONS, 'rb') as f:
+                return self._send(200, f.read(), 'application/json')
+        if p == '/api/baseline':
+            with open(model.BASELINE, 'rb') as f:
+                return self._send(200, f.read(), 'application/json')
+        if p == '/api/compositions':
+            with open(model.COMPOSITIONS, 'rb') as f:
+                return self._send(200, f.read(), 'application/json')
+        if p == '/api/composition':
+            name = (q.get('name') or [''])[0]
+            c = model.find_composition(name)
+            if c is None:
+                return self._json({'errors': [f'no composition named {name!r}'], 'steps': [], 'elements': [], 'start': {}, 'length': 0, 'end_state': ''}, 404)
+            data = model.load(model.SKELETONS)
+            comp = model.compose(data, model.composition_sequence(c), c['start_state'])
+            comp['definition'] = c
+            return self._json(comp)
+        if p in ('/api/diff', '/api/check'):
+            script = 'diff.py' if p == '/api/diff' else 'check.py'
+            r = subprocess.run([sys.executable, os.path.join(DANCE, script)], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=DANCE)
+            return self._send(200, (r.stdout or '') + (r.stderr or ''))
+        if p.startswith('/api/track/'):
+            key = p[len('/api/track/'):]
+            if key not in TRACKS:
+                return self._send(404, 'unknown track')
+            with open(os.path.join(MUSIC, TRACKS[key] + ' - beatgrid.json'), 'rb') as f:
+                return self._send(200, f.read(), 'application/json')
+        if p.startswith('/music/'):
+            key = os.path.basename(p[len('/music/'):])
+            key = key[:-4] if key.endswith('.mp3') else key
+            if key not in TRACKS:
+                return self._send(404, 'unknown track')
+            return self._file(os.path.join(MUSIC, TRACKS[key] + '.mp3'))
+        if p.startswith('/out/'):
+            name = os.path.basename(urllib.parse.unquote(p[5:]))
+            path = os.path.join(OUT, name)
+            if name and os.path.isfile(path):
+                return self._file(path)
+            return self._send(404, 'no such file')
+        return self._send(404, 'not found')
+
+    def do_HEAD(self):
+        """Headers only, for the files (the browser's media probing)."""
+        p = urllib.parse.urlparse(self.path).path
+        path = None
+        if p.startswith('/music/'):
+            key = os.path.basename(p[len('/music/'):])
+            key = key[:-4] if key.endswith('.mp3') else key
+            if key in TRACKS:
+                path = os.path.join(MUSIC, TRACKS[key] + '.mp3')
+        elif p.startswith('/out/'):
+            name = os.path.basename(urllib.parse.unquote(p[5:]))
+            if name and os.path.isfile(os.path.join(OUT, name)):
+                path = os.path.join(OUT, name)
+        if path is None or not os.path.isfile(path):
+            self.send_response(404); self.send_header('Content-Length', '0'); self.end_headers(); return
+        self.send_response(200)
+        self.send_header('Content-Type', TYPES.get(os.path.splitext(path)[1].lower(), 'application/octet-stream'))
+        self.send_header('Accept-Ranges', 'bytes')
+        self.send_header('Content-Length', str(os.path.getsize(path)))
+        self.end_headers()
+
+    def do_POST(self):
+        p = urllib.parse.urlparse(self.path).path
+        n = int(self.headers.get('Content-Length', '0'))
+        raw = self.rfile.read(n)
+        if p == '/api/save':
+            try:
+                data = json.loads(raw.decode('utf-8'))
+                assert 'elements' in data and 'states' in data
+            except Exception as e:
+                return self._send(400, f'bad json: {e}')
+            model.save(data, model.SKELETONS)
+            return self._send(200, 'saved')
+        if p == '/api/compose':
+            try:
+                req = json.loads(raw.decode('utf-8'))
+                subs = req.get('sub_compositions')
+                if subs is None:
+                    subs = model.load_subs()
+                flat = model.expand_sequence(list(req.get('elements') or []), subs) * max(1, int(req.get('repeat', 1)))
+                elements = [el for el, _ in flat]
+                groups = [g for _, g in flat]
+                start = req.get('start_state', 'side')
+            except Exception as e:
+                return self._json({'errors': [f'bad request: {e}'], 'steps': [], 'elements': [], 'start': {}, 'length': 0, 'end_state': ''}, 400)
+            data = model.load(model.SKELETONS)
+            if start not in data['states']:
+                return self._json({'errors': [f'unknown start state {start!r}'], 'steps': [], 'elements': [], 'start': {}, 'length': 0, 'end_state': start}, 400)
+            comp = model.compose(data, elements, start, leader_free=req.get('leader_free') or None, pad_to_loop=bool(req.get('pad')), groups=groups)
+            comp['loop_beats'] = comp['length']
+            comp['closes'] = (not comp['errors']) and comp['end_state'] == start and comp['end_free'] == comp['start_free'] and comp['length'] > 0
+            comp['chained'] = 1
+            chain_beats = float(req.get('chain_beats') or 0)
+            if req.get('pad') and comp['closes'] and chain_beats > comp['length']:
+                # the loop closes on itself: dance it again and again from where the dancers are, for the whole track
+                import math as _math
+                n = max(1, min(400, int(_math.ceil(chain_beats / comp['length']))))
+                loop_names = [e['name'] for e in comp['elements']]
+                loop_fillers = [bool(e.get('filler')) for e in comp['elements']]
+                loop_groups = [e.get('group') for e in comp['elements']]
+                chained = model.compose(data, loop_names * n, start, leader_free=req.get('leader_free') or None, groups=loop_groups * n)
+                if not chained['errors']:
+                    for k, e in enumerate(chained['elements']):
+                        e['filler'] = loop_fillers[k % len(loop_names)]
+                    for st in chained['steps']:
+                        st['filler'] = chained['elements'][st['element']]['filler']
+                    chained.update(loop_beats=comp['length'], closes=True, chained=n, start_free=comp['start_free'])
+                    comp = chained
+            return self._json(comp)
+        if p == '/api/compositions':
+            try:
+                req = json.loads(raw.decode('utf-8'))
+                comps = req['compositions']
+                subs = req.get('sub_compositions')
+                assert isinstance(comps, list)
+                for c in comps + (subs or []):
+                    assert isinstance(c['name'], str) and c['name'].strip() and isinstance(c['elements'], list) and c['start_state'] in ('side', 'facing', 'reversed_side')
+                    c['repeat'] = max(1, int(c.get('repeat', 1)))
+            except Exception as e:
+                return self._send(400, f'bad compositions: {e}')
+            with open(model.COMPOSITIONS, encoding='utf-8') as f:
+                doc = json.load(f)
+            doc['compositions'] = comps
+            if subs is not None:
+                doc['sub_compositions'] = subs
+            with open(model.COMPOSITIONS, 'w', encoding='utf-8') as f:
+                json.dump(doc, f, indent=1, ensure_ascii=False)
+                f.write('\n')
+            return self._send(200, 'saved')
+        if p == '/api/render':
+            try:
+                req = json.loads(raw.decode('utf-8'))
+            except Exception as e:
+                return self._json({'ok': False, 'log': f'bad json: {e}'}, 400)
+            track = req.get('track', 'hot')
+            if track not in ('hot', 'sunday', 'slow'):
+                return self._json({'ok': False, 'log': 'unknown track'}, 400)
+            cmd = [sys.executable, os.path.join(DANCE, 'render.py'), '--track', track]
+            if req.get('composition'):
+                name = req['composition']
+                if model.find_composition(name) is None:
+                    return self._json({'ok': False, 'log': f'no composition named {name!r}'}, 404)
+                out_name = f'{slug(name)}_{track}.mp4'
+                cmd += ['--composition', name]
+            else:
+                elements = req.get('elements') or []
+                if not elements:
+                    return self._json({'ok': False, 'log': 'nothing to render'}, 400)
+                out_name = f'{slug("_".join(elements))[:60]}_{track}.mp4'
+                cmd += ['--start', req.get('start', 'side')] + list(elements)
+            os.makedirs(OUT, exist_ok=True)
+            cmd += ['--out', os.path.join(OUT, out_name)]
+            try:
+                r = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=DANCE, timeout=1800)
+            except subprocess.TimeoutExpired:
+                return self._json({'ok': False, 'log': 'render timed out after 30 minutes'})
+            log = (r.stdout or '') + (r.stderr or '')
+            if r.returncode != 0:
+                return self._json({'ok': False, 'log': log})
+            return self._json({'ok': True, 'url': '/out/' + out_name, 'log': log})
+        return self._send(404, 'not found')
+
+    def log_message(self, fmt, *args):
+        sys.stderr.write('%s %s\n' % (self.address_string(), fmt % args))
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--port', type=int, default=8771)
+    a = ap.parse_args()
+    srv = ThreadingHTTPServer(('127.0.0.1', a.port), H)
+    print(f'editor at http://127.0.0.1:{a.port}/   (ctrl-c to stop)')
+    try:
+        srv.serve_forever()
+    except KeyboardInterrupt:
+        pass
+
+if __name__ == '__main__':
+    main()

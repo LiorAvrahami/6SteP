@@ -3,6 +3,13 @@ name: build
 on:
   push:
     branches: [main]
+    # only changes to the app make a new APK; the PC-side tools and the docs (dance/, music/, tools/, *.md) do not
+    paths:
+      - 'app/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'gradle/**'
+      - '.github/workflows/**'
   workflow_dispatch:
 
 permissions:

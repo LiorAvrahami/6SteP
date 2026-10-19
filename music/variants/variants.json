@@ -1,0 +1,242 @@
+{
+ "slow": {
+  "base_bpm": 122.80611983830595,
+  "variants": [
+   {
+    "offset": 0,
+    "bpm": 122.80611983830595,
+    "tempo": 1.0,
+    "file": "chosen/16 - Laughing Manny - Slow Your Roll (123bpm).mp3",
+    "duration": 129.84,
+    "lag_ms": 36
+   },
+   {
+    "offset": -40,
+    "bpm": 82.80611983830595,
+    "tempo": 0.6742833333333351,
+    "file": "variants/slow_-40.mp3",
+    "duration": 192.56,
+    "lag_ms": 36,
+    "shift_ms": -17.8,
+    "drift_ms": 3.0,
+    "check": "pass"
+   },
+   {
+    "offset": -30,
+    "bpm": 92.80611983830595,
+    "tempo": 0.7557125000000013,
+    "file": "variants/slow_-30.mp3",
+    "duration": 171.8113,
+    "lag_ms": 36,
+    "shift_ms": -10.6,
+    "drift_ms": 1.3,
+    "check": "pass"
+   },
+   {
+    "offset": -20,
+    "bpm": 102.80611983830595,
+    "tempo": 0.8371416666666676,
+    "file": "variants/slow_-20.mp3",
+    "duration": 155.0992,
+    "lag_ms": 36,
+    "shift_ms": -6.0,
+    "drift_ms": 1.2,
+    "check": "pass"
+   },
+   {
+    "offset": -10,
+    "bpm": 112.80611983830595,
+    "tempo": 0.9185708333333338,
+    "file": "variants/slow_-10.mp3",
+    "duration": 141.35,
+    "lag_ms": 36,
+    "shift_ms": -2.2,
+    "drift_ms": 1.1,
+    "check": "pass"
+   },
+   {
+    "offset": 10,
+    "bpm": 132.80611983830596,
+    "tempo": 1.0814291666666664,
+    "file": "variants/slow_10.mp3",
+    "duration": 120.0634,
+    "lag_ms": 36,
+    "shift_ms": 2.8,
+    "drift_ms": 0.9,
+    "check": "pass"
+   },
+   {
+    "offset": 20,
+    "bpm": 142.80611983830596,
+    "tempo": 1.1628583333333327,
+    "file": "variants/slow_20.mp3",
+    "duration": 111.6559,
+    "lag_ms": 37,
+    "shift_ms": 5.2,
+    "drift_ms": 0.9,
+    "check": "pass"
+   }
+  ],
+  "engine": "Rubber Band CLI 4.0.0 (R3 --fine, offline)"
+ },
+ "hot": {
+  "base_bpm": 144.028,
+  "variants": [
+   {
+    "offset": 0,
+    "bpm": 144.028,
+    "tempo": 1.0,
+    "file": "chosen/Hot Swing - Kevin MacLeod - 5min loop (144bpm, CC BY).mp3",
+    "duration": 314.9691,
+    "lag_ms": 6
+   },
+   {
+    "offset": -40,
+    "bpm": 104.02799999999999,
+    "tempo": 0.7222762240675424,
+    "file": "variants/hot_-40.mp3",
+    "duration": 436.0784,
+    "lag_ms": -6,
+    "shift_ms": -12.5,
+    "drift_ms": 1.4,
+    "check": "pass"
+   },
+   {
+    "offset": -30,
+    "bpm": 114.02799999999999,
+    "tempo": 0.7917071680506568,
+    "file": "variants/hot_-30.mp3",
+    "duration": 397.8353,
+    "lag_ms": -2,
+    "shift_ms": -8.8,
+    "drift_ms": 1.3,
+    "check": "pass"
+   },
+   {
+    "offset": -20,
+    "bpm": 124.02799999999999,
+    "tempo": 0.8611381120337712,
+    "file": "variants/hot_-20.mp3",
+    "duration": 365.759,
+    "lag_ms": 1,
+    "shift_ms": -4.6,
+    "drift_ms": 1.2,
+    "check": "pass"
+   },
+   {
+    "offset": -10,
+    "bpm": 134.028,
+    "tempo": 0.9305690560168856,
+    "file": "variants/hot_-10.mp3",
+    "duration": 338.4693,
+    "lag_ms": 4,
+    "shift_ms": -2.1,
+    "drift_ms": 1.1,
+    "check": "pass"
+   },
+   {
+    "offset": 10,
+    "bpm": 154.028,
+    "tempo": 1.0694309439831144,
+    "file": "variants/hot_10.mp3",
+    "duration": 294.5203,
+    "lag_ms": 9,
+    "shift_ms": 2.8,
+    "drift_ms": 0.9,
+    "check": "pass"
+   },
+   {
+    "offset": 20,
+    "bpm": 164.028,
+    "tempo": 1.138861887966229,
+    "file": "variants/hot_20.mp3",
+    "duration": 276.5648,
+    "lag_ms": 10,
+    "shift_ms": 4.4,
+    "drift_ms": 0.9,
+    "check": "pass"
+   }
+  ],
+  "engine": "Rubber Band CLI 4.0.0 (R3 --fine, offline)"
+ },
+ "sunday": {
+  "base_bpm": 126.821,
+  "variants": [
+   {
+    "offset": 0,
+    "bpm": 126.821,
+    "tempo": 1.0,
+    "file": "chosen/15 - Laughing Manny - Sunday Reflection (127bpm).mp3",
+    "duration": 154.68,
+    "lag_ms": 3
+   },
+   {
+    "offset": -40,
+    "bpm": 86.821,
+    "tempo": 0.6845948226240134,
+    "file": "variants/sunday_-40.mp3",
+    "duration": 225.9439,
+    "lag_ms": -12,
+    "shift_ms": -14.6,
+    "drift_ms": 1.5,
+    "check": "pass"
+   },
+   {
+    "offset": -30,
+    "bpm": 96.821,
+    "tempo": 0.76344611696801,
+    "file": "variants/sunday_-30.mp3",
+    "duration": 202.6076,
+    "lag_ms": -7,
+    "shift_ms": -10.5,
+    "drift_ms": 1.3,
+    "check": "pass"
+   },
+   {
+    "offset": -20,
+    "bpm": 106.821,
+    "tempo": 0.8422974113120066,
+    "file": "variants/sunday_-20.mp3",
+    "duration": 183.6406,
+    "lag_ms": -4,
+    "shift_ms": -7.1,
+    "drift_ms": 1.2,
+    "check": "pass"
+   },
+   {
+    "offset": -10,
+    "bpm": 116.821,
+    "tempo": 0.9211487056560034,
+    "file": "variants/sunday_-10.mp3",
+    "duration": 167.9208,
+    "lag_ms": 1,
+    "shift_ms": -3.3,
+    "drift_ms": 1.1,
+    "check": "pass"
+   },
+   {
+    "offset": 10,
+    "bpm": 136.821,
+    "tempo": 1.0788512943439967,
+    "file": "variants/sunday_10.mp3",
+    "duration": 143.3747,
+    "lag_ms": 6,
+    "shift_ms": 2.8,
+    "drift_ms": 0.0,
+    "check": "pass"
+   },
+   {
+    "offset": 20,
+    "bpm": 146.821,
+    "tempo": 1.1577025886879933,
+    "file": "variants/sunday_20.mp3",
+    "duration": 133.6094,
+    "lag_ms": 8,
+    "shift_ms": 4.3,
+    "drift_ms": 0.9,
+    "check": "pass"
+   }
+  ],
+  "engine": "Rubber Band CLI 4.0.0 (R3 --fine, offline)"
+ }
+}

@@ -8,3 +8,16 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+
+# ---- the PC-side project (dance/, music/, tools/): generated, downloaded or not ours to publish
+__pycache__/
+*.pyc
+*.log
+*.tmp
+*.part
+dance/out/
+music/tools/beat_annotator/cache/
+# Rubber Band command-line tool: GPL binary, downloaded from breakfastquay.com (see music/tools/make_variants.py)
+music/tools/rubberband*/
+# David Drysdale's Lindy Hop notes: copyright, all rights reserved; kept on this PC only (see reference/README.md)
+reference/lurklurk/
