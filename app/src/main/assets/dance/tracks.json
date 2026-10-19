@@ -10,7 +10,51 @@
    "file": "music/hot.mp3",
    "grid": "dance/beatgrids/hot.json",
    "difficulty": "steady (sequenced)",
-   "grid_kind": "fixed"
+   "grid_kind": "fixed",
+   "variants": [
+    {
+     "offset": -40,
+     "bpm": 104.03,
+     "tempo": 0.722276,
+     "file": "music/hot_-40.mp3"
+    },
+    {
+     "offset": -30,
+     "bpm": 114.03,
+     "tempo": 0.791707,
+     "file": "music/hot_-30.mp3"
+    },
+    {
+     "offset": -20,
+     "bpm": 124.03,
+     "tempo": 0.861138,
+     "file": "music/hot_-20.mp3"
+    },
+    {
+     "offset": -10,
+     "bpm": 134.03,
+     "tempo": 0.930569,
+     "file": "music/hot_-10.mp3"
+    },
+    {
+     "offset": 0,
+     "bpm": 144.0,
+     "tempo": 1.0,
+     "file": "music/hot.mp3"
+    },
+    {
+     "offset": 10,
+     "bpm": 154.03,
+     "tempo": 1.069431,
+     "file": "music/hot_10.mp3"
+    },
+    {
+     "offset": 20,
+     "bpm": 164.03,
+     "tempo": 1.138862,
+     "file": "music/hot_20.mp3"
+    }
+   ]
   },
   {
    "key": "sunday",
@@ -22,7 +66,51 @@
    "file": "music/sunday.mp3",
    "grid": "dance/beatgrids/sunday.json",
    "difficulty": "steady",
-   "grid_kind": "tracked"
+   "grid_kind": "tracked",
+   "variants": [
+    {
+     "offset": -40,
+     "bpm": 86.82,
+     "tempo": 0.684595,
+     "file": "music/sunday_-40.mp3"
+    },
+    {
+     "offset": -30,
+     "bpm": 96.82,
+     "tempo": 0.763446,
+     "file": "music/sunday_-30.mp3"
+    },
+    {
+     "offset": -20,
+     "bpm": 106.82,
+     "tempo": 0.842297,
+     "file": "music/sunday_-20.mp3"
+    },
+    {
+     "offset": -10,
+     "bpm": 116.82,
+     "tempo": 0.921149,
+     "file": "music/sunday_-10.mp3"
+    },
+    {
+     "offset": 0,
+     "bpm": 126.8,
+     "tempo": 1.0,
+     "file": "music/sunday.mp3"
+    },
+    {
+     "offset": 10,
+     "bpm": 136.82,
+     "tempo": 1.078851,
+     "file": "music/sunday_10.mp3"
+    },
+    {
+     "offset": 20,
+     "bpm": 146.82,
+     "tempo": 1.157703,
+     "file": "music/sunday_20.mp3"
+    }
+   ]
   },
   {
    "key": "slow",
@@ -34,7 +122,51 @@
    "file": "music/slow.mp3",
    "grid": "dance/beatgrids/slow.json",
    "difficulty": "hard: the tempo moves, the band plays with the beat",
-   "grid_kind": "annotated"
+   "grid_kind": "annotated",
+   "variants": [
+    {
+     "offset": -40,
+     "bpm": 82.81,
+     "tempo": 0.674283,
+     "file": "music/slow_-40.mp3"
+    },
+    {
+     "offset": -30,
+     "bpm": 92.81,
+     "tempo": 0.755713,
+     "file": "music/slow_-30.mp3"
+    },
+    {
+     "offset": -20,
+     "bpm": 102.81,
+     "tempo": 0.837142,
+     "file": "music/slow_-20.mp3"
+    },
+    {
+     "offset": -10,
+     "bpm": 112.81,
+     "tempo": 0.918571,
+     "file": "music/slow_-10.mp3"
+    },
+    {
+     "offset": 0,
+     "bpm": 122.8,
+     "tempo": 1.0,
+     "file": "music/slow.mp3"
+    },
+    {
+     "offset": 10,
+     "bpm": 132.81,
+     "tempo": 1.081429,
+     "file": "music/slow_10.mp3"
+    },
+    {
+     "offset": 20,
+     "bpm": 142.81,
+     "tempo": 1.162858,
+     "file": "music/slow_20.mp3"
+    }
+   ]
   }
  ]
 }

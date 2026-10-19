@@ -16,4 +16,123 @@
         android:layout_margin="12dp"
         android:textColor="@color/muted"
         android:textSize="14sp" />
+
+    <!-- the options bar: swipe down during play to open it, swipe up or the cross to close it. Two rows so that it fits a
+         phone in landscape: the tracks, explore and close; then the snare, the hi-hat and the tempo. Hidden it is gone, so
+         the floor keeps every touch; shown it takes the touches on it, a tap on it does not pause the workout. -->
+    <LinearLayout
+        android:id="@+id/optionsBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:orientation="vertical"
+        android:background="@color/panel"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="6dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <HorizontalScrollView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/trackPicker"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical" />
+            </HorizontalScrollView>
+
+            <ImageButton
+                android:id="@+id/exploreHere"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/explore_here"
+                android:src="@drawable/ic_strategic" />
+
+            <ImageButton
+                android:id="@+id/closeBar"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/cancel"
+                android:src="@drawable/ic_close" />
+        </LinearLayout>
+
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:scrollbars="none">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/snareToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="6dp"
+                    android:minHeight="36dp"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:background="@drawable/bg_chip"
+                    android:textColor="@color/floor"
+                    android:textSize="14sp"
+                    android:text="@string/snare" />
+
+                <TextView
+                    android:id="@+id/hatToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="18dp"
+                    android:minHeight="36dp"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:background="@drawable/bg_chip"
+                    android:textColor="@color/floor"
+                    android:textSize="14sp"
+                    android:text="@string/hi_hat" />
+
+                <LinearLayout
+                    android:id="@+id/bpmPicker"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical" />
+
+                <TextView
+                    android:id="@+id/bpmLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingStart="6dp"
+                    android:paddingEnd="6dp"
+                    android:textColor="#FFFFFF"
+                    android:textSize="14sp"
+                    android:text="@string/bpm" />
+            </LinearLayout>
+        </HorizontalScrollView>
+    </LinearLayout>
 </FrameLayout>

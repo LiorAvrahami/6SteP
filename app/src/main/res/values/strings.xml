@@ -4,7 +4,10 @@
     <string name="start_daily">Start daily exercise</string>
     <string name="explore">Explore</string>
     <string name="other_compositions">Other compositions</string>
-    <string name="metronome_over_music">Thump tick-tick over the music</string>
+    <string name="metronome_over_music">Snare and hi-hat over the music</string>
+    <string name="snare">snare</string>
+    <string name="hi_hat">hi-hat</string>
+    <string name="explore_here">Explore this element</string>
     <string name="speak_annotations">Read annotations aloud</string>
     <string name="elements">Elements</string>
     <string name="sub_compositions">Sub-compositions</string>

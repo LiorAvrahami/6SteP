@@ -79,6 +79,8 @@ class FloorActivity : AppCompatActivity() {
         }
         val tl = Timeline(composed, 0.67); timeline = tl
         stops = listOf(0.0) + tl.beatInstants().filter { it > 0 }
+        // opened from the player at a beat inside the element: start on that instant, in the strategic view, not playing
+        if (intent.hasExtra("atBeat")) { val at = intent.getDoubleExtra("atBeat", 0.0); var i = 0; for (k in stops.indices) if (stops[k] <= at + 1e-6) i = k; idx = i; strategic = true }
         loopTl = chainedLoop(s0, startState, free)
         loopStops = loopTl?.let { listOf(0.0) + it.beatInstants().filter { b -> b > 0 } } ?: stops
         floor.post { show() }
