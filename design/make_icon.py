@@ -92,14 +92,15 @@ def render(label=True, top=312, bottom=440, plate=True):
     length, width = h * 0.62, h * 0.24
     # the blue foot: on the 6's lower-left corner, toes 45 degrees up and left
     foot(d, gb[0] + h * 0.19, gb[3] - h * 0.21, length, width, -45, BLUE)
-    # the pink foot: toes 55 degrees to the right; its heel just inside the hollow at the hollow's upper right, the toes
-    # reaching the end of the top curl
+    # the pink foot, first placed (v11) with its toes 55 degrees to the right and its heel just inside the hollow's upper
+    # right; since v12 (user 2026-10-19) moved straight up two-thirds of the way from there to the top of the 6 and turned
+    # 35 degrees anticlockwise, so its toes point 20 degrees to the right
     a = math.radians(55); ux, uy = math.sin(a), -math.cos(a)
     rh = width * 0.40
-    heel_x, heel_y = hx1 + rh * 0.3, hy0 - rh * 0.3      # the heel's round end just dips into the hollow's upper right
-    dist = math.hypot(ex - (heel_x - ux * rh), ey - (heel_y - uy * rh))
-    plen = length
-    foot(d, heel_x - ux * rh + ux * plen / 2, heel_y - uy * rh + uy * plen / 2, plen, width, 55, PINK)
+    heel_x, heel_y = hx1 + rh * 0.3, hy0 - rh * 0.3
+    px0, py0 = heel_x - ux * rh + ux * length / 2, heel_y - uy * rh + uy * length / 2   # the v11 centre
+    py1 = py0 + (gb[1] - py0) * 2 / 3
+    foot(d, px0, py1, length, width, 55 - 35, PINK)
     return im.resize((512, 512), Image.LANCZOS)
 
 def write_mipmaps(icon, fg_art):

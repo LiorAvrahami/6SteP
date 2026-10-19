@@ -138,8 +138,8 @@ script are absolute; change them if the folders move.
 - **Files** (`app/src/main/java/org/lior/sixstep/`): `DanceData.kt` (skeletons, states, elements with starting
   conditions, compositions with sub-compositions, "x N" and "say:" entries, `CompositionStore` merging the asset file
   with the user's own file on the phone, `Composer`), `Timeline.kt` (foot tracks, weights, travel, `elementIndexAt`,
-  the camera smoother), `FloorView.kt` (top view, dynamic camera that keeps the couple's feet about half the screen,
-  dashed arrows in strategic view, both dancers' arrows at once), `Audio.kt` (`BeatGrid` with `beatAt`/`beatSeconds`
+  the camera smoother), `FloorView.kt` (top view, feet as shoe soles, dynamic camera that keeps the couple's feet about half the
+  screen, dashed arrows in strategic view, both dancers' arrows at once), `Audio.kt` (`BeatGrid` with `beatAt`/`beatSeconds`
   interpolating the non-uniform beats and `scaled(tempo)`, `Track` and `TrackVariant`, the clocks, `Metronome`,
   `Speaker`, `MusicPlayer`), `MainActivity` (start daily exercise, explore, other compositions, two switches: snare and
   hi-hat over the music, speak annotations), `PlayerActivity`, `ExploreActivity` (folding rows per starting condition,
@@ -192,6 +192,11 @@ script are absolute; change them if the folders move.
   daily exercise as the user specified it with quiet bridges, the "follower pass & back" sub-composition, quiet entries,
   and the four fixes from the clock hand-over review (no bug found in the hand-overs themselves).
   v11: the launcher icon the user designed (section 5).
+  v12: the pink foot of the icon moved up two-thirds of the way to the top of the 6 and turned 35 degrees anticlockwise
+  (toes 20 degrees right of vertical); the floor grid 20 percent more contrast (`floor_grid` #E2DFD6); the feet drawn as
+  dancing-shoe soles (pointed toe on the big-toe side, separate heel), with no heading arrow and no L or R letter (the
+  strategic view's dashed step arrows stay); the exploration floor's swipes wrap round from the last instant to the first
+  and back (a cut, not an animated transition, in the flow view).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

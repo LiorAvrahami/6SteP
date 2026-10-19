@@ -10,7 +10,6 @@ import android.graphics.PointF
 import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
-import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.exp
@@ -34,14 +33,15 @@ class Scene(
     val titleColor: Int? = null
 )
 
-/** The dance floor from above: feet (opacity = weight over a grey base), heading arrows, bodies, arms, labels.
+/** The dance floor from above: feet drawn as shoe soles (opacity = weight over a grey base; the pointed toe shows the
+ *  heading), bodies, arms, the dashed step arrows of the strategic view, labels.
  *
  *  The camera (user 2026-10-19): the feet of a couple standing side by side fill about half the screen width; when the
  *  feet's bounding box gets close to an edge the view glides to centre it; when the box is too big for the screen the
  *  view zooms out just enough, and zooms back in once the box is small again. */
 class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
     companion object {
-        const val FOOT_LEN = 26.0; const val FOOT_WID = 10.0; const val ARROW = 9.0
+        const val FOOT_LEN = 26.0        // cm: the shoe from heel to toe (see `sole` and `heel`)
         const val SHOULDER = 18.0; const val ARM_MAX = 65.0; const val BODY_R = 10.0
         const val STANCE_BOX = 92.0      // cm: the width of two pairs of feet side by side, toes and arrows included
         const val EDGE = 0.10            // the box must stay out of this fraction of the screen at each edge
@@ -183,49 +183,46 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         }
     }
 
-    private fun footPoly(p: Placement, side: Char): List<Pair<Double, Double>> {
-        val f = fwd(p.h); val r = right(p.h); val s = if (side == 'R') 1.0 else -1.0
-        val pts = ArrayList<Pair<Double, Double>>()
-        val n = 10
-        for (i in 0..n) { val a = PI * i / n; val c = cos(a)
-            pts.add(Pair(c * FOOT_WID / 2 * (1 + 0.25 * (if (c * s < 0) 1 else 0)), FOOT_LEN / 2 - FOOT_WID / 2 + sin(a) * FOOT_WID / 2 * 1.15)) }
-        for (i in 0..n) { val a = PI + PI * i / n
-            pts.add(Pair(cos(a) * FOOT_WID / 2 * 0.85, -FOOT_LEN / 2 + FOOT_WID / 2 * 0.85 + sin(a) * FOOT_WID / 2 * 0.85)) }
-        return pts.map { (a, b) -> Pair(p.x + a * r.first + b * f.first, p.y + a * r.second + b * f.second) }
-    }
+    /** the sole of a dancing shoe seen from below, in cm, for a LEFT foot: u across (+ towards the inner, big-toe side),
+     *  v along (+ towards the toe), centred on the foot's placement and FOOT_LEN long. The front sole runs from a pointed
+     *  toe to the waist; the heel is a separate piece behind a small gap (user 2026-10-19: "the bottom of a dancing shoe").
+     *  Each outline is a start point and then cubic segments of (control 1, control 2, end). A right foot is the mirror. */
+    private val sole = doubleArrayOf(2.6, -3.0,
+        3.0, 0.5, 4.8, 3.0, 4.6, 6.0,
+        4.4, 9.5, 2.8, 12.4, 1.2, 13.0,
+        -0.6, 13.4, -5.2, 8.5, -5.0, 4.5,
+        -4.9, 1.5, -3.6, -1.0, -3.4, -3.0,
+        -1.5, -2.7, 0.8, -2.7, 2.6, -3.0)
+    private val heel = doubleArrayOf(2.7, -4.4,
+        2.9, -6.5, 2.9, -9.5, 2.4, -11.0,
+        1.9, -12.5, 0.9, -13.0, -0.4, -13.0,
+        -1.8, -13.0, -2.8, -12.4, -3.3, -11.0,
+        -3.8, -9.5, -3.6, -6.5, -3.4, -4.4,
+        -1.3, -4.1, 0.6, -4.1, 2.7, -4.4)
 
-    private fun polyPath(pts: List<Pair<Double, Double>>): Path {
+    /** both pieces of the shoe at placement p on the screen (the transform is affine, so the curves map exactly) */
+    private fun shoePath(p: Placement, side: Char): Path {
+        val f = fwd(p.h); val r = right(p.h); val m = if (side == 'L') 1.0 else -1.0
+        fun at(u: Double, v: Double): PointF = px(p.x + u * m * r.first + v * f.first, p.y + u * m * r.second + v * f.second)
         path.reset()
-        pts.forEachIndexed { i, (x, y) -> val q = px(x, y); if (i == 0) path.moveTo(q.x, q.y) else path.lineTo(q.x, q.y) }
-        path.close(); return path
+        for (o in listOf(sole, heel)) {
+            val s0 = at(o[0], o[1]); path.moveTo(s0.x, s0.y)
+            var i = 2
+            while (i + 5 < o.size) {
+                val c1 = at(o[i], o[i + 1]); val c2 = at(o[i + 2], o[i + 3]); val e = at(o[i + 4], o[i + 5])
+                path.cubicTo(c1.x, c1.y, c2.x, c2.y, e.x, e.y); i += 6
+            }
+            path.close()
+        }
+        return path
     }
 
     private fun withAlpha(color: Int, alpha: Double): Int = (color and 0x00FFFFFF) or ((alpha.coerceIn(0.0, 1.0) * 255).toInt() shl 24)
-    private fun blend(a: Int, b: Int, u0: Double): Int {
-        val u = u0.coerceIn(0.0, 1.0)
-        fun ch(shift: Int) = (((a shr shift) and 0xFF) * (1 - u) + ((b shr shift) and 0xFF) * u).toInt().coerceIn(0, 255)
-        return Color.rgb(ch(16), ch(8), ch(0))
-    }
-
+    /** a shoe: the grey silhouette, and the dancer's colour over it with the weight as its opacity */
     private fun drawFoot(c: Canvas, p: Placement, side: Char, color: Int, weight: Double) {
-        val poly = footPoly(p, side)
-        fill.color = withAlpha(grey, 0.2); c.drawPath(polyPath(poly), fill)
-        if (weight > 0.001) { fill.color = withAlpha(color, weight); c.drawPath(polyPath(poly), fill) }
-        val f = fwd(p.h); val r = right(p.h)
-        val toe = Pair(p.x + f.first * FOOT_LEN / 2, p.y + f.second * FOOT_LEN / 2)
-        val tip = Pair(toe.first + f.first * ARROW, toe.second + f.second * ARROW)
-        val acol = withAlpha(blend(grey, color, weight), max(0.45, weight))
-        stroke.color = acol; stroke.strokeWidth = max(2.0, scale * 1.4).toFloat(); stroke.pathEffect = null
-        val a = px(toe.first, toe.second); val b = px(tip.first, tip.second)
-        c.drawLine(a.x, a.y, b.x, b.y, stroke)
-        val h1 = px(tip.first - f.first * 5 + r.first * 3.5, tip.second - f.second * 5 + r.second * 3.5)
-        val h2 = px(tip.first - f.first * 5 - r.first * 3.5, tip.second - f.second * 5 - r.second * 3.5)
-        path.reset(); path.moveTo(b.x, b.y); path.lineTo(h1.x, h1.y); path.lineTo(h2.x, h2.y); path.close()
-        fill.color = acol; c.drawPath(path, fill)
-        val hp = px(p.x - f.first * FOOT_LEN * 0.22, p.y - f.second * FOOT_LEN * 0.22)
-        text.textSize = max(10.0, scale * 6.5).toFloat(); text.textAlign = Paint.Align.CENTER
-        text.color = withAlpha(Color.WHITE, min(1.0, weight + 0.35))
-        c.drawText(side.toString(), hp.x, hp.y + text.textSize / 3, text)
+        val shoe = shoePath(p, side)
+        fill.color = withAlpha(grey, 0.2); c.drawPath(shoe, fill)
+        if (weight > 0.001) { fill.color = withAlpha(color, weight); c.drawPath(shoe, fill) }
     }
 
     private fun shoulder(b: Placement, side: Char): Pair<Double, Double> {

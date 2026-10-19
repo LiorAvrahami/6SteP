@@ -162,16 +162,19 @@ class FloorActivity : AppCompatActivity() {
 
     private fun show() { val tl = timeline ?: return; beat = stops[idx]; floor.scene = sceneAt(tl, beat, true) }
 
-    /** move one beat instant forward or back. The flow view plays the transition from the settled state of one instant to
-     *  the settled state of the next, at twice the beat length of the BPM slider, with a constant acceleration and
-     *  deceleration of about a sixth of a second at each end. */
+    /** move one beat instant forward or back; past the last instant comes the first again, and before the first the last
+     *  (user 2026-10-19). The flow view plays the transition from the settled state of one instant to the settled state of
+     *  the next, at twice the beat length of the BPM slider, with a constant acceleration and deceleration of about a sixth
+     *  of a second at each end; going round the end is a cut, since the end and the start are not one step apart. */
     private fun step(dir: Int) {
         val tl = timeline ?: return
-        val next = idx + dir
-        if (next < 0 || next >= stops.size) return
+        if (stops.size < 2) return
+        var next = idx + dir
+        val wrapped = next < 0 || next >= stops.size
+        if (wrapped) next = if (next < 0) stops.size - 1 else 0
         anim?.cancel()
         val from = stops[idx]; val to = stops[next]; idx = next
-        if (strategic) { show(); return }
+        if (strategic || wrapped) { show(); return }
         val tFrom = tl.settledAfter(from); val tTo = tl.settledAfter(to)
         val durationMs = (abs(to - from) * 60.0 / bpm * 2.0 * 1000.0).coerceIn(250.0, 4000.0)
         val ramp = (1.0 / 6.0 * 1000.0 / durationMs).coerceAtMost(0.45)
