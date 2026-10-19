@@ -1,0 +1,202 @@
+# Handover to the new maintainer
+
+Written 2026-10-19 by the agent that built this, for the next agent who maintains it. Read this file first, then the two
+READMEs it points to. The user is a swing dancer who runs the PC tools and the phone app; for the app they do nothing
+technical at all: you edit, commit, push, watch the build, fix it, and tell them a release is ready.
+
+## 1. What this is
+
+Two projects that belong together:
+
+| Project | Where | What |
+| --- | --- | --- |
+| **Swing5** (this folder) | `C:\Liors_Stuff\Swing5`, not a git repository | The source of truth: footwork skeletons of Lindy Hop elements, compositions, the rule checker, a video renderer, the web editor, the music with its beat grids, the tempo variants, and the script that builds the phone app's assets from all of it. Python 3.11. |
+| **6SteP** (the Android app) | `C:\Liors_Stuff\6SteP`, GitHub `https://github.com/LiorAvrahami/6SteP` (public, branch `main`) | The practice app: the daily exercise danced on the music with spoken annotations, an exploration floor, compositions editable on the phone. Kotlin, min SDK 26, landscape. |
+
+The app's data (`app/src/main/assets/`) is generated from Swing5 by `tools/make_assets.py` (section 5). Never edit the
+assets by hand; change Swing5 and rebuild them.
+
+## 2. How the user wants you to work (these are rules, learned the hard way)
+
+1. **Advisory mode.** Build your best guess, flag it, and put the question in a short numbered list at the end of your
+   report. The user answers all questions in one batch. Do not block on questions; do not guess silently about dance
+   decisions (who turns which way, where an element ends, distances): those are theirs.
+2. **Never add correction layers** (nudging, repulsion, clamping) to make a rule pass. A failed rule check means the data
+   is wrong: fix the placements or ask.
+3. **Edits are messages.** Anything the user can edit (skeletons in the web editor) keeps a baseline copy and a diff
+   command. Run `python dance/diff.py` before touching `dance/skeletons.json`, respond to the diff, then `--accept`.
+   `dance/author_skeletons.py` refuses to run while the skeleton differs from the baseline (`--force` overrides); it once
+   overwrote an hour of the user's edits, which had to be recovered from sampled data.
+4. **Everything autosaves.** Any tool you build that holds the user's work writes it to disk on every change (and keeps a
+   browser copy), and switching items never discards unsaved state. The beat annotator lost an hour of marks before this rule.
+5. **Compositions are the user's.** `dance/compositions.json` and the app's own composition file are edited by the user;
+   load, modify, save; never regenerate from scratch.
+6. **The app release loop.** For every change to the app: edit, commit, push to `main`, watch the GitHub Actions run, fix
+   failures, then tell the user the release number. There is no Android SDK on the PC; GitHub is the compiler (about 3 to
+   5 minutes a build). Push with `git push https://x-access-token:<token>@github.com/LiorAvrahami/6SteP.git main`.
+7. **The GitHub token.** The user gives you a fine-grained token (Contents, Actions, Workflows read-write on that repo).
+   Keep it only in a temporary file outside both projects, never in a commit, a memory note, a README or a message. Ask the
+   user for it again at the start of a new session. `tools/watch_build.sh` reads it from `$GH_TOKEN` or `$GH_TOKEN_FILE`.
+8. **Ports.** 8765 belongs to another app of the user's (requests silently go there). The skeleton editor is on 8771, the
+   beat annotator on 8772. Run `netstat -ano | grep :<port>` before starting a server; never kill a listener that is not yours.
+9. **Report short.** Lead with the outcome, numbers in tables, a numbered list of questions at the end.
+
+The user's own requirement documents, in their words: `old handovers/handover-what-i-want.md` (the dance model and the
+rules), `old handovers/handover-questions-and-answers.md` (their answers; authoritative), `old handovers/handover-reading-the-notes.md`
+(the lurklurk notation), `app_requirments.md` (the app), `footwork-sources.md`. The lurklurk Lindy Hop notes are in
+`reference/lurklurk/site-with-codes/`.
+
+## 3. The dance side (`dance/`, reference: `dance/README.md`)
+
+- **Model.** Units cm. A skeleton is written in the frame of its start: leader's left foot at (0, 0), heading 0 = +y = his
+  forward, +x = his right, headings clockwise in degrees. **Facing states** fix all four feet relative to the leader's left
+  foot: `side` (follower on his right, both facing the same way, 45 cm between body centres: an agent guess), `facing`
+  (open hold, 70 cm, from the user), `reversed_side` (defined, unused). The user dances the basic side by side; animations
+  must start there or they look wrong to them.
+- **Lookup key** of a skeleton: (element name, start state, which of the leader's feet is free) = the element and its
+  *starting condition*. Elements are merged by name (rock step and triple step each have four starting conditions); a
+  composition dictates each element's starting condition from the end of the previous one, so the composer picks the
+  variant and refuses a sequence that has none.
+- **Elements that exist** (14 skeletons): rock step, triple step (side by side it drifts 10 cm towards the free foot's
+  side), rock back cutoff (the user placed all 16 steps themselves), follower underarm pass (from side: she turns
+  clockwise; from facing: anticlockwise as lurklurk's Changing Places, he follows her round from behind), lead underarm
+  pass (facing), recapture underarm pass (facing to side; the user's name), circle (facing, 8 beats).
+- **Rules** (checked by `check.py`, no exceptions beyond an explicit close hold): a weighted foot never moves or rotates;
+  a dancer's feet never more than 70 cm apart; 20 cm foot collision circles and 20 cm body circles never overlap; hands
+  in reach (65 cm, a guess); the end state reached. `check.py --storyboard` draws every skeleton to `dance/out/` and you
+  review them by eye; the user judged every element by eye too.
+- **Timing** (`model.py`, `render.py`, `Timeline.kt`): a foot lands exactly on its count; its weight ramps up over 0.3
+  beat (or 45 percent of the gap to the dancer's next step); a foot travels only while weightless, with ease-in-out;
+  opacity = weight over a grey silhouette at 0.2. The swung "&" lands at the track's measured swing fraction (0.68 to 0.71).
+- **Composer** (`model.compose`, `Composer.compose` in the app): chains elements through the end frame of the previous
+  one; for play loops it pads with triple-step fillers until the loop is at least 4 beats and the free foot is restored,
+  then chains the loop for the whole track so there is no jump.
+- **Compositions** (`dance/compositions.json`): named lists of entries: an element, a sub-composition (RTT = rock step,
+  triple step, triple step; pass+recapture; pass+circle), either "x N", and "say: text" annotations (app only). The
+  daily routine is "5 minutes exercise" (558 beats; 3:52 on Hot Swing).
+- **Tools.** `render.py` makes an MP4 on the music (about 40 fps, stops where a short track ends); the editor
+  (`dance/editor/server.py`, port 8771) edits skeletons and compositions, plays in the browser with Web Audio and
+  autosaves; a Node test with a stubbed DOM covers the page logic (47 checks; the script lived in the old session's
+  scratchpad: rewrite it if you need it).
+
+## 4. The music side (`music/`, reference: `music/README.md`)
+
+- **Tracks** in `music/chosen/`: Hot Swing (Kevin MacLeod, CC BY, looped to 5:15, 144 BPM, sequenced, dead steady),
+  Sunday Reflection (127) and Slow Your Roll (123) by Laughing Manny & The Swinging Dicks (CC BY-NC-SA: fine privately,
+  a deal with the band is needed before any commercial release; contact form on their Free Music Archive page). The user
+  wants saxophone-led real swing; the whole search history and their 1 to 10 scores are in the README.
+- **Beat grids** `<track> - beatgrid.json`: `beats[]` is the time of every beat and is used directly (it is NOT uniform
+  for the live band), `bars[]` the bar starts, `swing` the "&" fraction, `grid` = `fixed` (comb-search tempo, Hot Swing),
+  `tracked` (librosa beats snapped to onsets, Sunday Reflection) or `annotated` (the user's own marks, Slow Your Roll).
+- **Annotating by ear**: `python music/tools/beat_annotator/server.py` (port 8772) shows a high-resolution mel
+  spectrogram; Space plays, Enter marks a beat, `1` a downbeat, marks autosave to `<track> - taps.json`;
+  `python music/tools/beat_annotator/grid_from_taps.py <hot|sunday|slow>` interpolates the grid (constant tempo between
+  marks, running period beyond them), writes it and plots the tempo and phase to `analysis_<key>.png`. The previous
+  automatic grid is kept as `- beatgrid.analysis.json`.
+- **Slow Your Roll is the hard track.** The band bends the tempo on purpose: base 122.8 BPM, two bars at 111 (58.9 to 63.2 s),
+  two bars at 136 to 138 (82.7 to 86.2 s), smaller bends at 33 to 37 s (+4 percent) and 43 to 45 s (−6 percent); 8 of 57
+  bars are more than 3 percent off, 14 percent of the time; a fixed metronome ends up 0.8 beat off. No net drift over the
+  tune and only 1.4 percent spread outside the bends: a steady band playing with the beat. The user's idea for later:
+  grade exercises by using the sections of this track where the beat moves (harder) or does not (easier). The app shows
+  a per-track `difficulty` text next to the title.
+- **Tempo variants** (`music/tools/make_variants.py`, output `music/variants/`): every track time-stretched to −40, −30,
+  −20, −10, +10, +20 BPM with the pitch unchanged, Rubber Band R3 "fine" engine offline (the command-line tool is in
+  `music/tools/rubberband-4.0.0-gpl-executable-windows/`; the script finds it there, or through `--rubberband`, or falls
+  back to ffmpeg's rubberband filter and records the engine in `variants.json`). 96 kbps mono, 48.7 MB. The script's
+  `--check` verifies with onset correlation that every beat of the grid lands at `beats[i] / tempo` in the variant file;
+  all 18 pass (lag within 16 ms of the original, stretch linear within 3 ms). A reviewer suggested CBR encoding so the
+  phone's seeks are frame-accurate; the files are CBR 96k.
+
+## 5. The bridge: `tools/make_assets.py`
+
+Run `python tools/make_assets.py` after any change to the skeletons, compositions, beat grids, variants or metronome
+sounds, then commit and push the app. It writes, into `C:\Liors_Stuff\6SteP\app\src\main\assets` and `res/`:
+`dance/skeletons.json`, `dance/compositions.json`, `dance/tracks.json` (title, artist, licence, bpm, duration, file,
+grid, `difficulty`, `grid_kind`, and `variants`: a list of `{offset, bpm, tempo, file}` with offset 0 pointing at the
+original file), `dance/beatgrids/<key>.json` (slimmed grids), `music/<key>.mp3` and `music/<key>_<offset>.mp3`, the
+synthesised `res/raw/snare.wav` and `res/raw/hihat.wav`, and the launcher icon from `6SteP/design/icons/option1_feet_on_floor.png`
+(five icon options were made for the user to choose from; they have not chosen yet). The paths at the top of the
+script are absolute; change them if the folders move.
+
+`tools/watch_build.sh [short sha]` waits for the GitHub Actions run of that commit and prints the error lines of a failed job.
+
+## 6. The app (`C:\Liors_Stuff\6SteP`, reference: its `README.md`)
+
+- **Build and release.** `.github/workflows/build.yml`: JDK 17, Android SDK 34, Gradle 8.7, `gradle assembleRelease`,
+  the APK attached to release `v<run number>` (the user installs from the releases page; the version code is the run
+  number). Signed with the committed PKCS12 keystore `app/keystore/sixstep.p12` (alias and password `sixstep`), so
+  each APK installs over the last; the repository is public, which the user accepted. AGP 8.5.2, Kotlin, Material3
+  DayNight theme without an action bar.
+- **Files** (`app/src/main/java/org/lior/sixstep/`): `DanceData.kt` (skeletons, states, elements with starting
+  conditions, compositions with sub-compositions, "x N" and "say:" entries, `CompositionStore` merging the asset file
+  with the user's own file on the phone, `Composer`), `Timeline.kt` (foot tracks, weights, travel, `elementIndexAt`,
+  the camera smoother), `FloorView.kt` (top view, dynamic camera that keeps the couple's feet about half the screen,
+  dashed arrows in strategic view, both dancers' arrows at once), `Audio.kt` (`BeatGrid` with `beatAt`/`beatSeconds`
+  interpolating the non-uniform beats and `scaled(tempo)`, `Track` and `TrackVariant`, the clocks, `Metronome`,
+  `Speaker`, `MusicPlayer`), `MainActivity` (start daily exercise, explore, other compositions, two switches: snare and
+  hi-hat over the music, speak annotations), `PlayerActivity`, `ExploreActivity` (folding rows per starting condition,
+  long-press pencil, edit dialog that saves by the original name), `FloorActivity` (swipe through beats, strategic or
+  flow view with BPM-paced transitions, options bar with play on the snare and hi-hat, BPM slider, element map;
+  accepts `kind`, `name`, `variant`, `state`, `free`, `atBeat` extras).
+- **Clocks.** `TempoClock` (a fixed tempo, used in the gap between tracks and in exploration), `MusicClock` (the
+  MediaPlayer position read a few times a second, extrapolated on the phone clock, small drifts absorbed, mapped through
+  the beat grid), `SlewClock` (a hand-over: another clock plus an offset that fades out over 1.2 s). A new track starts
+  at the next annotation block at least 2 beats ahead; its clock takes over 220 ms after the start, slewed. The daily
+  session shuffles the three tracks and plays them one after another; when a track runs out the snare and hi-hat keep the
+  beat until the next one.
+- **Player gestures.** Tap: pause and continue. Swipe left: next annotation block. Swipe right: replay this block, or the
+  previous one when this block began less than 2 s ago (`BACK_REPLAY_THRESHOLD_SECONDS`, from the user's Workout
+  Instructinator app). Swipe down: the options bar (added 2026-10-19): chips for the track to play next (switches at the
+  next block boundary with a crossfade), snare and hi-hat toggles (preferences `snare_on`, `hihat_on`; switching one on
+  while the music plays also turns the "over the music" overlay on, both off turns it off), the tempo offset −40..+20
+  (preference `bpm_offset`, kept for the whole session; a change while the music plays cues the variant file to the next
+  whole beat, crossfades over 120 ms and hands the clock over; between tracks the next track takes it; while paused it
+  is applied at the resume), and "explore", which pauses and opens the element being danced in the exploration floor at
+  the same beat (back returns to the paused workout).
+- **Metronome.** Snare on the odd counts, closed hi-hat on the swung "&" and the even counts; scheduled on its own thread
+  at exact uptimes from the clock. Both sounds are synthesised by `make_assets.py`.
+- **Speech.** Annotations are fetched once from Google Translate's TTS endpoint and cached per phrase (`cacheDir/tts_<md5>.mp3`),
+  prefetched at the start of a session; the phone's own voice is the fallback after waiting up to 1.2 s for an in-flight
+  download. Speech plays as media with headroom; the music dips to 60 percent under a phrase and is always restored
+  (completion, error, stop, a watchdog). The player holds audio focus for the session with `setWillPauseWhenDucked(true)`
+  and ignores "may duck" requests, so the system never dims the whole app; a real loss (a call) pauses the workout.
+  This was the fix for "the music and the annotations both go dim sometimes" (2026-10-19); the diagnosis also named the
+  phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
+- **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on`, `bpm_offset`.
+
+## 7. State at the handover (2026-10-19)
+
+- Releases: v2 first APK (2026-10-18), v3 camera/sounds/swipes/map, v4 folding rows, BPM-paced transitions, chained loop,
+  v5 sync screen removed and review fixes, v6 the annotated Slow Your Roll grid and the difficulty text, **v7 (build passed, APK 71 MB)
+  the snare and hi-hat sounds, the tempo variants, the player's options bar and the dimming fix.** v8 is this file alone.
+- The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
+  reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
+  The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
+  crossfade clean), choosing a track from the bar, explore and back, the snare and hi-hat toggles, whether the dim mix is gone.
+- Open questions the user has not answered yet (ask again, briefly): the cutoff ends 35 cm apart with her left foot
+  15 cm from his right (the side state says 45 cm and feet 20 cm apart: keep it or fix it); the recapture's turn
+  direction; which launcher icon (five options in `6SteP/design/icons/`); whether circles belong in the daily exercise;
+  from the agents of 2026-10-19: the tempo picker is a row of chips rather than a spinner; a tempo change near the end of
+  a track lets the file play out and the next track takes the new tempo; the exploration floor's play does not honour the
+  snare and hi-hat toggles (one line to add if wanted); holding audio focus pauses other apps' music when a workout starts.
+- Unconfirmed agent guesses in the dance data: 45 cm side separation, 30 cm rock-back, 65 cm arm reach, the weight fade
+  after landing, the circle exit, Sunday Reflection's downbeat phase, which hands are held side by side before a pass.
+- Not built: Charleston, anything from `reversed_side`, lead underarm pass from side by side.
+
+## 8. Pitfalls seen in this environment
+
+- Windows with Git Bash: MSYS rewrites arguments that look like paths (`/CN=...` for openssl: set `MSYS_NO_PATHCONV=1`);
+  long heredocs with quotes break: write a script file and run it. `python -I` hides the user-site packages (numpy,
+  librosa live there): run your own scripts without `-I`. Git warns about CRLF on every commit; harmless.
+- The rendered video is slow if you draw full-frame layers; the renderer blends cropped layers (40 fps).
+- MediaPlayer seeks on MP3 are frame-accurate only with `SEEK_CLOSEST` (used); positions reported by the player lag the
+  sound by a few ms, which the slewed hand-over absorbs.
+- When a Python interpolation gets one bad mark (NaN or negative time) every derived beat vanishes: the annotator
+  filters marks and guards the period.
+
+## 9. Backlog and ideas the user voiced
+
+- Exercises graded by the sections of Slow Your Roll where the beat moves.
+- A licence agreement with Laughing Manny before any public release; more real-band sax swing tracks.
+- Tempo control was "nice but difficult": now done offline; on-device stretching (`PlaybackParams`) stays the small-APK alternative.
+- Exploration play honouring the drum toggles; the icon choice; Charleston elements.
