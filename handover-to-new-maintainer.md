@@ -68,7 +68,7 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
 - **Model.** Units cm. A skeleton is written in the frame of its start: leader's left foot at (0, 0), heading 0 = +y = his
   forward, +x = his right, headings clockwise in degrees. **Facing states** fix all four feet relative to the leader's left
   foot: `side` (follower on his right, both facing the same way, 45 cm between body centres: an agent guess), `facing`
-  (open hold, 70 cm, from the user), `reversed_side` (defined, unused). The user dances the basic side by side; animations
+  (open hold, 46 cm between body centres = a 20 cm gap between the facing toes, user 2026-10-19; it was 70), `reversed_side` (defined, unused). The user dances the basic side by side; animations
   must start there or they look wrong to them.
 - **Lookup key** of a skeleton: (element name, start state, which of the leader's feet is free) = the element and its
   *starting condition*. Elements are merged by name (rock step and triple step each have four starting conditions); a
@@ -225,6 +225,13 @@ beat annotator (`python music/tools/beat_annotator/server.py`, port 8772). After
   v13: the dance and music project moved into the repo (section 1); the same app as v12.
   v14: the recapture turns her left; the narrator says "leed" for "lead" (`Speaker.spoken` in `Audio.kt`, the screen keeps
   "lead"); the icon's feet are shoe soles and the pink one is slid right until it only just touches the 6.
+  v15: face to face is 46 cm between centres instead of 70 (user: the facing toes 20 cm apart); the follower's steps of the
+  facing rock and triple steps move in, and the middle steps of both follower passes, the recapture, the lead pass and the
+  circle's first two counts were placed again (agent guesses, check.py clean apart from the 2 known cutoff errors; the user
+  has not seen the storyboards yet). Exploration: the first stop is the start position one beat before count 1 (the first
+  step is seen leaving it), a piece that does not close restarts from there when played, a double tap plays or stops, and
+  a loop is padded with triple steps only to bring the free foot back (a rock step alone plays as rock steps; the editor's
+  `model.compose` follows the same rule). The lurklurk zip is in `reference/lurklurk/` on this clone (git-ignored).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

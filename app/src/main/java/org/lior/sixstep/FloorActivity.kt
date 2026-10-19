@@ -23,9 +23,13 @@ import kotlin.math.floor
 
 /** The exploration dance floor: swipe through the beats, strategic view (skeleton + dashed arrows) or flow view (the
  *  transition plays), swipe down for the options bar (view toggle, play on the snare and hi-hat, BPM, the element map).
+ *  The first stop is the start position one beat before count 1, so the first step is seen leaving it. Double tap plays
+ *  or stops; a single tap stops.
  *  Play loops the piece; when it closes on itself (same state and free foot at the end) the loop is danced on from where
  *  the dancers are, exactly as the player does, so the last beat flows into the first. */
 class FloorActivity : AppCompatActivity() {
+    companion object { const val LEAD_IN = 1.0 }   // beats of the start position shown before count 1
+
     private lateinit var floor: FloorView
     private lateinit var bar: View
     private lateinit var toggle: ImageButton
@@ -78,11 +82,11 @@ class FloorActivity : AppCompatActivity() {
             floor.scene = Scene(emptyMap(), emptyMap(), emptyList(), name, "", emptyList(), composed?.errors?.joinToString("\n") ?: "nothing to show"); return
         }
         val tl = Timeline(composed, 0.67); timeline = tl
-        stops = listOf(0.0) + tl.beatInstants().filter { it > 0 }
+        stops = withLeadIn(tl)
         // opened from the player at a beat inside the element: start on that instant, in the strategic view, not playing
         if (intent.hasExtra("atBeat")) { val at = intent.getDoubleExtra("atBeat", 0.0); var i = 0; for (k in stops.indices) if (stops[k] <= at + 1e-6) i = k; idx = i; strategic = true }
         loopTl = chainedLoop(s0, startState, free)
-        loopStops = loopTl?.let { listOf(0.0) + it.beatInstants().filter { b -> b > 0 } } ?: stops
+        loopStops = loopTl?.let { withLeadIn(it) } ?: stops
         floor.post { show() }
 
         toggle.setOnClickListener { strategic = !strategic; prefs.edit().putBoolean("strategic", strategic).apply(); updateBar(); show() }
@@ -108,10 +112,14 @@ class FloorActivity : AppCompatActivity() {
                 return false
             }
             override fun onSingleTapConfirmed(e: MotionEvent): Boolean { if (playing) stopPlay(); return true }
-            override fun onDoubleTap(e: MotionEvent): Boolean { if (!playing) startPlay(); return true }
+            override fun onDoubleTap(e: MotionEvent): Boolean { if (playing) stopPlay() else startPlay(); return true }
         })
         floor.setOnTouchListener { v, ev -> gestures.onTouchEvent(ev); if (ev.action == MotionEvent.ACTION_UP) v.performClick(); true }
     }
+
+    /** the stops of a timeline: first the start position one beat before count 1 (the neutral position: the first step is
+     *  seen leaving it, user 2026-10-19), then count 1 and every later beat instant */
+    private fun withLeadIn(tl: Timeline): List<Double> = (listOf(-LEAD_IN, 0.0) + tl.beatInstants().filter { it > 0 }).distinct()
 
     /** the piece padded with triple steps until it closes, then chained many times: the loop for play mode */
     private fun chainedLoop(seq: List<SeqItem>, startState: String, free: Char?): Timeline? {
@@ -156,7 +164,7 @@ class FloorActivity : AppCompatActivity() {
             }
         }
         val el = tl.elementAt(b)
-        val title = when { el == null -> ""; el.filler -> el.name + " — triple step filler"; el.group != null -> el.name + "   (" + el.group + ")"; else -> el.name }
+        val title = when { b < 0 -> "start position"; el == null -> ""; el.filler -> el.name + " — triple step filler"; el.group != null -> el.name + "   (" + el.group + ")"; else -> el.name }
         return Scene(feet, weights, tl.handsAt(b), title, tl.countLabel(b), arrows, null, if (el?.filler == true) getColor(R.color.filler) else null)
     }
 
@@ -199,7 +207,8 @@ class FloorActivity : AppCompatActivity() {
             override fun run() {
                 if (!playing) return
                 var b = c.beatNow()
-                if (b >= lt.length) { b -= lt.length; c.reanchor(b, SystemClock.uptimeMillis()); metronome.resync() }
+                // a loop that closes runs straight on; a piece that does not restarts from the start position, one beat early
+                if (b >= lt.length) { b -= if (loopTl != null) lt.length else lt.length + LEAD_IN; c.reanchor(b, SystemClock.uptimeMillis()); metronome.resync() }
                 var i = 0; for (k in lstops.indices) if (lstops[k] <= b + 1e-6) i = k
                 beat = b
                 floor.scene = if (strategic) sceneAt(lt, lstops[i], true) else sceneAt(lt, b, false)
@@ -213,7 +222,7 @@ class FloorActivity : AppCompatActivity() {
         playing = false; metronome.stop(); clock = null; updateBar()
         if (tl != null) {
             // back to the piece itself, at the beat the loop was showing
-            val local = if (loopTl != null && loopBeats > 0) beat - floor(beat / loopBeats) * loopBeats else beat
+            val local = if (beat < 0) beat else if (loopTl != null && loopBeats > 0) beat - floor(beat / loopBeats) * loopBeats else beat
             var i = 0; if (local < tl.length) for (k in stops.indices) if (stops[k] <= local + 1e-6) i = k
             idx = i
         }

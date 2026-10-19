@@ -309,7 +309,8 @@ object Composer {
         }
         if (padToLoop && errors.isEmpty() && sequence.isNotEmpty()) {
             var fillers = 0
-            while ((t < 4 || free != startFree) && fillers < 4) {
+            // only until the leader's free foot is back (user 2026-10-19: a rock step played alone stays a rock step)
+            while (free != startFree && fillers < 4) {
                 val elem = data.find(FILLER, state, free)
                 if (elem == null) { errors.add("cannot fill the loop: no $FILLER from $state with the $free foot free"); break }
                 add(elem, null, true)

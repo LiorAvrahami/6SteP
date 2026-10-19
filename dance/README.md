@@ -58,7 +58,7 @@ previous one, so the composer picks the variant itself and refuses a sequence th
   forward, +x = his right. Heading in degrees, clockwise seen from above (lurklurk's `R` is positive).
 - **Facing states** (`states` in the JSON) fix all four feet relative to the leader's left foot:
   `side` (follower on his right, both facing the same way, 45 cm between body centres: agent guess),
-  `facing` (open hold, 70 cm between centres: user Q5), `reversed_side` (follower on his left; defined, no element leads there now).
+  `facing` (open hold, 46 cm between centres: a 20 cm gap between the toes of the facing feet, user 2026-10-19; it was 70, user Q5), `reversed_side` (follower on his left; defined, no element leads there now).
   Each state also lists its default hand connections and that the leader starts with his left foot free (6-beat_rhythm.html).
 - **Lookup key** for a skeleton: (element name, start state, which of the leader's feet is free) = the element and its starting condition.
 - **Counts**: musical labels (`1`..`8`, `3&`). A two-beat triple keeps its own numbering (5, 5&, 6). The `&` lands at the
@@ -125,7 +125,7 @@ or ask the user.
   pass+recapture x8, RTT, cutoffs x12, RTT, pass+circle x6, RTT; 558 beats = 3:52 on Hot Swing.
 - **play** (space bar too): the music runs on continuously (the whole track, looped, with a one-bar count-in) and the
   element or composition is danced on it, in the browser, with the same weight and travel model as `render.py`. If the
-  dance alone would not loop (shorter than a bar, or ending with the other foot free) the server pads it with triple steps
+  dance alone would not loop (ending with the other foot free) the server pads it with triple steps
   picked by the composer from the end condition, named "triple step filler" on screen. A loop that closes (same state and
   free foot at its end) is chained for the whole track, so the dance continues from where the dancers are with no jump,
   and the camera follows the couple when the chain does not fit the floor. An element whose end state differs from its

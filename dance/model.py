@@ -103,9 +103,10 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
     """Turn a list of element names into a world timeline.
 
     leader_free: which of the leader's feet is free at the start (default: the state's, i.e. the left).
-    pad_to_loop: append filler elements (triple steps, picked by the composer from the end condition) until the sequence is
-    at least a bar (4 beats) long and the leader's free foot is back where it started, so the sequence can be danced again
-    straight after itself; filler elements are flagged 'filler'. A six-count already closes on its own and gets none.
+    pad_to_loop: append filler elements (triple steps, picked by the composer from the end condition) until the leader's
+    free foot is back where it started, so the sequence can be danced again straight after itself; filler elements are
+    flagged 'filler'. A six-count, or a rock step alone, already closes on its own and gets none (user 2026-10-19: a rock
+    step played alone must not turn into rock, triple, triple; the earlier rule also padded to at least a bar).
 
     Returns dict with 'steps' (t beats, dancer, foot, x, y, heading, element index, count, code, exempt, hands),
     'elements' (name, start beat, beats, states, free feet, filler flag), 'start' (feet at t=0), 'start_hands', 'end_state',
@@ -156,7 +157,7 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
         add(elem, name, False, groups[idx] if groups and idx < len(groups) else None)
     if pad_to_loop and not errors and sequence:
         fillers = 0
-        while (t < 4 or free['L'] != start_free) and fillers < 4:
+        while free['L'] != start_free and fillers < 4:
             elem = find_element(data, filler, state, free['L'])
             if elem is None:
                 errors.append(f"cannot fill the loop: no {filler!r} from {state!r} with the leader's {free['L']} foot free")

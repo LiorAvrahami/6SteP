@@ -37,7 +37,7 @@
    ]
   },
   "facing": {
-   "desc": "Facing each other, open hold, leader's left hand holding the follower's right. 70 cm between body centres (user, Q5).",
+   "desc": "Facing each other, open hold, leader's left hand holding the follower's right. 46 cm between body centres: a 20 cm gap between the toes of the facing feet (user 2026-10-19; it was 70, user Q5).",
    "feet": {
     "L.L": [
      0,
@@ -51,12 +51,12 @@
     ],
     "F.L": [
      20,
-     70,
+     46,
      180
     ],
     "F.R": [
      0,
-     70,
+     46,
      180
     ]
    },
@@ -208,7 +208,7 @@
    "beats": 2,
    "leader_free_start": "L",
    "source": "m_changing_places counts 1-2 (M:BL W:BR, M:RR W:RL) from open position",
-   "notes": "Back step 30 cm (guess). Bodies separate to about 130 cm on count 1; both arms stay within reach.",
+   "notes": "Back step 30 cm (guess). Bodies separate to about 106 cm on count 1; both arms stay within reach.",
    "steps": [
     {
      "count": "1",
@@ -226,7 +226,7 @@
      "foot": "R",
      "code": "BR",
      "x": 0.0,
-     "y": 100.0,
+     "y": 76.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -246,7 +246,7 @@
      "foot": "L",
      "code": "RL",
      "x": 20.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "notes+guess"
     }
@@ -278,7 +278,7 @@
      "foot": "L",
      "code": "BL",
      "x": 20.0,
-     "y": 100.0,
+     "y": 76.0,
      "heading": 180.0,
      "src": "user+guess"
     },
@@ -298,7 +298,7 @@
      "foot": "R",
      "code": "RR",
      "x": 0.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "user+guess"
     }
@@ -475,7 +475,7 @@
      "foot": "R",
      "code": "eSR",
      "x": -10.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -495,7 +495,7 @@
      "foot": "L",
      "code": "TL",
      "x": 0.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -515,7 +515,7 @@
      "foot": "R",
      "code": "eSR",
      "x": -20.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "notes+guess"
     }
@@ -547,7 +547,7 @@
      "foot": "L",
      "code": "eSL",
      "x": 30.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -567,7 +567,7 @@
      "foot": "R",
      "code": "TR",
      "x": 20.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -587,7 +587,7 @@
      "foot": "L",
      "code": "eSL",
      "x": 40.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "notes+guess"
     }
@@ -846,7 +846,7 @@
      "foot": "R",
      "code": "FR",
      "x": 54.0,
-     "y": 24.0,
+     "y": 18.0,
      "heading": 0.0,
      "src": "user+guess",
      "note": "forward; his hand lifts"
@@ -866,8 +866,8 @@
      "dancer": "F",
      "foot": "L",
      "code": "TL",
-     "x": 36.0,
-     "y": 40.0,
+     "x": 38.0,
+     "y": 30.0,
      "heading": 0.0,
      "src": "user+guess",
      "note": "a travelling close, across his front"
@@ -887,8 +887,8 @@
      "dancer": "F",
      "foot": "R",
      "code": "XR2R",
-     "x": 28.0,
-     "y": 55.0,
+     "x": 22.0,
+     "y": 42.0,
      "heading": 90.0,
      "src": "user+guess",
      "note": "right crosses in front, turning 90 R under the hands"
@@ -908,8 +908,8 @@
      "dancer": "F",
      "foot": "L",
      "code": "BL1R",
-     "x": 22.0,
-     "y": 80.0,
+     "x": 16.0,
+     "y": 64.0,
      "heading": 135.0,
      "src": "user+guess",
      "note": "backing round, hand lowered"
@@ -930,7 +930,7 @@
      "foot": "R",
      "code": "TR1R",
      "x": 0.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "user+guess"
     },
@@ -950,7 +950,7 @@
      "foot": "L",
      "code": "eFL",
      "x": 20.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "user+guess",
      "note": "settles facing him, open hold"
@@ -1003,7 +1003,7 @@
      "foot": "R",
      "code": "BR",
      "x": 0.0,
-     "y": 100.0,
+     "y": 76.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -1023,7 +1023,7 @@
      "foot": "L",
      "code": "RL",
      "x": 20.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -1033,7 +1033,7 @@
      "foot": "L",
      "code": "FL2R",
      "x": 10.0,
-     "y": 40.0,
+     "y": 24.0,
      "heading": 90.0,
      "src": "user+guess",
      "note": "one step forward, turned 90 right, behind her"
@@ -1043,8 +1043,8 @@
      "dancer": "F",
      "foot": "R",
      "code": "FR1L",
-     "x": 32.0,
-     "y": 42.0,
+     "x": 38.0,
+     "y": 34.0,
      "heading": 135.0,
      "src": "notes+guess",
      "note": "forward, turning left; the hands lift"
@@ -1055,7 +1055,7 @@
      "foot": "R",
      "code": "TR",
      "x": 10.0,
-     "y": 20.0,
+     "y": 4.0,
      "heading": 90.0,
      "src": "user+guess"
     },
@@ -1065,7 +1065,7 @@
      "foot": "L",
      "code": "TL",
      "x": 46.0,
-     "y": 56.0,
+     "y": 54.0,
      "heading": 135.0,
      "src": "notes+guess",
      "note": "left closes, under the hands"
@@ -1076,7 +1076,7 @@
      "foot": "L",
      "code": "RL",
      "x": 10.0,
-     "y": 40.0,
+     "y": 24.0,
      "heading": 90.0,
      "src": "user+guess",
      "note": "triple in place"
@@ -1086,8 +1086,8 @@
      "dancer": "F",
      "foot": "R",
      "code": "FR1L",
-     "x": 60.0,
-     "y": 38.0,
+     "x": 62.0,
+     "y": 34.0,
      "heading": 90.0,
      "src": "notes+guess",
      "note": "forward, now facing east with him behind her"
@@ -1098,7 +1098,7 @@
      "foot": "R",
      "code": "FR2R",
      "x": 40.0,
-     "y": 30.0,
+     "y": 18.0,
      "heading": 180.0,
      "src": "user+guess",
      "note": "one more step forward, turned 90 right"
@@ -1108,8 +1108,8 @@
      "dancer": "F",
      "foot": "L",
      "code": "BL1L",
-     "x": 52.0,
-     "y": 10.0,
+     "x": 62.0,
+     "y": -6.0,
      "heading": 45.0,
      "src": "notes+guess",
      "note": "backing round to his new front; hands lowered"
@@ -1120,7 +1120,7 @@
      "foot": "L",
      "code": "TL",
      "x": 60.0,
-     "y": 30.0,
+     "y": 18.0,
      "heading": 180.0,
      "src": "user+guess"
     },
@@ -1129,8 +1129,8 @@
      "dancer": "F",
      "foot": "R",
      "code": "TR",
-     "x": 62.0,
-     "y": -14.0,
+     "x": 76.0,
+     "y": -20.0,
      "heading": 45.0,
      "src": "notes+guess"
     },
@@ -1140,7 +1140,7 @@
      "foot": "R",
      "code": "RR",
      "x": 40.0,
-     "y": 30.0,
+     "y": 18.0,
      "heading": 180.0,
      "src": "user+guess",
      "note": "triple in place, facing her"
@@ -1151,10 +1151,10 @@
      "foot": "L",
      "code": "BL1L",
      "x": 40.0,
-     "y": -40.0,
+     "y": -28.0,
      "heading": 0.0,
      "src": "notes+guess",
-     "note": "70 cm in front of him, facing him"
+     "note": "in front of him, facing him"
     }
    ],
    "hands": [
@@ -1197,7 +1197,7 @@
      "foot": "R",
      "code": "BR",
      "x": 0.0,
-     "y": 100.0,
+     "y": 76.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -1217,7 +1217,7 @@
      "foot": "L",
      "code": "RL",
      "x": 20.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -1237,8 +1237,8 @@
      "dancer": "F",
      "foot": "R",
      "code": "FR1L",
-     "x": 22.0,
-     "y": 46.0,
+     "x": 30.0,
+     "y": 24.0,
      "heading": 135.0,
      "src": "notes+guess",
      "note": "forward, turning left; his hand lifts"
@@ -1258,8 +1258,8 @@
      "dancer": "F",
      "foot": "L",
      "code": "TL",
-     "x": 36.0,
-     "y": 58.0,
+     "x": 44.0,
+     "y": 38.0,
      "heading": 135.0,
      "src": "notes+guess",
      "note": "left closes, under the hands"
@@ -1279,8 +1279,8 @@
      "dancer": "F",
      "foot": "R",
      "code": "FR1L",
-     "x": 52.0,
-     "y": 40.0,
+     "x": 58.0,
+     "y": 24.0,
      "heading": 90.0,
      "src": "notes+guess",
      "note": "forward, turning left: she is through and faces east, away from him; the hands come down"
@@ -1300,8 +1300,8 @@
      "dancer": "F",
      "foot": "L",
      "code": "BL1L",
-     "x": 44.0,
-     "y": 22.0,
+     "x": 42.0,
+     "y": 10.0,
      "heading": 45.0,
      "src": "notes+guess",
      "note": "backing round to his right side; his right arm takes her back"
@@ -1321,8 +1321,8 @@
      "dancer": "F",
      "foot": "R",
      "code": "TR",
-     "x": 61.0,
-     "y": 10.0,
+     "x": 64.0,
+     "y": 6.0,
      "heading": 45.0,
      "src": "notes+guess"
     },
@@ -1395,7 +1395,7 @@
      "foot": "R",
      "code": "BR",
      "x": 0.0,
-     "y": 100.0,
+     "y": 76.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -1415,7 +1415,7 @@
      "foot": "L",
      "code": "RL",
      "x": 20.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "notes+guess"
     },
@@ -1424,8 +1424,8 @@
      "dancer": "L",
      "foot": "L",
      "code": "FL1L",
-     "x": -10.0,
-     "y": 18.0,
+     "x": -16.0,
+     "y": 12.0,
      "heading": 315.0,
      "src": "user+guess",
      "note": "lifts the joined hands"
@@ -1435,8 +1435,8 @@
      "dancer": "F",
      "foot": "R",
      "code": "eFR1R",
-     "x": 18.0,
-     "y": 50.0,
+     "x": 30.0,
+     "y": 28.0,
      "heading": 225.0,
      "src": "user+guess"
     },
@@ -1445,8 +1445,8 @@
      "dancer": "L",
      "foot": "R",
      "code": "TR",
-     "x": 4.0,
-     "y": 32.0,
+     "x": -4.0,
+     "y": 26.0,
      "heading": 315.0,
      "src": "user+guess"
     },
@@ -1455,8 +1455,8 @@
      "dancer": "F",
      "foot": "L",
      "code": "TL",
-     "x": 32.0,
-     "y": 36.0,
+     "x": 46.0,
+     "y": 14.0,
      "heading": 225.0,
      "src": "user+guess",
      "note": "a travelling close"
@@ -1466,8 +1466,8 @@
      "dancer": "L",
      "foot": "L",
      "code": "FL1L",
-     "x": -14.0,
-     "y": 45.0,
+     "x": -20.0,
+     "y": 32.0,
      "heading": 270.0,
      "src": "user+guess",
      "note": "under the hands, on her right side, facing away"
@@ -1477,8 +1477,8 @@
      "dancer": "F",
      "foot": "R",
      "code": "eFR1R",
-     "x": 22.0,
-     "y": 44.0,
+     "x": 30.0,
+     "y": 34.0,
      "heading": 270.0,
      "src": "user+guess",
      "note": "facing him as he passes"
@@ -1488,8 +1488,8 @@
      "dancer": "L",
      "foot": "R",
      "code": "BR1L",
-     "x": -12.0,
-     "y": 66.0,
+     "x": -16.0,
+     "y": 52.0,
      "heading": 225.0,
      "src": "user+guess",
      "note": "hands lowered"
@@ -1499,8 +1499,8 @@
      "dancer": "F",
      "foot": "L",
      "code": "eFL1R",
-     "x": 16.0,
-     "y": 26.0,
+     "x": 24.0,
+     "y": 12.0,
      "heading": 315.0,
      "src": "user+guess"
     },
@@ -1509,8 +1509,8 @@
      "dancer": "L",
      "foot": "L",
      "code": "TL",
-     "x": 2.0,
-     "y": 52.0,
+     "x": -6.0,
+     "y": 26.0,
      "heading": 225.0,
      "src": "user+guess"
     },
@@ -1519,8 +1519,8 @@
      "dancer": "F",
      "foot": "R",
      "code": "TR",
-     "x": 30.0,
-     "y": 40.0,
+     "x": 38.0,
+     "y": 26.0,
      "heading": 315.0,
      "src": "user+guess"
     },
@@ -1530,7 +1530,7 @@
      "foot": "R",
      "code": "eBR1L",
      "x": 0.0,
-     "y": 70.0,
+     "y": 46.0,
      "heading": 180.0,
      "src": "user+guess",
      "note": "facing her"
@@ -1544,7 +1544,7 @@
      "y": 0.0,
      "heading": 0.0,
      "src": "user+guess",
-     "note": "in his old place, facing him; 30 cm, not a close"
+     "note": "in his old place, facing him"
     }
    ],
    "hands": [
@@ -1587,7 +1587,7 @@
      "foot": "R",
      "code": "TweFR",
      "x": 0.0,
-     "y": 60.0,
+     "y": 40.0,
      "heading": 180.0,
      "src": "notes+guess",
      "note": "twist step slightly forward"
@@ -1608,7 +1608,7 @@
      "foot": "L",
      "code": "TwFL",
      "x": 20.0,
-     "y": 48.0,
+     "y": 36.0,
      "heading": 180.0,
      "src": "notes+guess",
      "note": "twist step forward"
