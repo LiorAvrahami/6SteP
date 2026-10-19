@@ -39,6 +39,7 @@ class PlayerActivity : AppCompatActivity() {
         const val HANDOVER_MS = 220L        // a freshly started player runs this long before its clock takes over
         const val CROSSFADE_MS = 120L
         const val START_LATENCY_MS = 30L    // MediaPlayer.start() to the position actually moving, roughly
+        const val END_LEAD_MS = 250L        // the drums take over this long before the music file ends, so the beat never stalls
         const val DUCK_LEVEL = 0.6f         // the music under a spoken annotation
     }
 
@@ -85,6 +86,7 @@ class PlayerActivity : AppCompatActivity() {
     private var blockStarts: List<Double> = emptyList()
     private var pendingStart: Runnable? = null
     private var pendingSwitch: Runnable? = null
+    private var pendingEnd: Runnable? = null     // the hand-over to the drums just before the music file ends
     private var handover: Handover? = null
     private var fade: Runnable? = null
     private var barShown = false
@@ -201,10 +203,20 @@ class PlayerActivity : AppCompatActivity() {
     private fun musicClockOf(c: BeatClock?): MusicClock? = when (c) { is MusicClock -> c; is SlewClock -> c.inner as? MusicClock; else -> null }
     private fun cancelPendingStart() { pendingStart?.let { handler.removeCallbacks(it) }; pendingStart = null }
     private fun cancelSwitch() { pendingSwitch?.let { handler.removeCallbacks(it) }; pendingSwitch = null; music.dropNext() }
+    private fun cancelTrackEnd() { pendingEnd?.let { handler.removeCallbacks(it) }; pendingEnd = null }
 
-    /** "Hot Swing — Kevin MacLeod  · 144 → 104 BPM  · steady" */
-    private fun statusLine(t: Track): String {
-        val v = t.variantFor(bpmOffset)
+    /** the drums take over END_LEAD_MS before the file of `mc`, now at `posSec`, runs out (its completion callback would
+     *  come late and the beat would stall meanwhile); the callback itself is then a no-op */
+    private fun armTrackEnd(mc: MusicClock, posSec: Double) {
+        cancelTrackEnd()
+        val r = Runnable { pendingEnd = null; if (!paused && !finished && musicClockOf(clock) === mc) onTrackEnded() }
+        pendingEnd = r
+        handler.postAtTime(r, SystemClock.uptimeMillis() + ((mc.grid.duration - posSec) * 1000.0).toLong() - END_LEAD_MS)
+    }
+
+    /** "Hot Swing — Kevin MacLeod  · 144 → 104 BPM  · steady", for the variant of the session's offset unless another is given */
+    private fun statusLine(t: Track, variant: TrackVariant? = null): String {
+        val v = variant ?: t.variantFor(bpmOffset)
         val bpm = if (v.offset == 0) "${t.bpm.roundToInt()} BPM" else "${t.bpm.roundToInt()} → ${v.bpm.roundToInt()} BPM"
         return "${t.title} — ${t.artist}  · $bpm" + (if (t.difficulty.isNotBlank()) "  · " + t.difficulty else "")
     }
@@ -304,12 +316,20 @@ class PlayerActivity : AppCompatActivity() {
         updateBar()
     }
 
-    /** the session's tempo offset: kept for the next tracks, and the music that is playing switched over (see switchVariant) */
+    /** the session's tempo offset: kept for the next tracks, the music that is playing switched over (see switchVariant), and
+     *  the drums in the gap between tracks re-paced at once */
     private fun setBpmOffset(off: Int) {
         if (off == bpmOffset) return
         bpmOffset = off; prefs.edit().putInt("bpm_offset", off).apply()
+        val tc = clock as? TempoClock; val t = currentTrack(); val base = baseGrid
+        if (tc != null && t != null && base != null && !paused && !finished) {
+            val g = base.scaled(t.variantFor(off).tempo); grid = g
+            val b = tc.beatNow(); tc.reanchor(b, SystemClock.uptimeMillis()); tc.bpm = g.bpm
+            metronome.resync(); scheduleNextTrack(b)   // the next track's start moves with the new pace
+            status.text = "snare and hi-hat until the next track  · ${g.bpm.roundToInt()} BPM"
+        }
         updateBar()
-        if (!paused && !finished) switchVariant()   // paused: applied at the resume; between tracks: the next track takes it
+        if (!paused && !finished) switchVariant()   // paused: applied at the resume
     }
 
     /** pause and open this element in the exploration floor at the beat being danced; back returns here, still paused */
@@ -331,11 +351,12 @@ class PlayerActivity : AppCompatActivity() {
     /** start track i of the order so that its first dance bar is dance beat `atBeat`, at the tempo of the session's offset */
     private fun startTrack(i: Int, atBeat: Double, countIn: Boolean) {
         val t = trackOrder[i % trackOrder.size]; trackIdx = i; nextChoice = -1; pendingStart = null
-        cancelSwitch(); completeHandover(slew = false)
+        pendingSwitch?.let { handler.removeCallbacks(it) }; pendingSwitch = null   // a cued player is kept if it is this file
+        completeHandover(slew = false); cancelTrackEnd()
         val v = t.variantFor(bpmOffset)
         val base = BeatGrid.loadFor(this, t); baseGrid = base
         val g = base.scaled(v.tempo); grid = g; k0 = g.startBeatIndex(); playingVariant = v
-        val mp = music.prepareNext(v.file)
+        val mp = music.next?.takeIf { music.nextPath == v.file } ?: music.prepareNext(v.file)   // opened early by scheduleNextTrack when it could be
         val startSec = g.beats[(k0 - (if (countIn) 4 else 0)).coerceAtLeast(0)]
         music.onComplete = { onTrackEnded() }
         val old = clock
@@ -347,7 +368,7 @@ class PlayerActivity : AppCompatActivity() {
         music.startAt(startSec)
         val mc = MusicClock(mp, g, k0, atBeat)
         if (direct) {
-            clock = mc
+            clock = mc; armTrackEnd(mc, startSec)
         } else {
             // the music starts a little late: hand over without a jump, fading the difference out over a second
             if (fadeOut != null) crossfade(fadeOut, mp)
@@ -358,10 +379,11 @@ class PlayerActivity : AppCompatActivity() {
         updateBar()
     }
 
-    /** the music ran out: keep the beat going on the snare and hi-hat, start the next track at the next block */
+    /** the music is running out (END_LEAD_MS before the file ends, or its completion when that comes first): keep the beat
+     *  going on the snare and hi-hat, start the next track at the next block */
     private fun onTrackEnded() {
-        if (finished || paused) return
-        cancelSwitch(); completeHandover(slew = false)
+        if (finished || paused || musicClockOf(clock) == null) return   // already on the drums
+        cancelSwitch(); completeHandover(slew = false); cancelTrackEnd()
         val g = grid ?: return
         val b = currentBeat()
         val tempo = TempoClock(g.bpm, b, SystemClock.uptimeMillis())
@@ -380,6 +402,11 @@ class PlayerActivity : AppCompatActivity() {
         val r = Runnable { if (!finished && !paused) startTrack(nextIdx, next, countIn = false) }
         pendingStart = r
         handler.postDelayed(r, delay)
+        // the file is opened now, so that nothing heavy happens on the beat it starts on (a cued tempo switch keeps the slot)
+        if (pendingSwitch == null && delay > 300) {
+            val file = trackOrder[nextIdx % trackOrder.size].variantFor(bpmOffset).file
+            if (music.nextPath != file) try { music.prepareNext(file) } catch (e: Exception) {}
+        }
     }
 
     /** the running music switches to the variant of the session's offset: the file is cued to the next whole dance beat (at
@@ -401,7 +428,10 @@ class PlayerActivity : AppCompatActivity() {
         var b = floor(c.beatNow()) + 1.0
         while (c.uptimeOfBeat(b) < now + 350) b += 1.0
         val sec = g.beatSeconds(b - mc.danceBeatOffset + mc.k0) + g.offset
-        if (sec < 0 || sec >= g.duration - 0.5) return   // the faster file is over by then: this one plays out, the next track takes the offset
+        if (sec < 0 || sec >= g.duration - 0.5) {   // the faster file is over by then: this one plays out, the next track takes the offset
+            status.text = statusLine(t, playingVariant) + "  · ${v.bpm.roundToInt()} BPM from the next track"
+            return
+        }
         val mp = try { music.prepareNext(v.file) } catch (e: Exception) { return }
         music.setVolume(mp, 0f); music.seekTo(mp, sec)
         val r = Runnable {
@@ -430,7 +460,7 @@ class PlayerActivity : AppCompatActivity() {
             music.swapToNext()?.let { music.releasePlayer(it) }
             music.setVolume(mp, 1f)
             music.startAt(sec)
-            clock = MusicClock(mp, g, mc.k0, mc.danceBeatOffset)
+            val fresh = MusicClock(mp, g, mc.k0, mc.danceBeatOffset); clock = fresh; armTrackEnd(fresh, sec)
         } else {
             // the faster file is already over here: the snare and hi-hat until the next track
             clock = TempoClock(g.bpm, b, SystemClock.uptimeMillis()); metronome.enabled = true; scheduleNextTrack(b)
@@ -456,6 +486,7 @@ class PlayerActivity : AppCompatActivity() {
         clock = if (slew && old != null && !paused) SlewClock(h.target, old.beatNow() - h.target.beatNow(), 1200) else h.target
         h.oldPlayer?.let { music.releasePlayer(it) }
         metronome.clock = clock; metronome.resync()
+        if (!paused) armTrackEnd(h.target, h.target.positionSec())
     }
 
     /** an equal-power crossfade from the player being replaced to the new one over 120 ms (the hand-over releases the old one) */
@@ -486,11 +517,11 @@ class PlayerActivity : AppCompatActivity() {
             val sec = mc.grid.beatSeconds(b - mc.danceBeatOffset + mc.k0) + mc.grid.offset
             if (sec < mc.grid.duration - 1.0) {
                 music.seekTo(sec); mc.resync()
-                clock = mc
+                clock = mc; armTrackEnd(mc, sec)
                 if (nextChoice >= 0 && !paused) scheduleNextTrack(b, nextChoice)   // the chosen track's start moves with the jump
             } else {
                 val tempo = TempoClock(mc.grid.bpm, b, SystemClock.uptimeMillis()); clock = tempo; metronome.enabled = true; music.pause()
-                scheduleNextTrack(b)
+                cancelTrackEnd(); scheduleNextTrack(b)
             }
         } else {
             val tempo = (c as? TempoClock) ?: TempoClock(grid?.bpm ?: 120.0, b, SystemClock.uptimeMillis())
@@ -523,7 +554,7 @@ class PlayerActivity : AppCompatActivity() {
         val c = clock ?: return
         if (!paused) {
             paused = true; pausedAtBeat = c.beatNow()
-            cancelSwitch(); completeHandover(slew = false)
+            cancelSwitch(); cancelTrackEnd(); completeHandover(slew = false)
             music.pause(); metronome.stop(); speaker.stop()
             cancelPendingStart()
             status.text = "paused — tap to continue, swipe for the next or previous part"
@@ -534,7 +565,10 @@ class PlayerActivity : AppCompatActivity() {
             val t = currentTrack()
             if (mc != null && music.player != null) {
                 if (t != null && t.variantFor(bpmOffset).offset != playingVariant?.offset) restartMusic(mc, pausedAtBeat)   // the tempo changed while paused
-                else { music.seekTo(mc.grid.beatSeconds(pausedAtBeat - mc.danceBeatOffset + mc.k0) + mc.grid.offset); music.resume(); mc.resync(); clock = mc }
+                else {
+                    val sec = mc.grid.beatSeconds(pausedAtBeat - mc.danceBeatOffset + mc.k0) + mc.grid.offset
+                    music.seekTo(sec); music.resume(); mc.resync(); clock = mc; armTrackEnd(mc, sec)
+                }
                 if (nextChoice >= 0) scheduleNextTrack(pausedAtBeat, nextChoice)
             } else {
                 clock = TempoClock(grid?.bpm ?: 120.0, pausedAtBeat, SystemClock.uptimeMillis()); scheduleNextTrack(pausedAtBeat)

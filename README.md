@@ -8,6 +8,8 @@ The APK is built by GitHub Actions on every push to `main` and attached to a rel
 
 The dance data (`app/src/main/assets/dance/`) comes from the Swing5 project's skeletons and compositions. A shipped
 composition carries a `revision`; a newer revision replaces the copy on the phone unless the user edited that copy there.
+An entry of a composition in parentheses, such as `(recapture underarm pass)`, is quiet: danced, but not announced and
+not a stop for the swipes (a bridge between two elements that do not fit together, or a warm-up).
 
 ## Music
 

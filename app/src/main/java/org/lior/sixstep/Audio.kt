@@ -366,6 +366,9 @@ class MusicPlayer(private val ctx: Context) {
     /** cued on another file, not started yet */
     var next: MediaPlayer? = null
         private set
+    /** the asset file `next` is cued on */
+    var nextPath: String? = null
+        private set
     var onComplete: (() -> Unit)? = null
     /** 1 normally, lower while an annotation is read aloud: multiplies every player's own level (the crossfades) */
     var duckLevel = 1f
@@ -384,7 +387,7 @@ class MusicPlayer(private val ctx: Context) {
     }
 
     /** cue an asset file on the second player, ready to seek and start; whatever was cued before is dropped */
-    fun prepareNext(path: String): MediaPlayer { dropNext(); val mp = open(path); next = mp; return mp }
+    fun prepareNext(path: String): MediaPlayer { dropNext(); val mp = open(path); next = mp; nextPath = path; return mp }
     /** the cued player becomes the one the clock follows; the previous one is handed back, still playing, to be faded
      *  out and released by the caller. Only the current player reports the end of the music. */
     fun swapToNext(): MediaPlayer? {
@@ -392,10 +395,10 @@ class MusicPlayer(private val ctx: Context) {
         val old = player
         old?.setOnCompletionListener(null)
         n.setOnCompletionListener { if (player === it) onComplete?.invoke() }
-        player = n; next = null
+        player = n; next = null; nextPath = null
         return old
     }
-    fun dropNext() { next?.let { releasePlayer(it) }; next = null }
+    fun dropNext() { next?.let { releasePlayer(it) }; next = null; nextPath = null }
 
     fun seekTo(seconds: Double) { player?.let { seekTo(it, seconds) } }
     /** an exact seek (to the sample, not the nearest frame), so the beat is where the grid says */

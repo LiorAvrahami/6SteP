@@ -1,24 +1,24 @@
 {
- "_about": "Compositions: named sequences of entries. An entry is an element name, a sub-composition name, or either followed by ' x N'. Sub-compositions (made of elements) are used inside compositions by name; the composer picks each element's starting condition from the previous element's end.",
+ "_about": "Compositions: named sequences of entries. An entry is an element name, a sub-composition name, or either followed by ' x N'; 'say: text' is an annotation shown and read aloud before the next entry; an entry in parentheses, like '(recapture underarm pass)', is quiet: danced but not announced, and not a stop for the swipes. Sub-compositions (made of elements) are used inside compositions by name; the composer picks each element's starting condition from the previous element's end.",
  "compositions": [
   {
    "name": "5 minutes exercise",
    "start_state": "side",
    "repeat": 1,
    "elements": [
-    "RTT x5",
+    "(RTT x5)",
     "follower underarm pass x15",
     "lead underarm pass x15",
-    "recapture underarm pass",
+    "(recapture underarm pass)",
     "rock back cutoff x10",
-    "pass+recapture x15",
-    "follower underarm pass",
+    "follower pass & back x12",
+    "(follower underarm pass)",
     "lead underarm pass x15",
-    "recapture underarm pass",
+    "(recapture underarm pass)",
     "rock back cutoff x10"
    ],
-   "notes": "Daily exercise (user 2026-10-19): fewer RTT, no circle. The three single elements bridge the states the chain needs: a recapture before each cutoff block (the cutoff starts side by side) and one follower pass before the second block of lead passes (the lead pass starts face to face). 618 beats: 4:18 on Hot Swing (144), 4:52 on Sunday Reflection (127), 5:01 on Slow Your Roll (123).",
-   "revision": 2
+   "notes": "Daily exercise (user 2026-10-19): no circle, RTT only as a warm-up and never announced. The quiet entries bridge the states the chain needs: the cutoff starts side by side, so a recapture precedes each cutoff block; the lead underarm pass starts face to face, so one follower underarm pass precedes the second block of lead passes. 582 beats: 4:03 on Hot Swing (144), 4:35 on Sunday Reflection (127), 4:44 on Slow Your Roll (123).",
+   "revision": 3
   },
   {
    "name": "rock double triple step",
@@ -91,14 +91,15 @@
    "notes": "Rock step, triple step, triple step: the six-count basic (user 2026-10-18). Works from side and from facing."
   },
   {
-   "name": "pass+recapture",
+   "name": "follower pass & back",
    "start_state": "side",
    "repeat": 1,
    "elements": [
     "follower underarm pass",
     "recapture underarm pass"
    ],
-   "notes": "Out to face to face and back to side by side."
+   "notes": "Follower underarm pass out to face to face and the recapture back to side by side (the user's name, 2026-10-19).",
+   "revision": 1
   },
   {
    "name": "pass+circle",

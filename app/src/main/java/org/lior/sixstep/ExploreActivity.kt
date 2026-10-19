@@ -8,6 +8,7 @@ import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.CheckBox
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
@@ -155,6 +156,7 @@ class ExploreActivity : AppCompatActivity() {
         pick.layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f); addLine.addView(pick)
         val timesLabel = TextView(this); timesLabel.text = " x"; addLine.addView(timesLabel)
         val times = EditText(this); times.inputType = InputType.TYPE_CLASS_NUMBER; times.setText("1"); times.minWidth = 110; addLine.addView(times)
+        val quiet = CheckBox(this); quiet.text = getString(R.string.quiet); addLine.addView(quiet)
         val add = MaterialButton(this); add.text = "add"; addLine.addView(add)
         root.addView(addLine)
         val sayText = EditText(this); sayText.hint = "annotation text"; sayText.visibility = View.GONE; root.addView(sayText)
@@ -165,7 +167,7 @@ class ExploreActivity : AppCompatActivity() {
         add.setOnClickListener {
             val pos = pick.selectedItemPosition
             if (pos == choices.size - 1) { val s = sayText.text.toString().trim(); if (s.isNotEmpty()) { entries.add("say: $s"); sayText.setText("") } }
-            else { val nm = choices[pos].removePrefix("sub: "); val n = times.text.toString().toIntOrNull() ?: 1; entries.add(if (n > 1) "$nm x$n" else nm) }
+            else { val nm = choices[pos].removePrefix("sub: "); val n = times.text.toString().toIntOrNull() ?: 1; entries.add(Entry(nm, n, null, quiet.isChecked).text()) }
             renderEntries()
         }
         val scroll = ScrollView(this); scroll.addView(root)

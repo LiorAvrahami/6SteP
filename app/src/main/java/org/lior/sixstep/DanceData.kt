@@ -110,19 +110,23 @@ class DanceData(val states: Map<String, DanceState>, val elements: List<Element>
 
 // ------------------------------------------------------------------ compositions
 
-/** An entry of a composition: an element name, a sub-composition name, either followed by " x N", or "say: text" (an annotation). */
-data class Entry(val name: String, val times: Int, val say: String?) {
+/** An entry of a composition: an element name, a sub-composition name, either followed by " x N", or "say: text" (an annotation).
+ *  An entry in parentheses is quiet: danced but never announced, and not a stop for the player's swipes (a bridge between
+ *  two elements that do not fit together, or a warm-up). */
+data class Entry(val name: String, val times: Int, val say: String?, val quiet: Boolean = false) {
     companion object {
         private val RE = Regex("^(.*?)\\s*(?:[xX×]\\s*(\\d+))?\\s*$")
         fun parse(entry: String): Entry {
-            val t = entry.trim()
+            var t = entry.trim()
             if (t.lowercase().startsWith("say:")) return Entry("", 1, t.substring(4).trim())
-            val m = RE.matchEntire(t) ?: return Entry(t, 1, null)
+            val quiet = t.length > 2 && t.startsWith("(") && t.endsWith(")")
+            if (quiet) t = t.substring(1, t.length - 1).trim()
+            val m = RE.matchEntire(t) ?: return Entry(t, 1, null, quiet)
             val times = m.groupValues[2].toIntOrNull() ?: 1
-            return Entry(m.groupValues[1].trim(), maxOf(1, times), null)
+            return Entry(m.groupValues[1].trim(), maxOf(1, times), null, quiet)
         }
     }
-    fun text(): String = if (say != null) "say: $say" else if (times > 1) "$name x$times" else name
+    fun text(): String = if (say != null) "say: $say" else (if (times > 1) "$name x$times" else name).let { if (quiet) "($it)" else it }
 }
 
 /** `revision` is bumped in the shipped file when a shipped composition is changed; `edited` marks a copy the user changed on
@@ -202,6 +206,7 @@ class CompositionStore(private val ctx: Context) {
             if (e.say != null) { pendingSay = (pendingSay?.let { "$it. " } ?: "") + e.say; return@forEachIndexed }
             val sub = if (depth < 6) subs.firstOrNull { it.name == e.name } else null
             val label = if (e.times > 1) "${e.name} x${e.times}" else e.name
+            val announced = !e.quiet   // a quiet entry has no entry start: nothing announces it and the swipes pass over it
             for (rep in 0 until e.times) {
                 if (sub != null) {
                     val n = (counters[e.name] ?: 0) + 1; counters[e.name] = n
@@ -209,10 +214,10 @@ class CompositionStore(private val ctx: Context) {
                     val inner = expand(sub.elements, depth + 1, group)
                     inner.forEachIndexed { j, it ->
                         val first = rep == 0 && j == 0
-                        out.add(SeqItem(it.name, group, if (first) pendingSay else null, idx, first, label))
+                        out.add(SeqItem(it.name, group, if (first) pendingSay else null, idx, first && announced, label))
                     }
                 } else {
-                    out.add(SeqItem(e.name, prefix, if (rep == 0) pendingSay else null, idx, rep == 0, label))
+                    out.add(SeqItem(e.name, prefix, if (rep == 0) pendingSay else null, idx, rep == 0 && announced, label))
                 }
                 if (rep == 0) pendingSay = null
             }

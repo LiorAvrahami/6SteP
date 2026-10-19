@@ -72,8 +72,12 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
   one; for play loops it pads with triple-step fillers until the loop is at least 4 beats and the free foot is restored,
   then chains the loop for the whole track so there is no jump.
 - **Compositions** (`dance/compositions.json`): named lists of entries: an element, a sub-composition (RTT = rock step,
-  triple step, triple step; pass+recapture; pass+circle), either "x N", and "say: text" annotations (app only). The
-  daily routine is "5 minutes exercise" (558 beats; 3:52 on Hot Swing).
+  triple step, triple step; "follower pass & back" = follower underarm pass, recapture; pass+circle), either "x N",
+  "say: text" annotations (app only), and quiet entries in parentheses, "(recapture underarm pass)", which are danced
+  but never announced and are not swipe stops (since v10; the edit dialog has a "quiet" box). The daily routine is
+  "5 minutes exercise" (582 beats; 4:03 on Hot Swing): 5 RTT quiet, 15 follower passes, 15 lead passes, 10 cutoffs,
+  12 "follower pass & back", 15 lead passes, 10 cutoffs, with quiet bridges where the states do not meet (the cutoff
+  starts side by side, the lead pass starts face to face). The user wants bridges quiet and RTT never announced.
 - **Tools.** `render.py` makes an MP4 on the music (about 40 fps, stops where a short track ends); the editor
   (`dance/editor/server.py`, port 8771) edits skeletons and compositions, plays in the browser with Web Audio and
   autosaves; a Node test with a stubbed DOM covers the page logic (47 checks; the script lived in the old session's
@@ -143,7 +147,10 @@ script are absolute; change them if the folders move.
   the beat grid), `SlewClock` (a hand-over: another clock plus an offset that fades out over 1.2 s). A new track starts
   at the next annotation block at least 2 beats ahead; its clock takes over 220 ms after the start, slewed. The daily
   session shuffles the three tracks and plays them one after another; when a track runs out the snare and hi-hat keep the
-  beat until the next one.
+  beat until the next one. Since v10: the drums take over 250 ms before the file ends (`armTrackEnd`), so the beat does not
+  stall while the completion callback is on its way; the next track's file is opened when its start is planned, not on
+  its beat; a tempo change in the gap re-paces the drums at once; a tempo change too close to the end of a file is shown
+  in the status line ("… BPM from the next track") instead of being dropped silently.
 - **Player gestures.** Tap: pause and continue. Swipe left: next annotation block. Swipe right: replay this block, or the
   previous one when this block began less than 2 s ago (`BACK_REPLAY_THRESHOLD_SECONDS`, from the user's Workout
   Instructinator app). Swipe down: the options bar (added 2026-10-19): chips for the track to play next (switches at the
@@ -177,7 +184,9 @@ script are absolute; change them if the folders move.
   the snare and hi-hat sounds, the tempo variants, the player's options bar and the dimming fix.** v8 is this file alone.
   v9 (2026-10-19, second maintainer): the daily exercise rewritten to the user's list (5 RTT, 15 follower passes, 15 lead
   passes, 10 cutoffs, 15 pass+recapture, 15 lead passes, 10 cutoffs, no circle; three single bridging elements, 618 beats),
-  the voice chip in the options bar, the main screen's switches refreshed on resume, composition revisions.
+  the voice chip in the options bar, the main screen's switches refreshed on resume, composition revisions. v10: the
+  daily exercise as the user specified it with quiet bridges, the "follower pass & back" sub-composition, quiet entries,
+  and the four fixes from the clock hand-over review (no bug found in the hand-overs themselves).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
