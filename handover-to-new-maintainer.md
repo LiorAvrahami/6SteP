@@ -118,8 +118,12 @@ sounds, then commit and push the app. It writes, into `C:\Liors_Stuff\6SteP\app\
 `dance/skeletons.json`, `dance/compositions.json`, `dance/tracks.json` (title, artist, licence, bpm, duration, file,
 grid, `difficulty`, `grid_kind`, and `variants`: a list of `{offset, bpm, tempo, file}` with offset 0 pointing at the
 original file), `dance/beatgrids/<key>.json` (slimmed grids), `music/<key>.mp3` and `music/<key>_<offset>.mp3`, the
-synthesised `res/raw/snare.wav` and `res/raw/hihat.wav`, and the launcher icon from `6SteP/design/icons/option1_feet_on_floor.png`
-(five icon options were made for the user to choose from; they have not chosen yet). The paths at the top of the
+synthesised `res/raw/snare.wav` and `res/raw/hihat.wav`, and, until v11, the launcher icon from `6SteP/design/icons/option1_feet_on_floor.png`.
+Since v11 the icon is made by `6SteP/design/make_icon.py` (the vinyl of option 3, a "6" in its lower half standing in front
+of the label, a blue foot on the 6's lower-left corner pointing 45 degrees up and left, a pink foot at 55 degrees to the
+right with its heel just inside the 6's hollow: the user's design, 2026-10-19); it writes `design/icons/icon.png` and the
+mipmaps, and the adaptive background colour is the cream of the plate. Keep that script in step if `make_assets.py` also
+writes icons. The paths at the top of the
 script are absolute; change them if the folders move.
 
 `tools/watch_build.sh [short sha]` waits for the GitHub Actions run of that commit and prints the error lines of a failed job.
@@ -187,13 +191,16 @@ script are absolute; change them if the folders move.
   the voice chip in the options bar, the main screen's switches refreshed on resume, composition revisions. v10: the
   daily exercise as the user specified it with quiet bridges, the "follower pass & back" sub-composition, quiet entries,
   and the four fixes from the clock hand-over review (no bug found in the hand-overs themselves).
+  v11: the launcher icon the user designed (section 5).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
   crossfade clean), choosing a track from the bar, explore and back, the snare and hi-hat toggles, whether the dim mix is gone.
 - Open questions the user has not answered yet (ask again, briefly): the cutoff ends 35 cm apart with her left foot
   15 cm from his right (the side state says 45 cm and feet 20 cm apart: keep it or fix it); the recapture's turn
-  direction; which launcher icon (five options in `6SteP/design/icons/`); circles are out of the daily exercise (answered 2026-10-19);
+  direction (answered 2026-10-19: she turns LEFT; the skeleton has her turning right and must be changed once the dance
+  tools are back, with diff.py and check.py); the launcher icon (answered 2026-10-19, see section 5); circles are out of
+  the daily exercise (answered 2026-10-19);
   from the agents of 2026-10-19: the tempo picker is a row of chips rather than a spinner; a tempo change near the end of
   a track lets the file play out and the next track takes the new tempo; the exploration floor's play does not honour the
   snare and hi-hat toggles (one line to add if wanted); holding audio focus pauses other apps' music when a workout starts.
