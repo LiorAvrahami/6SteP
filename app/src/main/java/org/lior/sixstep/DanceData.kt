@@ -125,17 +125,21 @@ data class Entry(val name: String, val times: Int, val say: String?) {
     fun text(): String = if (say != null) "say: $say" else if (times > 1) "$name x$times" else name
 }
 
+/** `revision` is bumped in the shipped file when a shipped composition is changed; `edited` marks a copy the user changed on
+ *  the phone, which a newer shipped revision then leaves alone (see CompositionStore.load). */
 class Composition(
     var name: String, var startState: String, var repeat: Int,
-    val elements: MutableList<String>, var notes: String, var isSub: Boolean
+    val elements: MutableList<String>, var notes: String, var isSub: Boolean,
+    var revision: Int = 0, var edited: Boolean = false
 ) {
     fun toJson(): JSONObject = JSONObject().put("name", name).put("start_state", startState).put("repeat", repeat)
-        .put("elements", JSONArray(elements)).put("notes", notes)
-    fun copy(): Composition = Composition(name, startState, repeat, elements.toMutableList(), notes, isSub)
+        .put("elements", JSONArray(elements)).put("notes", notes).put("revision", revision).put("edited", edited)
+    fun copy(): Composition = Composition(name, startState, repeat, elements.toMutableList(), notes, isSub, revision, edited)
     companion object {
         fun fromJson(o: JSONObject, isSub: Boolean): Composition = Composition(
             o.getString("name"), o.optString("start_state", "side"), maxOf(1, o.optInt("repeat", 1)),
-            DanceData.strList(o.optJSONArray("elements")).toMutableList(), o.optString("notes", ""), isSub)
+            DanceData.strList(o.optJSONArray("elements")).toMutableList(), o.optString("notes", ""), isSub,
+            o.optInt("revision", 0), o.optBoolean("edited", false))
     }
 }
 
@@ -155,13 +159,19 @@ class CompositionStore(private val ctx: Context) {
         val shipped = JSONObject(ctx.assets.open("dance/compositions.json").bufferedReader().readText())
         val doc = if (file.exists()) JSONObject(file.readText()) else shipped
         readInto(doc)
-        // shipped compositions the user's file does not know yet are added, so a new release can bring new ones
+        // shipped compositions the user's file does not know yet are added, so a new release can bring new ones; a shipped
+        // composition with a newer revision replaces the phone's copy unless the user edited that copy (theirs stays)
         if (file.exists()) {
-            val known = compositions.map { it.name }.toSet(); val knownSubs = subs.map { it.name }.toSet()
             val sc = shipped.optJSONArray("compositions"); val ss = shipped.optJSONArray("sub_compositions")
-            if (sc != null) for (i in 0 until sc.length()) { val c = Composition.fromJson(sc.getJSONObject(i), false); if (c.name !in known) compositions.add(c) }
-            if (ss != null) for (i in 0 until ss.length()) { val c = Composition.fromJson(ss.getJSONObject(i), true); if (c.name !in knownSubs) subs.add(c) }
+            if (sc != null) for (i in 0 until sc.length()) merge(compositions, Composition.fromJson(sc.getJSONObject(i), false))
+            if (ss != null) for (i in 0 until ss.length()) merge(subs, Composition.fromJson(ss.getJSONObject(i), true))
         }
+    }
+
+    private fun merge(into: ArrayList<Composition>, shipped: Composition) {
+        val i = into.indexOfFirst { it.name == shipped.name }
+        if (i < 0) into.add(shipped)
+        else if (shipped.revision > into[i].revision && !into[i].edited) into[i] = shipped
     }
 
     private fun readInto(doc: JSONObject) {

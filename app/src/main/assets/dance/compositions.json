@@ -6,20 +6,19 @@
    "start_state": "side",
    "repeat": 1,
    "elements": [
-    "RTT x12",
-    "follower underarm pass x8",
-    "RTT x4",
-    "lead underarm pass x8",
+    "RTT x5",
+    "follower underarm pass x15",
+    "lead underarm pass x15",
     "recapture underarm pass",
-    "RTT x4",
-    "pass+recapture x8",
-    "RTT x4",
-    "rock back cutoff x12",
-    "RTT x4",
-    "pass+circle x6",
-    "RTT x6"
+    "rock back cutoff x10",
+    "pass+recapture x15",
+    "follower underarm pass",
+    "lead underarm pass x15",
+    "recapture underarm pass",
+    "rock back cutoff x10"
    ],
-   "notes": "Daily exercise (user 2026-10-18): similar things kept together. 558 beats: 3:52 on Hot Swing (144), 4:24 on Sunday Reflection (127, longer than that track), 4:31 on Slow Your Roll (123)."
+   "notes": "Daily exercise (user 2026-10-19): fewer RTT, no circle. The three single elements bridge the states the chain needs: a recapture before each cutoff block (the cutoff starts side by side) and one follower pass before the second block of lead passes (the lead pass starts face to face). 618 beats: 4:18 on Hot Swing (144), 4:52 on Sunday Reflection (127), 5:01 on Slow Your Roll (123).",
+   "revision": 2
   },
   {
    "name": "rock double triple step",

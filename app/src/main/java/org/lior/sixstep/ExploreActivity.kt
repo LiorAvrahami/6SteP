@@ -176,7 +176,7 @@ class ExploreActivity : AppCompatActivity() {
                 val t = if (isNew) c else target()
                 t.name = name.text.toString().trim().ifEmpty { t.name }; t.startState = states[start.selectedItemPosition]
                 t.repeat = maxOf(1, repeat.text.toString().toIntOrNull() ?: 1)
-                t.elements.clear(); t.elements.addAll(entries)
+                t.elements.clear(); t.elements.addAll(entries); t.edited = true
                 if (isNew) store.compositions.add(t)
                 store.save(); rebuild()
             }

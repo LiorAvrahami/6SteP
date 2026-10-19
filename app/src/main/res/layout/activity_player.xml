@@ -18,7 +18,7 @@
         android:textSize="14sp" />
 
     <!-- the options bar: swipe down during play to open it, swipe up or the cross to close it. Two rows so that it fits a
-         phone in landscape: the tracks, explore and close; then the snare, the hi-hat and the tempo. Hidden it is gone, so
+         phone in landscape: the tracks, explore and close; then the snare, the hi-hat, the voice and the tempo. Hidden it is gone, so
          the floor keeps every touch; shown it takes the touches on it, a tap on it does not pause the workout. -->
     <LinearLayout
         android:id="@+id/optionsBar"
@@ -104,7 +104,7 @@
                     android:id="@+id/hatToggle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginEnd="18dp"
+                    android:layout_marginEnd="6dp"
                     android:minHeight="36dp"
                     android:gravity="center"
                     android:paddingStart="12dp"
@@ -115,6 +115,22 @@
                     android:textColor="@color/floor"
                     android:textSize="14sp"
                     android:text="@string/hi_hat" />
+
+                <TextView
+                    android:id="@+id/voiceToggle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="18dp"
+                    android:minHeight="36dp"
+                    android:gravity="center"
+                    android:paddingStart="12dp"
+                    android:paddingEnd="12dp"
+                    android:paddingTop="4dp"
+                    android:paddingBottom="4dp"
+                    android:background="@drawable/bg_chip"
+                    android:textColor="@color/floor"
+                    android:textSize="14sp"
+                    android:text="@string/voice" />
 
                 <LinearLayout
                     android:id="@+id/bpmPicker"

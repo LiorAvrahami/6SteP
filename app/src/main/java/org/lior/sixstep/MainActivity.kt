@@ -22,16 +22,16 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<MaterialButton>(R.id.explore).setOnClickListener { startActivity(Intent(this, ExploreActivity::class.java)) }
 
-        val metro = findViewById<MaterialSwitch>(R.id.metronomeOverMusic)
-        metro.isChecked = prefs.getBoolean("metronome_over_music", false)
-        metro.setOnCheckedChangeListener { _, on -> prefs.edit().putBoolean("metronome_over_music", on).apply() }
-        val speak = findViewById<MaterialSwitch>(R.id.speakAnnotations)
-        speak.isChecked = prefs.getBoolean("speak_annotations", true)
-        speak.setOnCheckedChangeListener { _, on -> prefs.edit().putBoolean("speak_annotations", on).apply() }
+        findViewById<MaterialSwitch>(R.id.metronomeOverMusic).setOnCheckedChangeListener { _, on -> prefs.edit().putBoolean("metronome_over_music", on).apply() }
+        findViewById<MaterialSwitch>(R.id.speakAnnotations).setOnCheckedChangeListener { _, on -> prefs.edit().putBoolean("speak_annotations", on).apply() }
     }
 
     override fun onResume() {
         super.onResume()
+        // the player's options bar changes the same preferences: the switches show what is set now
+        val prefs = getSharedPreferences("6step", MODE_PRIVATE)
+        findViewById<MaterialSwitch>(R.id.metronomeOverMusic).isChecked = prefs.getBoolean("metronome_over_music", false)
+        findViewById<MaterialSwitch>(R.id.speakAnnotations).isChecked = prefs.getBoolean("speak_annotations", true)
         store.load()
         val box = findViewById<LinearLayout>(R.id.compositionList)
         box.removeAllViews()

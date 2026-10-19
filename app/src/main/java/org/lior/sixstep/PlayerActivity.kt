@@ -31,7 +31,7 @@ import kotlin.math.sin
 /** Plays a composition on the music: the dance drawn in time, annotations shown large and read aloud, the music changing
  *  between tracks with the snare and hi-hat filling the gap, and the whole thing kept in one beat clock.
  *  Swipe left: the next annotation block. Swipe right: replay this block, or the previous one when this one just began.
- *  Swipe down: the options bar (the track, the snare and hi-hat, the tempo, explore this element); swipe up closes it. */
+ *  Swipe down: the options bar (the track, the snare, hi-hat and voice, the tempo, explore this element); swipe up closes it. */
 class PlayerActivity : AppCompatActivity() {
     companion object {
         const val BACK_REPLAY_THRESHOLD_SECONDS = 2.0   // as in the Workout Instructinator app
@@ -50,6 +50,7 @@ class PlayerActivity : AppCompatActivity() {
     private lateinit var bpmLabel: TextView
     private lateinit var snareToggle: TextView
     private lateinit var hatToggle: TextView
+    private lateinit var voiceToggle: TextView
     private lateinit var prefs: SharedPreferences
     private lateinit var data: DanceData
     private lateinit var store: CompositionStore
@@ -99,7 +100,7 @@ class PlayerActivity : AppCompatActivity() {
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         floor = findViewById(R.id.floor); status = findViewById(R.id.status); bar = findViewById(R.id.optionsBar)
         trackPicker = findViewById(R.id.trackPicker); bpmPicker = findViewById(R.id.bpmPicker); bpmLabel = findViewById(R.id.bpmLabel)
-        snareToggle = findViewById(R.id.snareToggle); hatToggle = findViewById(R.id.hatToggle)
+        snareToggle = findViewById(R.id.snareToggle); hatToggle = findViewById(R.id.hatToggle); voiceToggle = findViewById(R.id.voiceToggle)
         data = DanceData.load(this); store = CompositionStore(this); tracks = Track.loadAll(this)
         metronome = Metronome(this); speaker = Speaker(this)
         speaker.onSpeaking = { duckMusic(it) }
@@ -210,7 +211,7 @@ class PlayerActivity : AppCompatActivity() {
 
     // ------------------------------------------------------------------ the options bar
 
-    /** one chip per track, the snare and hi-hat toggles, a chip per tempo offset, explore, close */
+    /** one chip per track, the snare, hi-hat and voice toggles, a chip per tempo offset, explore, close */
     private fun buildBar() {
         trackPicker.removeAllViews(); trackChips.clear()
         for (t in tracks) {
@@ -227,6 +228,7 @@ class PlayerActivity : AppCompatActivity() {
         }
         snareToggle.setOnClickListener { drum(snare = true) }
         hatToggle.setOnClickListener { drum(snare = false) }
+        voiceToggle.setOnClickListener { toggleVoice() }
         findViewById<ImageButton>(R.id.exploreHere).setOnClickListener { explore() }
         findViewById<ImageButton>(R.id.closeBar).setOnClickListener { hideBar() }
         updateBar()
@@ -256,6 +258,7 @@ class PlayerActivity : AppCompatActivity() {
         for ((i, c) in bpmChips.withIndex()) paint(c, BPM_OFFSETS[i] == bpmOffset)
         val heard = overlay || musicClockOf(clock) == null   // over the music only with the overlay; always in the gap between tracks
         paint(snareToggle, metronome.snareOn && heard); paint(hatToggle, metronome.hatOn && heard)
+        paint(voiceToggle, speakOn)
         bpmLabel.text = if (cur == null) "" else { val v = cur.variantFor(bpmOffset); if (v.offset == 0) "${cur.bpm.roundToInt()} BPM" else "→ ${v.bpm.roundToInt()} BPM" }
     }
 
@@ -270,6 +273,14 @@ class PlayerActivity : AppCompatActivity() {
         }
         prefs.edit().putBoolean("snare_on", metronome.snareOn).putBoolean("hihat_on", metronome.hatOn).putBoolean("metronome_over_music", overlay).apply()
         if (inMusic) { metronome.enabled = overlay; if (!paused) metronome.resync() }
+        updateBar()
+    }
+
+    /** the annotations read aloud or silent (they are still shown): the same preference as the main screen's switch */
+    private fun toggleVoice() {
+        speakOn = !speakOn
+        prefs.edit().putBoolean("speak_annotations", speakOn).apply()
+        if (!speakOn) speaker.stop() else timeline?.let { speaker.prefetch(announcements(it.composed)) }
         updateBar()
     }
 

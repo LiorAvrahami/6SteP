@@ -6,7 +6,8 @@ exploration floor to step through every element beat by beat.
 The APK is built by GitHub Actions on every push to `main` and attached to a release:
 **https://github.com/LiorAvrahami/6SteP/releases/latest** — download `6SteP.apk` on the phone and open it.
 
-The dance data (`app/src/main/assets/dance/`) comes from the Swing5 project's skeletons and compositions.
+The dance data (`app/src/main/assets/dance/`) comes from the Swing5 project's skeletons and compositions. A shipped
+composition carries a `revision`; a newer revision replaces the copy on the phone unless the user edited that copy there.
 
 ## Music
 
@@ -24,8 +25,9 @@ by the same factor in the app, so the steps and the metronome stay on the beat a
 
 Tap: pause / continue. Swipe left: the next annotation block. Swipe right: replay this block, or the previous one when this
 one just began (2 s rule). Swipe down: the options bar, with the track to play next, the snare and hi-hat on or off, the
-tempo (the BPM offset, kept for the whole session), and "explore", which pauses and opens the element being danced in the
-exploration floor at the same beat; back returns to the paused workout. The app holds audio focus for the session and
+voice on or off (annotations are still shown), the tempo (the BPM offset, kept for the whole session), and "explore",
+which pauses and opens the element being danced in the exploration floor at the same beat; back returns to the paused
+workout. Every switch and the tempo are kept in the app's preferences. The app holds audio focus for the session and
 keeps its own volume while another app asks to duck it; the music dips to 60 percent under a spoken annotation and comes
 back right after it.
 

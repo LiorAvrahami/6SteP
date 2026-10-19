@@ -162,20 +162,29 @@ script are absolute; change them if the folders move.
   and ignores "may duck" requests, so the system never dims the whole app; a real loss (a call) pauses the workout.
   This was the fix for "the music and the annotations both go dim sometimes" (2026-10-19); the diagnosis also named the
   phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
-- **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on`, `bpm_offset`.
+- **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on`, `bpm_offset`; the
+  exploration floor's `strategic` and `bpm`. The main screen's switches re-read them on resume, since the player's options
+  bar (snare, hi-hat and, since v9, voice) writes the same ones.
+- **Shipped compositions and the phone's copy.** `CompositionStore` reads the phone's own file when there is one and only
+  adds shipped compositions it does not know. Since v9 a shipped composition carries a `revision`; a higher one replaces the
+  phone's copy unless that copy is marked `edited` (set by the edit dialog). Bump the revision whenever you change a shipped
+  composition, or the phone keeps its old copy.
 
 ## 7. State at the handover (2026-10-19)
 
 - Releases: v2 first APK (2026-10-18), v3 camera/sounds/swipes/map, v4 folding rows, BPM-paced transitions, chained loop,
   v5 sync screen removed and review fixes, v6 the annotated Slow Your Roll grid and the difficulty text, **v7 (build passed, APK 71 MB)
   the snare and hi-hat sounds, the tempo variants, the player's options bar and the dimming fix.** v8 is this file alone.
+  v9 (2026-10-19, second maintainer): the daily exercise rewritten to the user's list (5 RTT, 15 follower passes, 15 lead
+  passes, 10 cutoffs, 15 pass+recapture, 15 lead passes, 10 cutoffs, no circle; three single bridging elements, 618 beats),
+  the voice chip in the options bar, the main screen's switches refreshed on resume, composition revisions.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
   crossfade clean), choosing a track from the bar, explore and back, the snare and hi-hat toggles, whether the dim mix is gone.
 - Open questions the user has not answered yet (ask again, briefly): the cutoff ends 35 cm apart with her left foot
   15 cm from his right (the side state says 45 cm and feet 20 cm apart: keep it or fix it); the recapture's turn
-  direction; which launcher icon (five options in `6SteP/design/icons/`); whether circles belong in the daily exercise;
+  direction; which launcher icon (five options in `6SteP/design/icons/`); circles are out of the daily exercise (answered 2026-10-19);
   from the agents of 2026-10-19: the tempo picker is a row of chips rather than a spinner; a tempo change near the end of
   a track lets the file play out and the next track takes the new tempo; the exploration floor's play does not honour the
   snare and hi-hat toggles (one line to add if wanted); holding audio focus pauses other apps' music when a workout starts.
