@@ -146,21 +146,23 @@ E('follower underarm pass', 'facing', 'facing', 6,
    S(6, 'L', 'R', 'RR', 40, 30, 180, 'user+guess', 'triple in place, facing her'), S(6, 'F', 'L', 'BL1L', 40, -40, 0, 'notes+guess', '70 cm in front of him, facing him')],
   hands=[{'count': '3&', 'hands': ['LL-FR^F']}, {'count': '5', 'hands': OPEN_HANDS}])
 
-# ---------------------------------------------------------------- recapture underarm pass (6 beats), facing -> side
+# ---------------------------------------------------------------- recapture underarm pass (6 beats), facing -> side   (user 2026-10-19: she turns LEFT)
 E('recapture underarm pass', 'facing', 'side', 6,
   "User 2026-10-18: 'for the follower it is basically a follower underarm pass and for the leader it is just rock step, triple step'; it brings the couple back from face to face to side by side. "
-  "Name is the user's working name. Built as the follower underarm pass with the states swapped: her codes and rotations are the same (FR, TL, XR2R, BL1R, TR1R, eBL: clockwise 180).",
-  "She steps forward and to her left under the raised hands (3, 3&), crosses her right foot in front turning 90 right (4), backs round the remaining 90 (5, 5&) and settles on his right (6), "
-  "both facing his way. He rocks and triples in place. Hands: open hold on 1-3, raised with her under them on 3&-4, side hold from 5 (his right arm around her back). All distances are guesses.",
+  "Name is the user's working name. User 2026-10-19: she turns LEFT (anticlockwise). Her codes are therefore lurklurk's Changing Places follower, as in the follower underarm pass from facing: "
+  "W: FR1L, TL, FR1L, BL1L, TR, BL1L (4 x 45 left = 180). The first build (2026-10-18) had her turning clockwise with the codes of the pass from side by side.",
+  "She steps forward and to her left under the raised hands turning left (3, 3&), steps forward again turning left so that she faces away from him, east (4), "
+  "then backs round to his right side turning left (5, 5&, 6) and ends there facing his way. He rocks and triples in place. "
+  "Hands: open hold on 1-3, raised with her under them on 3&, open hold again on 4 once she is through, side hold from 5 (his right arm around her back). All distances are guesses.",
   [S(1, 'L', 'L', 'BL', 0, -30, 0), S(1, 'F', 'R', 'BR', 0, 100, 180),
    S(2, 'L', 'R', 'RR', 20, 0, 0), S(2, 'F', 'L', 'RL', 20, 70, 180),
-   S(3, 'L', 'L', 'eFL', 0, 0, 0, 'guess', 'leader stays put'), S(3, 'F', 'R', 'FR', 18, 46, 180, 'user+guess', 'forward and a little left; his hand lifts'),
-   S('3&', 'L', 'R', 'TR', 20, 0, 0, 'guess'), S('3&', 'F', 'L', 'TL', 36, 40, 180, 'user+guess', 'a travelling close, under the hands'),
-   S(4, 'L', 'L', 'RL', 0, 0, 0, 'guess'), S(4, 'F', 'R', 'XR2R', 44, 24, 270, 'user+guess', 'right crosses in front, turning 90 R, facing him'),
-   S(5, 'L', 'R', 'RR', 20, 0, 0, 'guess'), S(5, 'F', 'L', 'BL1R', 48, 14, 315, 'user+guess', 'backing round; his right arm takes her back'),
-   S('5&', 'L', 'L', 'TL', 0, 0, 0, 'guess'), S('5&', 'F', 'R', 'TR1R', 65, 8, 0, 'user+guess'),
-   S(6, 'L', 'R', 'RR', 20, 0, 0, 'guess'), S(6, 'F', 'L', 'eBL', 45, 0, 0, 'user+guess', 'on his right, side position')],
-  hands=[{'count': '3&', 'hands': ['LL-FR^F']}, {'count': '5', 'hands': SIDE_HANDS}])
+   S(3, 'L', 'L', 'eFL', 0, 0, 0, 'guess', 'leader stays put'), S(3, 'F', 'R', 'FR1L', 22, 46, 135, 'notes+guess', 'forward, turning left; his hand lifts'),
+   S('3&', 'L', 'R', 'TR', 20, 0, 0, 'guess'), S('3&', 'F', 'L', 'TL', 36, 58, 135, 'notes+guess', 'left closes, under the hands'),
+   S(4, 'L', 'L', 'RL', 0, 0, 0, 'guess'), S(4, 'F', 'R', 'FR1L', 52, 40, 90, 'notes+guess', 'forward, turning left: she is through and faces east, away from him; the hands come down'),
+   S(5, 'L', 'R', 'RR', 20, 0, 0, 'guess'), S(5, 'F', 'L', 'BL1L', 44, 22, 45, 'notes+guess', 'backing round to his right side; his right arm takes her back'),
+   S('5&', 'L', 'L', 'TL', 0, 0, 0, 'guess'), S('5&', 'F', 'R', 'TR', 61, 10, 45, 'notes+guess'),
+   S(6, 'L', 'R', 'RR', 20, 0, 0, 'guess'), S(6, 'F', 'L', 'BL1L', 45, 0, 0, 'notes+guess', 'on his right, side position')],
+  hands=[{'count': '3&', 'hands': ['LL-FR^F']}, {'count': '4', 'hands': OPEN_HANDS}, {'count': '5', 'hands': SIDE_HANDS}])
 
 # ---------------------------------------------------------------- lead underarm pass (6 beats), facing -> facing, places swapped   (user 2026-10-18: perfect)
 E('lead underarm pass', 'facing', 'facing', 6, "m_changing_places with the roles swapped (user Q3): the leader takes the follower's part, travelling under the joined hands on the follower's RIGHT side and turning 180 LEFT; she takes the leader's part, small steps turning 180 RIGHT, facing him as he passes. Places swapped. Confirmed by the user 2026-10-18.",

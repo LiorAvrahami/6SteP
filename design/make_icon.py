@@ -17,18 +17,37 @@ FONT = '/usr/share/fonts/opentype/inter/Inter-ExtraBold.otf'
 
 def px(v): return int(round(v * S))
 
-def foot(draw, cx, cy, length, width, angle_deg, colour):
-    """a foot as a capsule: toe end round and wider, heel end round and narrower; angle 0 = toes up, positive = clockwise"""
-    a = math.radians(angle_deg)
-    ux, uy = math.sin(a), -math.cos(a)        # towards the toes
-    rt, rh = width / 2, width * 0.40
-    tx, ty = cx + ux * (length / 2 - rt), cy + uy * (length / 2 - rt)
-    hx, hy = cx - ux * (length / 2 - rh), cy - uy * (length / 2 - rh)
-    draw.ellipse([px(tx - rt), px(ty - rt), px(tx + rt), px(ty + rt)], fill=colour)
-    draw.ellipse([px(hx - rh), px(hy - rh), px(hx + rh), px(hy + rh)], fill=colour)
-    nx, ny = -uy, ux
-    poly = [(tx + nx * rt, ty + ny * rt), (hx + nx * rh, hy + ny * rh), (hx - nx * rh, hy - ny * rh), (tx - nx * rt, ty - ny * rt)]
-    draw.polygon([(px(x), px(y)) for x, y in poly], fill=colour)
+# the shoe sole of the app's floor (FloorView.kt: `sole` and `heel`), for a LEFT shoe: u across (+ = the big-toe side),
+# v along (+ = the toe), in cm; a start point, then cubic segments (control 1, control 2, end). A right shoe is the mirror.
+SOLE = [(2.6, -3.0), ((3.0, 0.5), (4.8, 3.0), (4.6, 6.0)), ((4.4, 9.5), (2.8, 12.4), (1.2, 13.0)),
+        ((-0.6, 13.4), (-5.2, 8.5), (-5.0, 4.5)), ((-4.9, 1.5), (-3.6, -1.0), (-3.4, -3.0)), ((-1.5, -2.7), (0.8, -2.7), (2.6, -3.0))]
+HEEL = [(2.7, -4.4), ((2.9, -6.5), (2.9, -9.5), (2.4, -11.0)), ((1.9, -12.5), (0.9, -13.0), (-0.4, -13.0)),
+        ((-1.8, -13.0), (-2.8, -12.4), (-3.3, -11.0)), ((-3.8, -9.5), (-3.6, -6.5), (-3.4, -4.4)), ((-1.3, -4.1), (0.6, -4.1), (2.7, -4.4))]
+SOLE_LEN = 26.4   # cm from the heel's back to the toe's point
+
+
+def _bezier(shape, n=24):
+    pts = [shape[0]]; p0 = shape[0]
+    for c1, c2, p3 in shape[1:]:
+        for i in range(1, n + 1):
+            t = i / n; a, b, c, d = (1 - t) ** 3, 3 * (1 - t) ** 2 * t, 3 * (1 - t) * t * t, t ** 3
+            pts.append((a * p0[0] + b * c1[0] + c * c2[0] + d * p3[0], a * p0[1] + b * c1[1] + c * c2[1] + d * p3[1]))
+        p0 = p3
+    return pts
+
+
+def shoe(draw, cx, cy, length, angle_deg, side, colour):
+    """a shoe sole `length` long (512 units) centred on (cx, cy); angle 0 = toe up, positive = clockwise; side 'L' or 'R'"""
+    k = length / SOLE_LEN; m = 1 if side == 'L' else -1
+    a = math.radians(angle_deg); ca, sa = math.cos(a), math.sin(a)
+    centre_v = (13.4 - 13.0) / 2   # the outline runs from v = -13.0 to 13.4
+    for shape in (SOLE, HEEL):
+        out = []
+        for u, v in _bezier(shape):
+            u, v = u * m * k, (v - centre_v) * k
+            out.append((px(cx + u * ca + v * sa), px(cy + u * sa - v * ca)))
+        draw.polygon(out, fill=colour)
+
 
 def six_mask(top, bottom):
     """the glyph 6 as a mask image (W x W) whose ink spans y = top..bottom (512 units), centred on the disc"""
@@ -69,6 +88,14 @@ def curl_end(mask):
                 break
     return best[0] / S, (best[1] + top) / S
 
+def touching(glyph, cx, cy, length, angle, side):
+    """how many supersampled pixels a shoe at (cx, cy) shares with the glyph mask"""
+    m = Image.new('L', (W, W), 0)
+    shoe(ImageDraw.Draw(m), cx, cy, length, angle, side, 255)
+    from PIL import ImageChops
+    return sum(ImageChops.multiply(m, glyph).point(lambda v: 1 if v > 127 else 0).histogram()[1:])
+
+
 def render(label=True, top=312, bottom=440, plate=True):
     im = Image.new('RGBA', (W, W), (0, 0, 0, 0))
     d = ImageDraw.Draw(im)
@@ -89,18 +116,20 @@ def render(label=True, top=312, bottom=440, plate=True):
     hx0, hy0, hx1, hy1 = hollow_bbox(m)
     ex, ey = curl_end(m)
     h = bottom - top
-    length, width = h * 0.62, h * 0.24
-    # the blue foot: on the 6's lower-left corner, toes 45 degrees up and left
-    foot(d, gb[0] + h * 0.19, gb[3] - h * 0.21, length, width, -45, BLUE)
-    # the pink foot, first placed (v11) with its toes 55 degrees to the right and its heel just inside the hollow's upper
-    # right; since v12 (user 2026-10-19) moved straight up two-thirds of the way from there to the top of the 6 and turned
-    # 35 degrees anticlockwise, so its toes point 20 degrees to the right
+    length = h * 0.62
+    # the blue foot (a left shoe): on the 6's lower-left corner, toes 45 degrees up and left
+    shoe(d, gb[0] + h * 0.19, gb[3] - h * 0.21, length, -45, 'L', BLUE)
+    # the pink foot (a right shoe): toes 20 degrees right of vertical (v12: 55 degrees, turned 35 anticlockwise), its centre
+    # two-thirds of the way from its v11 spot up to the top of the 6 (v12), then slid right until it only just touches the
+    # 6 (v13, user 2026-10-19)
+    width = h * 0.24; rh = width * 0.40
     a = math.radians(55); ux, uy = math.sin(a), -math.cos(a)
-    rh = width * 0.40
     heel_x, heel_y = hx1 + rh * 0.3, hy0 - rh * 0.3
     px0, py0 = heel_x - ux * rh + ux * length / 2, heel_y - uy * rh + uy * length / 2   # the v11 centre
     py1 = py0 + (gb[1] - py0) * 2 / 3
-    foot(d, px0, py1, length, width, 55 - 35, PINK)
+    x = px0
+    while touching(m, x + 0.25, py1, length, 20, 'R') > 0: x += 0.25
+    shoe(d, x, py1, length, 20, 'R', PINK)
     return im.resize((512, 512), Image.LANCZOS)
 
 def write_mipmaps(icon, fg_art):

@@ -1178,8 +1178,8 @@
    "end_state": "side",
    "beats": 6,
    "leader_free_start": "L",
-   "source": "User 2026-10-18: 'for the follower it is basically a follower underarm pass and for the leader it is just rock step, triple step'; it brings the couple back from face to face to side by side. Name is the user's working name. Built as the follower underarm pass with the states swapped: her codes and rotations are the same (FR, TL, XR2R, BL1R, TR1R, eBL: clockwise 180).",
-   "notes": "She steps forward and to her left under the raised hands (3, 3&), crosses her right foot in front turning 90 right (4), backs round the remaining 90 (5, 5&) and settles on his right (6), both facing his way. He rocks and triples in place. Hands: open hold on 1-3, raised with her under them on 3&-4, side hold from 5 (his right arm around her back). All distances are guesses.",
+   "source": "User 2026-10-18: 'for the follower it is basically a follower underarm pass and for the leader it is just rock step, triple step'; it brings the couple back from face to face to side by side. Name is the user's working name. User 2026-10-19: she turns LEFT (anticlockwise). Her codes are therefore lurklurk's Changing Places follower, as in the follower underarm pass from facing: W: FR1L, TL, FR1L, BL1L, TR, BL1L (4 x 45 left = 180). The first build (2026-10-18) had her turning clockwise with the codes of the pass from side by side.",
+   "notes": "She steps forward and to her left under the raised hands turning left (3, 3&), steps forward again turning left so that she faces away from him, east (4), then backs round to his right side turning left (5, 5&, 6) and ends there facing his way. He rocks and triples in place. Hands: open hold on 1-3, raised with her under them on 3&, open hold again on 4 once she is through, side hold from 5 (his right arm around her back). All distances are guesses.",
    "steps": [
     {
      "count": "1",
@@ -1236,12 +1236,12 @@
      "count": "3",
      "dancer": "F",
      "foot": "R",
-     "code": "FR",
-     "x": 18.0,
+     "code": "FR1L",
+     "x": 22.0,
      "y": 46.0,
-     "heading": 180.0,
-     "src": "user+guess",
-     "note": "forward and a little left; his hand lifts"
+     "heading": 135.0,
+     "src": "notes+guess",
+     "note": "forward, turning left; his hand lifts"
     },
     {
      "count": "3&",
@@ -1259,10 +1259,10 @@
      "foot": "L",
      "code": "TL",
      "x": 36.0,
-     "y": 40.0,
-     "heading": 180.0,
-     "src": "user+guess",
-     "note": "a travelling close, under the hands"
+     "y": 58.0,
+     "heading": 135.0,
+     "src": "notes+guess",
+     "note": "left closes, under the hands"
     },
     {
      "count": "4",
@@ -1278,12 +1278,12 @@
      "count": "4",
      "dancer": "F",
      "foot": "R",
-     "code": "XR2R",
-     "x": 44.0,
-     "y": 24.0,
-     "heading": 270.0,
-     "src": "user+guess",
-     "note": "right crosses in front, turning 90 R, facing him"
+     "code": "FR1L",
+     "x": 52.0,
+     "y": 40.0,
+     "heading": 90.0,
+     "src": "notes+guess",
+     "note": "forward, turning left: she is through and faces east, away from him; the hands come down"
     },
     {
      "count": "5",
@@ -1299,12 +1299,12 @@
      "count": "5",
      "dancer": "F",
      "foot": "L",
-     "code": "BL1R",
-     "x": 48.0,
-     "y": 14.0,
-     "heading": 315.0,
-     "src": "user+guess",
-     "note": "backing round; his right arm takes her back"
+     "code": "BL1L",
+     "x": 44.0,
+     "y": 22.0,
+     "heading": 45.0,
+     "src": "notes+guess",
+     "note": "backing round to his right side; his right arm takes her back"
     },
     {
      "count": "5&",
@@ -1320,11 +1320,11 @@
      "count": "5&",
      "dancer": "F",
      "foot": "R",
-     "code": "TR1R",
-     "x": 65.0,
-     "y": 8.0,
-     "heading": 0.0,
-     "src": "user+guess"
+     "code": "TR",
+     "x": 61.0,
+     "y": 10.0,
+     "heading": 45.0,
+     "src": "notes+guess"
     },
     {
      "count": "6",
@@ -1340,11 +1340,11 @@
      "count": "6",
      "dancer": "F",
      "foot": "L",
-     "code": "eBL",
+     "code": "BL1L",
      "x": 45.0,
      "y": 0.0,
      "heading": 0.0,
-     "src": "user+guess",
+     "src": "notes+guess",
      "note": "on his right, side position"
     }
    ],
@@ -1353,6 +1353,12 @@
      "count": "3&",
      "hands": [
       "LL-FR^F"
+     ]
+    },
+    {
+     "count": "4",
+     "hands": [
+      "LL-FR"
      ]
     },
     {

@@ -206,10 +206,15 @@ class Speaker(private val ctx: Context) {
     companion object {
         const val WAIT_MS = 1200L      // a phrase still downloading is waited for this long before the phone's voice reads it
         const val CLIP_VOLUME = 0.8f   // the clips peak 3 dB under full scale: with the music ducked, music plus voice stays under it
+        private val LEAD = Regex("\\blead\\b", RegexOption.IGNORE_CASE)
     }
 
     private var ready = false
     private lateinit var tts: TextToSpeech
+
+    /** how a phrase is said: words the voices read wrongly are spelled the way they sound. "lead" alone reads as the metal
+     *  ("led"); "leed" reads as in "lead and follow" (user 2026-10-19). The screen keeps the real spelling. */
+    private fun spoken(text: String): String = text.replace(LEAD, "leed")
     private var player: MediaPlayer? = null
     private val handler = Handler(Looper.getMainLooper())
     /** the voice sits in the same volume group as the music; not an assistant or a navigation prompt, which some phones treat specially */
@@ -293,13 +298,14 @@ class Speaker(private val ctx: Context) {
 
     /** fetch the phrases that are not cached yet, in the background, one at a time in the order given */
     fun prefetch(texts: Collection<String>) {
-        val todo = texts.filter { it.isNotBlank() && !cached(it) }
+        val todo = texts.map { spoken(it) }.distinct().filter { it.isNotBlank() && !cached(it) }
         if (todo.isEmpty()) return
         Thread { for (t in todo) if (!cached(t)) fetch(t).join() }.start()
     }
 
-    fun speak(text: String) {
-        if (text.isBlank()) return
+    fun speak(phrase: String) {
+        if (phrase.isBlank()) return
+        val text = spoken(phrase)
         val gen = ++generation
         stopCurrent()
         if (cached(text) && playClip(text, gen)) return

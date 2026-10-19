@@ -223,14 +223,16 @@ beat annotator (`python music/tools/beat_annotator/server.py`, port 8772). After
   strategic view's dashed step arrows stay); the exploration floor's swipes wrap round from the last instant to the first
   and back (a cut, not an animated transition, in the flow view).
   v13: the dance and music project moved into the repo (section 1); the same app as v12.
+  v14: the recapture turns her left; the narrator says "leed" for "lead" (`Speaker.spoken` in `Audio.kt`, the screen keeps
+  "lead"); the icon's feet are shoe soles and the pink one is slid right until it only just touches the 6.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
   crossfade clean), choosing a track from the bar, explore and back, the snare and hi-hat toggles, whether the dim mix is gone.
 - Open questions the user has not answered yet (ask again, briefly): the cutoff ends 35 cm apart with her left foot
   15 cm from his right (the side state says 45 cm and feet 20 cm apart: keep it or fix it); the recapture's turn
-  direction (answered 2026-10-19: she turns LEFT; the skeleton has her turning right and must be changed once the dance
-  tools are back, with diff.py and check.py); the launcher icon (answered 2026-10-19, see section 5); circles are out of
+  direction (answered 2026-10-19: she turns LEFT; done the same day in `author_skeletons.py` with the Changing Places
+  follower codes, check.py clean apart from the 2 known cutoff errors; the user has not seen the storyboard yet); the launcher icon (answered 2026-10-19, see section 5); circles are out of
   the daily exercise (answered 2026-10-19);
   from the agents of 2026-10-19: the tempo picker is a row of chips rather than a spinner; a tempo change near the end of
   a track lets the file play out and the next track takes the new tempo; the exploration floor's play does not honour the

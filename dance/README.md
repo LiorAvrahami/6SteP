@@ -47,7 +47,7 @@ previous one, so the composer picks the variant itself and refuses a sequence th
 | rock back cutoff | side L | 6 | leader placed by the user in the editor: both feet back, lunge across her path, back onto his own line 45 cm ahead facing back; she swings round behind him onto his right (agent); both end facing back |
 | follower underarm pass | side L, facing L | 6 | from side: user Q2, confirmed 2026-10-18 (she turns clockwise); from facing: she turns anticlockwise as in m_changing_places (FR1L, TL, FR1L, BL1L, TR, BL1L) while he follows her round from behind (a step forward turned 90 right and a triple, twice; user 2026-10-18) |
 | lead underarm pass | facing L | 6 | Changing Places with the roles swapped (user Q3), confirmed 2026-10-18 |
-| recapture underarm pass | facing L | 6 | user 2026-10-18 (working name): her follower underarm pass with the states swapped, he rocks and triples in place; brings the couple back to side by side |
+| recapture underarm pass | facing L | 6 | user 2026-10-18 (working name), brings the couple back to side by side; he rocks and triples in place. Since 2026-10-19 she turns LEFT (user): her codes are m_changing_places' follower (FR1L, TL, FR1L, BL1L, TR, BL1L), she faces east on 4 and backs round onto his right |
 | circle | facing L | 8 | m_lindy_circle, hinge-out exit |
 
 ## Conventions
