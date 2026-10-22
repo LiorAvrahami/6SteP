@@ -277,7 +277,6 @@ beat annotator (`python music/tools/beat_annotator/server.py`, port 8772). After
 
 ## 9. Backlog and ideas the user voiced
 
-- Exercises graded by the sections of Slow Your Roll where the beat moves.
-- A licence agreement with Laughing Manny before any public release; more real-band sax swing tracks.
-- Tempo control was "nice but difficult": now done offline; on-device stretching (`PlaybackParams`) stays the small-APK alternative.
-- Exploration play honouring the drum toggles; the icon choice; Charleston elements.
+The todo list is `TODO.md` at the repo root (since 2026-10-22); the backlog that stood here moved there. The user adds to it
+with the `/todo` command (`.claude/commands/todo.md`, loaded by every Claude Code session on this repository), which writes a
+todo down without implementing it. Move a todo to "Done" with the date and release when you finish it.
