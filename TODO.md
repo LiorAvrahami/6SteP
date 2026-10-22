@@ -35,6 +35,29 @@ down without doing it. When one is finished, move it to "Done" with the date and
 - **Context:** the hand data and the reach check (now a warning) are still in the skeletons; nothing draws them
   (`SHOW_HANDS` / `showHands` in `dance/draw.py`, `FloorView.kt` and the editor).
 
+### New elements: side to side, pass to arrow, arrow to side, mess around
+- **Added:** 2026-10-22, by the user.
+- **What:** "add elements side to side, pass to arrow, arrow to side ... add mess around". Four new elements to author as
+  skeletons, so that they can be explored and used in compositions.
+- **Context:** elements are written in `dance/author_skeletons.py` (run `python dance/diff.py` first), checked with
+  `python dance/check.py --storyboard`, and reach the app through `tools/make_assets.py`. An element exists once per
+  starting condition (state and the leader's free foot). The states defined today are `side`, `facing` and
+  `reversed_side`; there is no "arrow" state yet. The lurklurk notes are in `reference/lurklurk/lindyhop.zip`.
+- **Questions for later:** what "arrow" is (a position, and where each dancer stands and faces in it); what "side to
+  side" is and which state it starts and ends in; which lurklurk page, if any, each element follows; whether "mess
+  around" is danced by both, and from which position.
+
+### Rewrite the circle
+- **Added:** 2026-10-22, by the user.
+- **What:** "rewrite circle". Author the circle element again rather than adjusting the current one.
+- **Context:** today's circle follows lurklurk's Lindy Circle (`m_lindy_circle`), 8 beats from face to face to side by
+  side, with counts 5 and 6 exempt from the collision rule as a close hold. It was placed for a 70 cm open position and
+  adapted to the 31 cm one in v17 by moving it 10 cm closer from count 3 (`CIRCLE_DY`) and giving two of her steps their
+  own spots (`CIRCLE_SPOTS`), all in `dance/author_skeletons.py`. The user removed the circle from the daily exercise on
+  2026-10-19; the sub-composition "pass+circle" still uses it.
+- **Questions for later:** what is wrong with the current circle, and how the user dances it (start, end, turn, where
+  each dancer goes).
+
 ### From the first maintainer's backlog (handover section 9)
 - Exercises graded by the sections of Slow Your Roll where the beat moves (harder) or does not (easier).
 - A licence agreement with Laughing Manny before any public release; more real-band saxophone swing tracks.
