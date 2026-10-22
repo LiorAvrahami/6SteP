@@ -23,6 +23,10 @@ down without doing it. When one is finished, move it to "Done" with the date and
     turn direction, into a generated file kept apart from `skeletons.json` (with a fingerprint of each step, so stale
     entries show); `check.py` gets a sweep test along the curves; the storyboards draw the curves; then `render.py`, the
     editor and the app use them.
+  - A hard example (user 2026-10-22: "the follower recapture is example of hard to solve feet collision"): in the
+    recapture underarm pass she turns left under the raised hands, and her own feet pass through each other several
+    times. The 2026-10-19 audit, made before the spacing changes, found three of her steps going through her standing
+    foot: her right foot on 3 and 5&, her left on 5. Use it as a test case for whatever method is chosen.
 - **Questions for later:** whether the plan above is the way to do it.
 
 ### Hands
