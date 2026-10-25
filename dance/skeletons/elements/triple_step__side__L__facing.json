@@ -1,0 +1,60 @@
+{
+ "name": "triple step",
+ "start_state": "side",
+ "end_state": "facing",
+ "beats": 2,
+ "leader_free_start": "L",
+ "hands": [],
+ "steps": [
+  {
+   "count": "3",
+   "dancer": "L",
+   "foot": "L",
+   "x": 9,
+   "y": 43,
+   "heading": 80
+  },
+  {
+   "count": "3",
+   "dancer": "F",
+   "foot": "R",
+   "x": 45,
+   "y": 43,
+   "heading": -80
+  },
+  {
+   "count": "3&",
+   "dancer": "L",
+   "foot": "R",
+   "x": 10,
+   "y": 27,
+   "heading": 90
+  },
+  {
+   "count": "3&",
+   "dancer": "F",
+   "foot": "L",
+   "x": 44,
+   "y": 27,
+   "heading": -90
+  },
+  {
+   "count": "4",
+   "dancer": "L",
+   "foot": "L",
+   "x": 9,
+   "y": 43,
+   "heading": 85
+  },
+  {
+   "count": "4",
+   "dancer": "F",
+   "foot": "R",
+   "x": 45,
+   "y": 43,
+   "heading": -80
+  }
+ ],
+ "winding": true,
+ "order": 12
+}

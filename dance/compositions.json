@@ -49,8 +49,10 @@
    "start_state": "side",
    "repeat": 1,
    "elements": [
-    "side to side",
-    "side to side"
+    "rock step",
+    "triple step → facing",
+    "rock step",
+    "triple step"
    ],
    "notes": ""
   }
