@@ -10,7 +10,35 @@ placement and transfers the weight to it on its count.
 import json, math, copy, os, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SKELETONS = os.path.join(HERE, 'skeletons.json')
+# The skeletons since 2026-10-25: a folder, one file per element, so that several people can edit different elements at once
+# (and git merges them): skeletons/_states.json (the states and the rest of the document) and skeletons/elements/<name>__<start
+# state>__<leader's free foot>.json. load() assembles the usual document {states, ..., elements}; save() writes back only the
+# elements that changed and removes the files of elements that are gone. A plain .json path still works (old files, fixtures).
+SKELETONS = os.path.join(HERE, 'skeletons')
+LEGACY_SKELETONS = os.path.join(HERE, 'skeletons.json')
+STATES_FILE = '_states.json'
+STATE_ORDER = {'side': 0, 'facing': 1, 'reversed_side': 2}
+
+def element_file(e):
+    """The file name of an element: its name (letters and digits, the rest as _), start state and the leader's free foot."""
+    nm = re.sub(r'[^A-Za-z0-9]+', '_', e['name']).strip('_') or 'element'
+    return f"{nm}__{e['start_state']}__{e.get('leader_free_start', 'L')}.json"
+
+def skeletons_version(path=SKELETONS):
+    """Changes whenever any of the files changes (the editor uses it to see that someone else wrote meanwhile)."""
+    if not os.path.isdir(path):
+        return str(os.stat(path).st_mtime_ns) if os.path.exists(path) else ''
+    parts = []
+    for root in (path, os.path.join(path, 'elements')):
+        if os.path.isdir(root):
+            for f in sorted(os.listdir(root)):
+                if f.endswith('.json'):
+                    st = os.stat(os.path.join(root, f)); parts.append(f'{f}:{st.st_mtime_ns}:{st.st_size}')
+    import hashlib
+    return hashlib.sha1('|'.join(parts).encode()).hexdigest()[:16]
+
+def _dump(obj):
+    return json.dumps(obj, indent=1, ensure_ascii=False) + '\n'
 COMPOSITIONS = os.path.join(HERE, 'compositions.json')
 
 STANCE = 20.0        # natural distance between a dancer's feet (user rule)
@@ -56,13 +84,75 @@ class Frame:
         return (wx, wy, h + self.h)
 
 def load(path=SKELETONS):
-    with open(path, encoding='utf-8') as f:
-        return json.load(f)
+    if not os.path.isdir(path):
+        with open(path, encoding='utf-8') as f:
+            return json.load(f)
+    with open(os.path.join(path, STATES_FILE), encoding='utf-8') as f:
+        doc = json.load(f)
+    elements = []
+    edir = os.path.join(path, 'elements')
+    for fn in sorted(os.listdir(edir)) if os.path.isdir(edir) else []:
+        if fn.endswith('.json'):
+            with open(os.path.join(edir, fn), encoding='utf-8') as f:
+                elements.append(json.load(f))
+    # the order of the list: each element keeps its 'order' number (given once, when it is first saved)
+    elements.sort(key=lambda e: (e.get('order', 1e9), e['name'].lower(), STATE_ORDER.get(e['start_state'], 9), e.get('leader_free_start', 'L')))
+    doc['elements'] = elements
+    return doc
 
 def save(data, path=SKELETONS):
-    with open(path, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=1, ensure_ascii=False)
-        f.write('\n')
+    if not os.path.isdir(path) and path != SKELETONS:
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(_dump(data))
+        return
+    edir = os.path.join(path, 'elements'); os.makedirs(edir, exist_ok=True)
+    names = [element_file(e) for e in data['elements']]
+    dup = {n for n in names if names.count(n) > 1}
+    if dup:
+        raise ValueError(f'two elements would share the file {sorted(dup)[0]}: rename one')
+    head = {k: v for k, v in data.items() if k != 'elements'}
+    def write(p, text):
+        old = open(p, encoding='utf-8').read() if os.path.exists(p) else None
+        if old != text:
+            with open(p, 'w', encoding='utf-8') as f:
+                f.write(text)
+    write(os.path.join(path, STATES_FILE), _dump(head))
+    top = max([e['order'] for e in data['elements'] if isinstance(e.get('order'), (int, float))] + [0])
+    for e, fn in zip(data['elements'], names):
+        if not isinstance(e.get('order'), (int, float)):
+            top += 1; e['order'] = top
+        write(os.path.join(edir, fn), _dump(e))
+    for fn in os.listdir(edir):
+        if fn.endswith('.json') and fn not in names:
+            os.remove(os.path.join(edir, fn))
+
+def import_legacy():
+    """An old single skeletons.json next to the folder (written by an editor that was still running old code): its elements
+    that differ from the folder's are taken (they are the newer edits), none is deleted; the file is then moved to
+    out/backups. Returns the elements taken."""
+    if not os.path.exists(LEGACY_SKELETONS):
+        return []
+    with open(LEGACY_SKELETONS, encoding='utf-8') as f:
+        old = json.load(f)
+    taken = []
+    if os.path.isdir(SKELETONS):
+        doc = load()
+        at = {element_file(e): i for i, e in enumerate(doc['elements'])}
+        for e in old['elements']:
+            fn = element_file(e); e = dict(e)
+            if fn in at:
+                e.setdefault('order', doc['elements'][at[fn]].get('order'))
+                if json.dumps(e, sort_keys=True) != json.dumps(doc['elements'][at[fn]], sort_keys=True):
+                    doc['elements'][at[fn]] = e; taken.append(fn)
+            else:
+                doc['elements'].append(e); taken.append(fn)
+    else:
+        doc = old; taken = [element_file(e) for e in old['elements']]
+    save(doc)
+    bdir = os.path.join(HERE, 'out', 'backups'); os.makedirs(bdir, exist_ok=True)
+    import time as _t
+    os.replace(LEGACY_SKELETONS, os.path.join(bdir, 'legacy_skeletons_' + _t.strftime('%Y-%m-%d_%H-%M-%S') + '.json'))
+    return taken
 
 def state_feet(data, state):
     """Nominal placements of the four feet in a facing state, local frame: dict 'L.L','L.R','F.L','F.R' -> (x,y,h)."""

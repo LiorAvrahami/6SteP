@@ -1,0 +1,99 @@
+{
+ "_about": "Swing5 footwork skeletons, written by hand in the web editor (python RunWeb.py). cm; local frame per element: the leader's left foot at (0,0), heading 0 = +y, clockwise positive. Only the editor writes this file.",
+ "units": "cm",
+ "stance": 20,
+ "max_spread": 70,
+ "foot_diam": 20,
+ "body_diam": 20,
+ "states": {
+  "side": {
+   "desc": "Side by side, both facing the same way, follower on the leader's right (the user's basic position). His right shoe and her left shoe 4 cm apart: 34 cm between body centres (user 2026-10-19; it was 45, an agent guess).",
+   "feet": {
+    "L.L": [
+     0,
+     0,
+     0
+    ],
+    "L.R": [
+     20,
+     0,
+     0
+    ],
+    "F.L": [
+     34,
+     0,
+     0
+    ],
+    "F.R": [
+     54,
+     0,
+     0
+    ]
+   },
+   "leader_free": "L",
+   "hands": [
+    "LR-back",
+    "FL-rshoulder"
+   ]
+  },
+  "facing": {
+   "desc": "Facing each other, open hold, leader's left hand holding the follower's right. 31 cm between body centres: a 5 cm gap between the toes of the facing shoes (user 2026-10-19; it was 70, user Q5).",
+   "feet": {
+    "L.L": [
+     0,
+     0,
+     0
+    ],
+    "L.R": [
+     20,
+     0,
+     0
+    ],
+    "F.L": [
+     20,
+     31,
+     180
+    ],
+    "F.R": [
+     0,
+     31,
+     180
+    ]
+   },
+   "leader_free": "L",
+   "hands": [
+    "LL-FR"
+   ]
+  },
+  "reversed_side": {
+   "desc": "Side by side, follower on the leader's LEFT, his left arm around her back (user Q1). Her right shoe 4 cm from his left.",
+   "feet": {
+    "L.L": [
+     0,
+     0,
+     0
+    ],
+    "L.R": [
+     20,
+     0,
+     0
+    ],
+    "F.L": [
+     -34,
+     0,
+     0
+    ],
+    "F.R": [
+     -14,
+     0,
+     0
+    ]
+   },
+   "leader_free": "L",
+   "hands": [
+    "LL-back",
+    "FR-lshoulder"
+   ]
+  }
+ }
+}

@@ -8,7 +8,7 @@ from the data), and the elements and compositions the 5 minutes exercise does no
 
 | File | Role |
 | --- | --- |
-| `skeletons.json` | **The element data.** Every element's steps: count, dancer, foot, landing (x, y, heading). Only the editor writes this file, after every edit. |
+| `skeletons/` | **The element data, one file per element** (since 2026-10-25, so that several people can edit different elements and git merges them): `elements/<name>__<start state>__<free foot>.json` holds one element's steps (count, dancer, foot, landing x, y, heading), `_states.json` the facing states. `model.load()` assembles the usual document; `model.save()` writes back only what changed. The editor writes it after every edit; `tools/make_assets.py` assembles one `skeletons.json` for the app. |
 | `compositions.json` | Compositions and sub-compositions: named lists of entries (an element, a sub-composition such as RTT, or either "x N"); edited in the editor. |
 | `old_elements/` | The elements and compositions set aside on 2026-10-25, with the retired lurklurk authoring script, its baseline and `diff.py`. See its README. |
 | `model.py` | Shared model: units, rule constants, facing states, element lookup, composing a sequence of elements into a world timeline, compositions. |
@@ -111,8 +111,11 @@ or ask the user.
 ## The web app (`editor/`)
 
 `python RunWeb.py` starts the server (ending any older one on the port) and opens <http://127.0.0.1:8771>. Two tabs at the
-top of the right panel. **Every edit is saved to disk at once** (`skeletons.json`, `compositions.json`); there is no save
-button and no other version. The page warns when the server runs older code than the files on disk.
+top of the right panel. **Every edit is saved to disk at once** (`skeletons/`, `compositions.json`); there is no save
+button and no other version. The page knows the version of the files it read: when they changed meanwhile (another person,
+the agent, another tab), the server refuses the save and the page merges its own changed elements into the newer files; with
+nothing unsaved it picks up such a change by itself. Before saves the server keeps dated copies in `out/backups/` (also of
+any save it refuses). The page warns when the server runs older code than the files on disk.
 
 - **elements**: pick an element and its starting condition (the dropdown). The selection goes **count by count**: a click on a
   row selects the leader's and the follower's steps of that count (the feet step together), ctrl-click one foot alone,

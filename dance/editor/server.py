@@ -6,8 +6,9 @@ On start it ends any process already listening on the port (an editor started ea
 and takes the port exclusively.
 
 GET  /                      -> the editor page
-GET  /api/skeletons         -> dance/skeletons.json
-POST /api/save              -> writes dance/skeletons.json (body: the whole JSON document); the page saves after every edit
+GET  /api/skeletons         -> the skeletons document, assembled from dance/skeletons/ (one file per element); X-Version header
+POST /api/save?base=V       -> writes the document back (only the elements that changed); refused (409) when the files changed
+                               since version V, and the page merges; the page saves after every edit
 GET  /api/check             -> text of `python dance/check.py`
 GET  /api/version           -> {"stale": true} when a Python file is newer than this process (the page shows a banner)
 GET  /api/compositions      -> dance/compositions.json
@@ -75,6 +76,13 @@ def invalid_skeletons(data):
 
 BACKUPS = os.path.join(OUT, 'backups')
 
+def file_version(path):
+    """The version of a file as the page knows it: its modification time in nanoseconds."""
+    try:
+        return str(os.stat(path).st_mtime_ns)
+    except OSError:
+        return ''
+
 def keep_copy(path, tag, body=None):
     """A dated copy in dance/out/backups (git-ignored): of the file before it is overwritten (one per minute), or of a save that
     was refused (body). The user's edits must never be lost (2026-10-25: a forced checkout wiped two elements)."""
@@ -85,7 +93,10 @@ def keep_copy(path, tag, body=None):
             name = name[:-5] + time.strftime('-%S') + '.json'
             with open(name, 'wb') as f:
                 f.write(body)
-        elif os.path.exists(path) and not os.path.exists(name):
+        elif path and os.path.isdir(path) and not os.path.exists(name):
+            with open(name, 'w', encoding='utf-8') as b:
+                json.dump(model.load(path), b, indent=1, ensure_ascii=False)
+        elif path and os.path.isfile(path) and not os.path.exists(name):
             with open(path, 'rb') as a, open(name, 'wb') as b:
                 b.write(a.read())
         olds = sorted(f for f in os.listdir(BACKUPS) if f.startswith(tag + '_'))
@@ -156,8 +167,9 @@ class H(BaseHTTPRequestHandler):
             with open(os.path.join(HERE, 'index.html'), 'rb') as f:
                 return self._send(200, f.read(), 'text/html; charset=utf-8')
         if p == '/api/skeletons':
-            with open(model.SKELETONS, 'rb') as f:
-                return self._send(200, f.read(), 'application/json')
+            return self._send(200, json.dumps(model.load(), ensure_ascii=False), 'application/json', {'X-Version': model.skeletons_version()})
+        if p == '/api/skeletons_version':
+            return self._json({'version': model.skeletons_version()})
         if p == '/api/compositions':
             with open(model.COMPOSITIONS, 'rb') as f:
                 return self._send(200, f.read(), 'application/json')
@@ -233,9 +245,21 @@ class H(BaseHTTPRequestHandler):
             if bad:
                 keep_copy(None, 'skeletons_refused', raw)   # kept: it may hold edits made in an old page
                 return self._send(400, f'not saved: {bad} (a copy is kept in dance/out/backups)')
+            base = (urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query).get('base') or [None])[0]
+            if not base:
+                keep_copy(None, 'skeletons_refused', raw)   # a page older than the merge guard: never let it overwrite
+                return self._send(400, 'not saved: this page is older than the server; reload it (a copy is kept in dance/out/backups)')
+            if base != model.skeletons_version():
+                # the file changed on disk after the page read it (the agent, a script, another tab): refused, never overwritten;
+                # the page merges its own changes into the newer file and saves again (2026-10-25: an open tab dropped an element)
+                keep_copy(None, 'skeletons_refused', raw)
+                return self._json({'conflict': True, 'version': model.skeletons_version()}, 409)
             keep_copy(model.SKELETONS, 'skeletons')
-            model.save(data, model.SKELETONS)
-            return self._send(200, 'saved')
+            try:
+                model.save(data)
+            except ValueError as e:
+                return self._send(400, f'not saved: {e}')
+            return self._send(200, 'saved', extra={'X-Version': model.skeletons_version()})
         if p == '/api/compose':
             try:
                 req = json.loads(raw.decode('utf-8'))
@@ -375,6 +399,9 @@ def main():
     ap.add_argument('--port', type=int, default=8771)
     a = ap.parse_args()
     end_old_servers(a.port)
+    taken = model.import_legacy()   # edits an old editor saved into the old single file
+    if taken:
+        print('took the newer elements from the old dance/skeletons.json (moved to dance/out/backups):', ', '.join(taken), flush=True)
     keep_copy(model.SKELETONS, 'skeletons'); keep_copy(model.COMPOSITIONS, 'compositions')
     data = model.load(model.SKELETONS)
     converted = model.unwrap_all(data)   # once per element: headings keep their winding from now on

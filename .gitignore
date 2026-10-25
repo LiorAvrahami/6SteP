@@ -22,3 +22,6 @@ music/tools/beat_annotator/cache/
 music/tools/rubberband*/
 # David Drysdale's Lindy Hop notes: copyright, all rights reserved; kept on this PC only (see reference/README.md)
 reference/lurklurk/
+
+# an editor still running old code may write the old single file; the new server takes its elements and moves it to dance/out/backups
+dance/skeletons.json

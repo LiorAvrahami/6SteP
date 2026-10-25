@@ -1,0 +1,153 @@
+{
+ "name": "lead underarm pass",
+ "start_state": "facing",
+ "end_state": "facing",
+ "beats": 6,
+ "leader_free_start": "L",
+ "steps": [
+  {
+   "count": "1",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": -30,
+   "heading": 0
+  },
+  {
+   "count": "1",
+   "dancer": "F",
+   "foot": "R",
+   "x": 0,
+   "y": 61,
+   "heading": 180
+  },
+  {
+   "count": "2",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "F",
+   "foot": "L",
+   "x": 20,
+   "y": 31,
+   "heading": 180
+  },
+  {
+   "count": "3",
+   "dancer": "L",
+   "foot": "L",
+   "x": -16,
+   "y": 12,
+   "heading": -45
+  },
+  {
+   "count": "3",
+   "dancer": "F",
+   "foot": "R",
+   "x": 6,
+   "y": 44,
+   "heading": 225
+  },
+  {
+   "count": "3&",
+   "dancer": "L",
+   "foot": "R",
+   "x": -10,
+   "y": 30,
+   "heading": -45
+  },
+  {
+   "count": "3&",
+   "dancer": "F",
+   "foot": "L",
+   "x": 24,
+   "y": 30,
+   "heading": 225
+  },
+  {
+   "count": "4",
+   "dancer": "L",
+   "foot": "L",
+   "x": -26,
+   "y": 40,
+   "heading": -90
+  },
+  {
+   "count": "4",
+   "dancer": "F",
+   "foot": "R",
+   "x": 14,
+   "y": 16,
+   "heading": 270
+  },
+  {
+   "count": "5",
+   "dancer": "L",
+   "foot": "R",
+   "x": -14,
+   "y": 56,
+   "heading": -135
+  },
+  {
+   "count": "5",
+   "dancer": "F",
+   "foot": "L",
+   "x": 26,
+   "y": 2,
+   "heading": 315
+  },
+  {
+   "count": "5&",
+   "dancer": "L",
+   "foot": "L",
+   "x": 16,
+   "y": 44,
+   "heading": -135
+  },
+  {
+   "count": "5&",
+   "dancer": "F",
+   "foot": "R",
+   "x": 34,
+   "y": 22,
+   "heading": 315
+  },
+  {
+   "count": "6",
+   "dancer": "L",
+   "foot": "R",
+   "x": 0,
+   "y": 31,
+   "heading": -180
+  },
+  {
+   "count": "6",
+   "dancer": "F",
+   "foot": "L",
+   "x": 0,
+   "y": 0,
+   "heading": 360
+  }
+ ],
+ "hands": [
+  {
+   "count": "3",
+   "hands": [
+    "LL-FR^L"
+   ]
+  },
+  {
+   "count": "5",
+   "hands": [
+    "LL-FR"
+   ]
+  }
+ ],
+ "winding": true,
+ "order": 8
+}

@@ -37,7 +37,7 @@ notes are "all rights reserved"; see `reference/README.md`), the Rubber Band exe
 2. **Never add correction layers** (nudging, repulsion, clamping) to make a rule pass. A failed rule check means the data
    is wrong: fix the placements or ask.
 3. **Only the editor writes the skeletons.** Since 2026-10-25 the user writes every element by hand in the web editor
-   (`python RunWeb.py`), and every edit is saved to `dance/skeletons.json` at once: there is one version, the one on disk.
+   (`python RunWeb.py`), and every edit is saved to `dance/skeletons/` (one file per element) at once: there is one version, the one on disk.
    No script and no agent writes that file. (Until then an agent script, `author_skeletons.py`, generated the skeletons
    from the lurklurk notes and a baseline + `diff.py` guarded the user's edits; it once overwrote an hour of them. The
    script, the baseline and `diff.py` are retired in `dance/old_elements/`.) The same for `dance/compositions.json`.

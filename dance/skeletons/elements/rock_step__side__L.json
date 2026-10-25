@@ -1,0 +1,44 @@
+{
+ "name": "rock step",
+ "start_state": "side",
+ "end_state": "side",
+ "beats": 2,
+ "leader_free_start": "L",
+ "steps": [
+  {
+   "count": "1",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": -30,
+   "heading": 0
+  },
+  {
+   "count": "1",
+   "dancer": "F",
+   "foot": "R",
+   "x": 54,
+   "y": -30,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "F",
+   "foot": "L",
+   "x": 34,
+   "y": 0,
+   "heading": 0
+  }
+ ],
+ "hands": [],
+ "winding": true,
+ "order": 1
+}

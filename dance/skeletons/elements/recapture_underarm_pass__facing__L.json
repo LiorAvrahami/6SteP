@@ -1,0 +1,160 @@
+{
+ "name": "recapture underarm pass",
+ "start_state": "facing",
+ "end_state": "side",
+ "beats": 6,
+ "leader_free_start": "L",
+ "steps": [
+  {
+   "count": "1",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": -30,
+   "heading": 0
+  },
+  {
+   "count": "1",
+   "dancer": "F",
+   "foot": "R",
+   "x": 0,
+   "y": 61,
+   "heading": 180
+  },
+  {
+   "count": "2",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "F",
+   "foot": "L",
+   "x": 20,
+   "y": 31,
+   "heading": 180
+  },
+  {
+   "count": "3",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "3",
+   "dancer": "F",
+   "foot": "R",
+   "x": 36,
+   "y": 18,
+   "heading": 135
+  },
+  {
+   "count": "3&",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "3&",
+   "dancer": "F",
+   "foot": "L",
+   "x": 44,
+   "y": 38,
+   "heading": 135
+  },
+  {
+   "count": "4",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "4",
+   "dancer": "F",
+   "foot": "R",
+   "x": 58,
+   "y": 24,
+   "heading": 90
+  },
+  {
+   "count": "5",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "5",
+   "dancer": "F",
+   "foot": "L",
+   "x": 40,
+   "y": 12,
+   "heading": 45
+  },
+  {
+   "count": "5&",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "5&",
+   "dancer": "F",
+   "foot": "R",
+   "x": 58,
+   "y": 2,
+   "heading": 45
+  },
+  {
+   "count": "6",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "6",
+   "dancer": "F",
+   "foot": "L",
+   "x": 34,
+   "y": 0,
+   "heading": 0
+  }
+ ],
+ "hands": [
+  {
+   "count": "3&",
+   "hands": [
+    "LL-FR^F"
+   ]
+  },
+  {
+   "count": "4",
+   "hands": [
+    "LL-FR"
+   ]
+  },
+  {
+   "count": "5",
+   "hands": [
+    "LR-back",
+    "FL-rshoulder"
+   ]
+  }
+ ],
+ "winding": true,
+ "order": 7
+}

@@ -1,0 +1,172 @@
+{
+ "name": "Circle",
+ "start_state": "side",
+ "end_state": "side",
+ "beats": 8,
+ "leader_free_start": "L",
+ "hands": [],
+ "steps": [
+  {
+   "count": "1",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": -30,
+   "heading": 0
+  },
+  {
+   "count": "1",
+   "dancer": "F",
+   "foot": "R",
+   "x": 54,
+   "y": -30,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "L",
+   "foot": "R",
+   "x": 21,
+   "y": -31,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "F",
+   "foot": "L",
+   "x": 35,
+   "y": -29,
+   "heading": 0
+  },
+  {
+   "count": "3",
+   "dancer": "L",
+   "foot": "L",
+   "x": 52,
+   "y": 19,
+   "heading": 80
+  },
+  {
+   "count": "3",
+   "dancer": "F",
+   "foot": "R",
+   "x": 54,
+   "y": -30,
+   "heading": 5
+  },
+  {
+   "count": "3&",
+   "dancer": "L",
+   "foot": "R",
+   "x": 38,
+   "y": 1,
+   "heading": 155
+  },
+  {
+   "count": "3&",
+   "dancer": "F",
+   "foot": "L",
+   "x": 20,
+   "y": -23,
+   "heading": 20
+  },
+  {
+   "count": "4",
+   "dancer": "L",
+   "foot": "L",
+   "x": 66,
+   "y": 0,
+   "heading": 170
+  },
+  {
+   "count": "4",
+   "dancer": "F",
+   "foot": "R",
+   "x": 42,
+   "y": -29,
+   "heading": 20
+  },
+  {
+   "count": "5",
+   "dancer": "L",
+   "foot": "R",
+   "x": 46,
+   "y": 11,
+   "heading": 305
+  },
+  {
+   "count": "5",
+   "dancer": "F",
+   "foot": "L",
+   "x": 32,
+   "y": 42,
+   "heading": 15
+  },
+  {
+   "count": "6",
+   "dancer": "L",
+   "foot": "L",
+   "x": 38,
+   "y": -32,
+   "heading": 255
+  },
+  {
+   "count": "6",
+   "dancer": "F",
+   "foot": "R",
+   "x": 28,
+   "y": 6,
+   "heading": 145
+  },
+  {
+   "count": "7",
+   "dancer": "L",
+   "foot": "R",
+   "x": 58,
+   "y": -33,
+   "heading": 360
+  },
+  {
+   "count": "7",
+   "dancer": "F",
+   "foot": "L",
+   "x": 20,
+   "y": -23,
+   "heading": 20
+  },
+  {
+   "count": "7&",
+   "dancer": "L",
+   "foot": "L",
+   "x": 43,
+   "y": -52,
+   "heading": 355
+  },
+  {
+   "count": "7&",
+   "dancer": "F",
+   "foot": "R",
+   "x": 14,
+   "y": 12,
+   "heading": 125
+  },
+  {
+   "count": "8",
+   "dancer": "L",
+   "foot": "R",
+   "x": 60,
+   "y": -62,
+   "heading": 360
+  },
+  {
+   "count": "8",
+   "dancer": "F",
+   "foot": "L",
+   "x": -6,
+   "y": 29,
+   "heading": 180
+  }
+ ],
+ "winding": true,
+ "order": 10
+}

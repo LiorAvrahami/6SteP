@@ -1,0 +1,92 @@
+{
+ "name": "side to side",
+ "start_state": "side",
+ "end_state": "reversed_side",
+ "beats": 4,
+ "leader_free_start": "L",
+ "hands": [],
+ "steps": [
+  {
+   "count": "1",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": -16,
+   "heading": -25
+  },
+  {
+   "count": "1",
+   "dancer": "F",
+   "foot": "R",
+   "x": 54,
+   "y": -16,
+   "heading": 25
+  },
+  {
+   "count": "2",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "F",
+   "foot": "L",
+   "x": 34,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "3",
+   "dancer": "L",
+   "foot": "L",
+   "x": 9,
+   "y": 43,
+   "heading": 80
+  },
+  {
+   "count": "3",
+   "dancer": "F",
+   "foot": "R",
+   "x": 45,
+   "y": 43,
+   "heading": -80
+  },
+  {
+   "count": "3&",
+   "dancer": "L",
+   "foot": "R",
+   "x": 10,
+   "y": 27,
+   "heading": 90
+  },
+  {
+   "count": "3&",
+   "dancer": "F",
+   "foot": "L",
+   "x": 44,
+   "y": 27,
+   "heading": -90
+  },
+  {
+   "count": "4",
+   "dancer": "L",
+   "foot": "L",
+   "x": 15,
+   "y": 47,
+   "heading": 160
+  },
+  {
+   "count": "4",
+   "dancer": "F",
+   "foot": "R",
+   "x": 39,
+   "y": 47,
+   "heading": -160
+  }
+ ],
+ "winding": true,
+ "order": 9
+}

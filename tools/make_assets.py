@@ -21,10 +21,12 @@ import sys as _sys
 _sys.path.insert(0, os.path.join(SW, 'dance'))
 import model as _model
 _unfinished = [f"{e['name']} [from {e['start_state']}, leader free {e.get('leader_free_start', 'L')}]: {_model.element_problem(e)}"
-               for e in _model.load(os.path.join(SW, 'dance', 'skeletons.json'))['elements'] if _model.element_problem(e)]
+               for e in _model.load()['elements'] if _model.element_problem(e)]
 if _unfinished:
     _sys.exit('REFUSING: elements not finished in the editor would reach the app:\n  ' + '\n  '.join(_unfinished))
-shutil.copyfile(os.path.join(SW, 'dance', 'skeletons.json'), os.path.join(A, 'dance', 'skeletons.json'))
+# the app reads one file: assembled from dance/skeletons/ (one file per element)
+with open(os.path.join(A, 'dance', 'skeletons.json'), 'w', encoding='utf-8') as _f:
+    json.dump(_model.load(), _f, indent=1, ensure_ascii=False); _f.write('\n')
 json.load(open(os.path.join(SW, 'dance', 'compositions.json'), encoding='utf-8'))   # fails here on broken JSON
 shutil.copyfile(os.path.join(SW, 'dance', 'compositions.json'), os.path.join(A, 'dance', 'compositions.json'))   # as written: revisions, quiet entries
 

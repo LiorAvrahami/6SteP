@@ -861,9 +861,44 @@
   function doUndo() { const u = undo.pop(); if (!u) return;
     if (u.snap) { data.elements = JSON.parse(u.snap); ei = Math.min(u.ei, data.elements.length - 1); sel = u.sel; fillSelect(); renderVariant(); markDirty(); refresh(); setStatus('undone'); return; }
     const s = data.elements[u.ei].steps[u.i]; s.x = u.x; s.y = u.y; s.heading = u.heading; if (mode === 'elements') { ei = u.ei; fillSelect(); renderVariant(); } markDirty(); refresh(); }
+  // ---------- one file, several writers (2026-10-25: an open tab saved over an element the agent had just added): the page
+  // remembers the version of the file it read and the elements as they were then; when the file changed on disk meanwhile, the
+  // server refuses the save and the page merges: the newer file, with the elements the page changed put in (added, changed,
+  // deleted). With nothing unsaved, the page picks up a change on disk by itself.
+  let fileVersion = null, baseElems = null;
+  const elemKey = e => e.name + '|' + e.start_state + '|' + (e.leader_free_start || 'L');
+  const snapshotElems = doc => { const m = {}; for (const e of doc.elements) m[elemKey(e)] = JSON.stringify(e); return m; };
+  const versionOf = r => (r && r.headers && r.headers.get) ? r.headers.get('X-Version') : null;
+  function adopt(doc, version, mine) {
+    // doc: the file on disk; mine: the page's own changes to put in (or null); keeps the element and the count on screen
+    const curKey = data && data.elements[ei] ? elemKey(data.elements[ei]) : null, s0 = { start: sel.start, len: sel.len };
+    if (mine) {
+      const at = {}; doc.elements.forEach((e, i) => { at[elemKey(e)] = i; });
+      for (const [k, e] of Object.entries(mine.changed)) { if (k in at) doc.elements[at[k]] = e; else doc.elements.push(e); }
+      doc.elements = doc.elements.filter(e => !mine.deleted.has(elemKey(e)));
+    }
+    unwrapAll(doc); data = doc; fileVersion = version; undo.length = 0;   // the undo history belonged to the old file
+    const k = data.elements.findIndex(e => elemKey(e) === curKey); ei = k >= 0 ? k : Math.min(ei, data.elements.length - 1);
+    sel = s0; if (sel.start >= n()) selectCount(0);
+    fillSelect(); renderVariant(); refresh();
+  }
+  function myChanges() {
+    const changed = {}, deleted = new Set(), now = snapshotElems(data);
+    for (const e of data.elements) { const k = elemKey(e); if (!baseElems || baseElems[k] !== JSON.stringify(e)) changed[k] = JSON.parse(JSON.stringify(e)); }
+    for (const k in (baseElems || {})) if (!(k in now)) deleted.add(k);
+    return { changed, deleted };
+  }
   async function save() {
-    const r = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-    const t = await r.text(); if (r.ok) { dirty = false; const was = $('status').textContent; const msg = 'saved to dance/skeletons.json at ' + new Date().toLocaleTimeString();
+    const r = await fetch('/api/save' + (fileVersion ? '?base=' + encodeURIComponent(fileVersion) : ''), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    if (r.status === 409) {
+      // the file changed on disk: merge my changes into it, then save that
+      const mine = myChanges(), fr = await fetch('/api/skeletons'), doc = await fr.json();
+      adopt(doc, versionOf(fr), mine); baseElems = snapshotElems(doc);
+      for (const k in mine.changed) delete baseElems[k];   // still to be saved
+      setStatus(`the file changed on disk meanwhile: your changes (${Object.keys(mine.changed).length + mine.deleted.size} element${Object.keys(mine.changed).length + mine.deleted.size === 1 ? '' : 's'}) were merged into it; the undo history starts again here`);
+      return save();
+    }
+    const t = await r.text(); if (r.ok) { dirty = false; fileVersion = versionOf(r) || fileVersion; baseElems = snapshotElems(data); const was = $('status').textContent; const msg = 'saved to dance/skeletons.json at ' + new Date().toLocaleTimeString();
       // keep a message the last action wrote ("deleted …; ctrl-z brings it back"), with the save under it
       const head = was.split('\nsaved')[0];
       setStatus(head && !head.startsWith('saved') && !head.startsWith('loaded') && !head.startsWith('SAVE FAILED') ? head + '\n' + msg : msg); } else setStatus('SAVE FAILED: ' + t);
@@ -1082,9 +1117,19 @@
     try { const j = await (await fetch('/api/version')).json(); if (j && j.stale) { const b = $('stale'); b.style.display = 'block'; b.textContent = 'The server runs older code than the files on disk: restart it (python RunWeb.py) and reload this page.'; } } catch (err) { /* the page still works */ }
   }
 
+  async function pollFile() {
+    // nothing unsaved and the file changed on disk: take the new file (the agent or another tab wrote it)
+    if (dirty || player.on || drag || !fileVersion) return;
+    try { const j = await (await fetch('/api/skeletons_version')).json();
+      if (j && j.version && j.version !== fileVersion && !dirty) { const fr = await fetch('/api/skeletons'), doc = await fr.json();
+        if (!dirty) { adopt(doc, versionOf(fr), null); baseElems = snapshotElems(data); setStatus('the file changed on disk: the editor now shows it'); } } } catch (e) {}
+  }
   async function load() {
-    data = await (await fetch('/api/skeletons')).json();
+    const fr0 = await fetch('/api/skeletons');
+    data = await fr0.json(); fileVersion = versionOf(fr0);
     const converted = unwrapAll(data);
+    baseElems = converted ? null : snapshotElems(data);
+    if (typeof setInterval === 'function') setInterval(pollFile, 3000);
     try { const doc = await (await fetch('/api/compositions')).json(); comps = doc.compositions || []; subs = doc.sub_compositions || []; } catch (e) { comps = []; subs = []; }
     selectCount(0); fillSelect(); renderCompEdit(); renderVariant(); resize(); fit(); refresh();
     checkVersion();
