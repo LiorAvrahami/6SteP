@@ -4,7 +4,9 @@ import android.content.Context
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
+import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.round
 import kotlin.math.sin
 
@@ -272,6 +274,23 @@ class Composed(
 object Composer {
     const val FILLER = "triple step"
 
+    /** How an element joins the dance (the user's rule, 2026-10-26; model.couple_frame): its start position is turned and
+     *  moved so that it has the same middle (the average of all four feet) and the same direction from the leader to the
+     *  follower (the middle of his feet to the middle of hers) as where the dancers really are. Weighted feet do not move at
+     *  the join. With no direction (both on one spot) the fallback frame is kept. */
+    fun coupleFrame(start: Map<String, Placement>, real: Map<String, Placement>, fallback: Frame): Frame {
+        val keys = listOf("L.L", "L.R", "F.L", "F.R")
+        if (keys.any { start[it] == null || real[it] == null }) return fallback
+        fun mid(m: Map<String, Placement>, d: Char) = Pair((m["$d.L"]!!.x + m["$d.R"]!!.x) / 2, (m["$d.L"]!!.y + m["$d.R"]!!.y) / 2)
+        val c0x = keys.sumOf { start[it]!!.x } / 4; val c0y = keys.sumOf { start[it]!!.y } / 4
+        val c1x = keys.sumOf { real[it]!!.x } / 4; val c1y = keys.sumOf { real[it]!!.y } / 4
+        val l0 = mid(start, 'L'); val f0 = mid(start, 'F'); val l1 = mid(real, 'L'); val f1 = mid(real, 'F')
+        if (hypot(f0.first - l0.first, f0.second - l0.second) <= 1.0 || hypot(f1.first - l1.first, f1.second - l1.second) <= 1.0) return fallback
+        val h = Math.toDegrees(atan2(f1.first - l1.first, f1.second - l1.second)) - Math.toDegrees(atan2(f0.first - l0.first, f0.second - l0.second))
+        val rc = Frame(0.0, 0.0, h).apply(c0x, c0y, 0.0)
+        return Frame(c1x - rc.x, c1y - rc.y, h)
+    }
+
     fun compose(
         data: DanceData, sequence: List<SeqItem>, startState: String, swing: Double,
         leaderFree: Char? = null, padToLoop: Boolean = false
@@ -282,6 +301,7 @@ object Composer {
         // each foot's last world heading, winding included (headings are not wrapped since 2026-10-25)
         val lastH = HashMap<String, Double>()
         for ((k, p) in state0.feet) lastH[k] = p.h
+        val cur = HashMap<String, Placement>(state0.feet)   // where every foot is in the world
         var state = startState
         var free = leaderFree ?: state0.leaderFree
         val startFree = free
@@ -299,6 +319,7 @@ object Composer {
             val seen = HashSet<String>()
             // the element's headings assume its start state's: a foot that arrives wound by a full turn keeps it
             val stFeet = data.states[state]?.feet ?: state0.feet
+            frame = coupleFrame(stFeet, cur, frame)   // the join: the couple's middle and his-to-her direction stay as they are
             val wind = HashMap<String, Double>()
             for ((k, h) in lastH) {
                 val nominal = frame.h + (stFeet[k]?.h ?: 0.0)
@@ -310,6 +331,7 @@ object Composer {
                 val key = "${s.dancer}.${s.foot}"
                 val wh = w.h + (wind[key] ?: 0.0)
                 lastH[key] = wh
+                cur[key] = Placement(w.x, w.y, wh)
                 val via = s.via.map { v -> val q = frame.apply(v.first, v.second, 0.0); Pair(q.x, q.y) }
                 steps.add(CStep(t + countTime(s.count, swing) - base, s.count, s.dancer, s.foot, w.x, w.y, wh, idx, hands, filler, via))
             }
