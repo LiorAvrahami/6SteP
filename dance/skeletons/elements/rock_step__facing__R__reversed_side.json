@@ -11,23 +11,35 @@
    "dancer": "L",
    "foot": "R",
    "x": -19,
-   "y": -26,
-   "heading": 90
+   "y": -19,
+   "heading": 90,
+   "via": [
+    [
+     4.7,
+     -13.7
+    ]
+   ]
   },
   {
    "count": "1",
    "dancer": "F",
    "foot": "L",
    "x": -19,
-   "y": 55,
-   "heading": 90
+   "y": 51,
+   "heading": 90,
+   "via": [
+    [
+     4.7,
+     45.3
+    ]
+   ]
   },
   {
    "count": "2",
    "dancer": "L",
    "foot": "L",
-   "x": 0,
-   "y": 0,
+   "x": -1,
+   "y": -1,
    "heading": 0
   },
   {
@@ -35,8 +47,8 @@
    "dancer": "F",
    "foot": "R",
    "x": 0,
-   "y": 31,
-   "heading": 180
+   "y": 29,
+   "heading": 185
   }
  ],
  "winding": true,

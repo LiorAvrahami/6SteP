@@ -49,10 +49,10 @@
    "start_state": "side",
    "repeat": 1,
    "elements": [
-    "rock step",
     "triple step → facing",
     "rock step",
-    "triple step"
+    "triple step",
+    "rock step"
    ],
    "notes": ""
   }
