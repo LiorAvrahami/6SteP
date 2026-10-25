@@ -201,22 +201,23 @@ class CompositionStore(private val ctx: Context) {
     fun find(name: String): Composition? = compositions.firstOrNull { it.name == name }
     fun daily(): Composition? = compositions.firstOrNull { it.name.contains("exercise", ignoreCase = true) } ?: compositions.firstOrNull()
 
-    /** Expand sub-composition names and "x N" repeats into a flat list of elements with their group labels and annotations. */
-    fun expand(entries: List<String>, depth: Int = 0, prefix: String? = null): List<SeqItem> {
+    /** Expand sub-composition names and "x N" repeats into a flat list of elements with their group labels and annotations.
+     *  Inside a sub-composition its own name (or that of one it is inside) means the element of that name (2026-10-25). */
+    fun expand(entries: List<String>, depth: Int = 0, prefix: String? = null, inside: Set<String> = emptySet()): List<SeqItem> {
         val out = ArrayList<SeqItem>()
         val counters = HashMap<String, Int>()
         var pendingSay: String? = null
         entries.forEachIndexed { idx, raw ->
             val e = Entry.parse(raw)
             if (e.say != null) { pendingSay = (pendingSay?.let { "$it. " } ?: "") + e.say; return@forEachIndexed }
-            val sub = if (depth < 6) subs.firstOrNull { it.name == e.name } else null
+            val sub = if (depth < 6 && e.name !in inside) subs.firstOrNull { it.name == e.name } else null
             val label = if (e.times > 1) "${e.name} x${e.times}" else e.name
             val announced = !e.quiet   // a quiet entry has no entry start: nothing announces it and the swipes pass over it
             for (rep in 0 until e.times) {
                 if (sub != null) {
                     val n = (counters[e.name] ?: 0) + 1; counters[e.name] = n
                     val group = prefix?.let { "$it / " } .orEmpty() + "${e.name} #$n"
-                    val inner = expand(sub.elements, depth + 1, group)
+                    val inner = expand(sub.elements, depth + 1, group, inside + e.name)
                     inner.forEachIndexed { j, it ->
                         val first = rep == 0 && j == 0
                         out.add(SeqItem(it.name, group, if (first) pendingSay else null, idx, first && announced, label))
