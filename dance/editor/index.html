@@ -264,6 +264,33 @@
     for (let x = Math.floor((view.cx - half[0]) / g) * g; x < view.cx + half[0]; x += g) { const p = px([x, 0]); ctx.strokeStyle = x === 0 ? '#bbb' : '#eee'; ctx.beginPath(); ctx.moveTo(p[0], 0); ctx.lineTo(p[0], H); ctx.stroke(); }
     for (let y = Math.floor((view.cy - half[1]) / g) * g; y < view.cy + half[1]; y += g) { const p = px([0, y]); ctx.strokeStyle = y === 0 ? '#bbb' : '#eee'; ctx.beginPath(); ctx.moveTo(0, p[1]); ctx.lineTo(W, p[1]); ctx.stroke(); }
   }
+  // ---------- a foot's curved path (user 2026-10-25): from where it was, through the anchors the user set (step.via, in the
+  // element's frame), to where it lands. A Catmull-Rom spline through those points, the ends duplicated; walked by length when
+  // it plays. The same algorithm as model.curve_at (videos) and Curve.at (the app).
+  const CURVE_SEG = 16;
+  function curveSamples(pts) {   // [[x, y, span], ...]: span = which stretch between two of the points a sample belongs to
+    const n = pts.length; if (n <= 2) return pts.map((p, i) => [p[0], p[1], Math.max(0, i - 1)]);
+    const out = [];
+    for (let i = 0; i < n - 1; i++) {
+      const p0 = pts[Math.max(i - 1, 0)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(i + 2, n - 1)];
+      for (let k = i === 0 ? 0 : 1; k <= CURVE_SEG; k++) { const t = k / CURVE_SEG;
+        const c = j => 0.5 * (2 * p1[j] + (-p0[j] + p2[j]) * t + (2 * p0[j] - 5 * p1[j] + 4 * p2[j] - p3[j]) * t * t + (-p0[j] + 3 * p1[j] - 3 * p2[j] + p3[j]) * t * t * t);
+        out.push([c(0), c(1), i]); }
+    }
+    return out;
+  }
+  function curveAt(pts, f) {   // the point at fraction f of the path's length
+    if (pts.length === 2) return [pts[0][0] + (pts[1][0] - pts[0][0]) * f, pts[0][1] + (pts[1][1] - pts[0][1]) * f];
+    const s = curveSamples(pts), seg = []; let total = 0;
+    for (let k = 0; k + 1 < s.length; k++) { const L = Math.hypot(s[k + 1][0] - s[k][0], s[k + 1][1] - s[k][1]); seg.push(L); total += L; }
+    if (total <= 1e-9) return [s[s.length - 1][0], s[s.length - 1][1]];
+    const want = Math.max(0, Math.min(1, f)) * total; let run = 0;
+    for (let k = 0; k < seg.length; k++) { if (run + seg[k] >= want) { const u = seg[k] > 1e-12 ? (want - run) / seg[k] : 0;
+      return [s[k][0] + (s[k + 1][0] - s[k][0]) * u, s[k][1] + (s[k + 1][1] - s[k][1]) * u]; } run += seg[k]; }
+    return [s[s.length - 1][0], s[s.length - 1][1]];
+  }
+  const pathPoints = (from, s) => [[from[0], from[1]]].concat((s.via || []).map(v => [v[0], v[1]]), [[s.x, s.y]]);
+  let pathHits = [], anchorHits = [];   // on the floor (screen px): the drawn paths {i, pts:[[x, y, span]]} and the anchors {i, k, x, y}
   let arrowHits = [];   // the turn arrows on the floor: {x, y (screen), i (the step)}
   function drawTurnArrow(cx, cy, turn, color) {
     // a circular arrow: clockwise for a turn to the right (a positive turn), anticlockwise for a left turn, with the degrees
@@ -308,10 +335,16 @@
       drawFoot(p[0], p[1], p[2], s, '#777', 0.18, '', false); drawFoot(p[0], p[1], p[2], s, COL[d], 0.35, '', true); }
     // a foot that moves: grey where it was before its first selected step, and a dashed line from there to each landing
     for (const k in firstFrom) { const p = firstFrom[k]; drawFoot(p[0], p[1], p[2], k.split('.')[1], '#777', 0.5, '', false); }
-    ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.globalAlpha = 0.85;
-    for (const [from, s] of paths) { if (!from || Math.hypot(s.x - from[0], s.y - from[1]) < 0.5) continue;
-      const a = px(from), b = px([s.x, s.y]); ctx.strokeStyle = COL[s.dancer]; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+    ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.globalAlpha = 0.85; pathHits = []; anchorHits = [];
+    for (const [from, s, i] of paths) { if (!from || (Math.hypot(s.x - from[0], s.y - from[1]) < 0.5 && !(s.via && s.via.length))) continue;
+      const pts = curveSamples(pathPoints(from, s)).map(p => { const q = px(p); return [q[0], q[1], p[2]]; });
+      ctx.strokeStyle = COL[s.dancer]; ctx.beginPath(); pts.forEach((p, k) => k ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.stroke();
+      if (!readOnly()) pathHits.push({ i, pts });
+      (s.via || []).forEach((v, k) => { const q = px(v); anchorHits.push({ i, k, x: q[0], y: q[1] }); }); }
     ctx.setLineDash([]); ctx.globalAlpha = 1;
+    // the anchors: small rings the path passes through (drag them; right-click removes)
+    for (const a of anchorHits) { const col = COL[elem().steps[a.i].dancer];
+      ctx.beginPath(); ctx.arc(a.x, a.y, 5, 0, Math.PI * 2); ctx.fillStyle = '#fff'; ctx.fill(); ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.stroke(); }
     // which way each selected step turns (user 2026-10-25): a curved arrow at the toe of the foot's previous place; a click on
     // it flips the way round (the landing's winding changes by a full turn)
     arrowHits = [];
@@ -441,11 +474,11 @@
     return t.steps.map(s => {
       const f0 = dancerFrame(S0, s.dancer), f1 = dancerFrame(S1, s.dancer);
       const r0 = right(f0.h), q0 = fwd(f0.h), r1 = right(f1.h), q1 = fwd(f1.h);
-      const dx = s.x - f0.x, dy = s.y - f0.y; let u = dx * r0[0] + dy * r0[1], v = dx * q0[0] + dy * q0[1], dh = s.heading - f0.h;
-      if (mirror) { u = -u; dh = -dh; }
-      const out = { count: String(s.count), dancer: s.dancer, foot: mirror ? otherFoot(s.foot) : s.foot,
-                    x: Math.round((f1.x + u * r1[0] + v * q1[0]) * 10) / 10, y: Math.round((f1.y + u * r1[1] + v * q1[1]) * 10) / 10,
-                    heading: Math.round((f1.h + dh) * 10) / 10 };
+      const move = (x, y) => { let u = (x - f0.x) * r0[0] + (y - f0.y) * r0[1], v = (x - f0.x) * q0[0] + (y - f0.y) * q0[1]; if (mirror) u = -u;
+        return [Math.round((f1.x + u * r1[0] + v * q1[0]) * 10) / 10, Math.round((f1.y + u * r1[1] + v * q1[1]) * 10) / 10]; };
+      const [nx, ny] = move(s.x, s.y); let dh = s.heading - f0.h; if (mirror) dh = -dh;
+      const out = { count: String(s.count), dancer: s.dancer, foot: mirror ? otherFoot(s.foot) : s.foot, x: nx, y: ny, heading: Math.round((f1.h + dh) * 10) / 10 };
+      if (s.via && s.via.length) out.via = s.via.map(p => move(p[0], p[1]));
       if (s.exempt) out.exempt = true;
       return out;
     });
@@ -620,6 +653,7 @@
     const hisTurn = ls.heading - prevHeading(e, 'L', ls.foot, ls.count), herPrev = prevHeading(e, 'F', otherFoot(ls.foot), ls.count);
     const h = h0 + 360 * Math.round((herPrev - hisTurn - h0) / 360);
     Object.assign(t, { foot: otherFoot(ls.foot), x, y, heading: Math.round(h * 10) / 10 });
+    if (ls.via && ls.via.length) t.via = ls.via.map(v => mirrorFn(e)([v[0], v[1], 0]).slice(0, 2)); else delete t.via;
     return created;
   }
   $('mirrorChk').addEventListener('change', () => {
@@ -729,7 +763,7 @@
   const HELP = [
     'Steps. A click on a row selects its count: the leader\'s and the follower\'s steps of that count together. Ctrl-click selects one foot alone; shift-click extends to the clicked count. Up/down move to the previous or next count (wrapping round); shift+up/down grow the selection by a count at that edge, ctrl+shift+up/down shrink it there. Double-click a count to change it (every selected step of that count changes with it); double-click the who cell to switch the foot.',
     'Floor. Left-drag moves a selected foot (1 cm); right-drag turns it about its heel (5°, hold alt for 1°). The wheel zooms, dragging the empty floor pans. Grey = where a moving foot was, with a dashed line to where it lands; light grey with a coloured outline = a foot that stays; a dark outline = the feet of the last selected count.',
-    'Elements. An element has one skeleton per starting condition (state and free foot): the dropdown picks it. "new element…" makes an element, or a new starting condition of one when you give its name: from no steps, or from a copy of any skeleton (mirrored onto the other feet when the free foot differs). A turning step shows a curved arrow at the toe of the foot\'s previous place: clockwise or anticlockwise, with the degrees; click it to make the foot turn the other way round (the foot\'s later steps keep their turns). Right-click a count for a menu: insert a count after it (each dancer\'s free foot, in place; later counts move a beat later when needed), insert a triple after it, make it half a count after the previous one, remove it, and on the last count, put her last step where the end position expects it; right-click the column titles to insert a count before the first. "follower mirrors leader" (a checkbox): ticked, every change to a leader step also puts her matching foot in the reflected place, across the line halfway between them at the start (changes to her steps do not touch his); ticking and unticking change nothing by themselves. "½ after previous" turns the selected count into a half count after the previous one and moves every later count with it, "add triple" a whole triple step (three counts N, N&, N+1: the free foot, the other foot, the free foot again, in place); "remove steps" (or Delete) removes the selection. Every change is saved to dance/skeletons.json at once; ctrl-z undoes it.',
+    'Elements. An element has one skeleton per starting condition (state and free foot): the dropdown picks it. "new element…" makes an element, or a new starting condition of one when you give its name: from no steps, or from a copy of any skeleton (mirrored onto the other feet when the free foot differs). A foot\'s path from where it was to where it lands is the dashed line: right-click it and "add an anchor" to bend it into a smooth curve through that point; drag the anchor to shape it (the foot follows the curve when it plays), right-click the anchor to remove it. A turning step shows a curved arrow at the toe of the foot\'s previous place: clockwise or anticlockwise, with the degrees; click it to make the foot turn the other way round (the foot\'s later steps keep their turns). Right-click a count for a menu: insert a count after it (each dancer\'s free foot, in place; later counts move a beat later when needed), insert a triple after it, make it half a count after the previous one, remove it, and on the last count, put her last step where the end position expects it; right-click the column titles to insert a count before the first. "follower mirrors leader" (a checkbox): ticked, every change to a leader step also puts her matching foot in the reflected place, across the line halfway between them at the start (changes to her steps do not touch his); ticking and unticking change nothing by themselves. "½ after previous" turns the selected count into a half count after the previous one and moves every later count with it, "add triple" a whole triple step (three counts N, N&, N+1: the free foot, the other foot, the free foot again, in place); "remove steps" (or Delete) removes the selection. Every change is saved to dance/skeletons/ at once; ctrl-z undoes it.',
     'Play and video. "play" (or space) loops the element or composition on the floor with the music: the music runs on and the dance continues from where the dancers are, padded with triple steps (marked as filler) when it would not loop on its own; an element that ends in another position restarts from its start. "render video" makes an mp4. "check" runs the rule checker.',
     'Compositions. Lists of entries: an element, a sub-composition (a named list of elements, e.g. RTT), or either "x N". Each entry\'s starting condition is dictated by the previous one, and the add list offers only what can follow.',
   ].join('\n\n');
@@ -811,12 +845,48 @@
     selIndices().forEach(i => { const s = e.steps[i]; if (!s) return; const d = Math.hypot(s.x - wx, s.y - wy); if (d <= bd) { bd = d; best = i; } });
     return best;
   }
+  // the nearest point of a drawn path to a screen point: {i, span, x, y (world)} within 9 px, or null
+  function hitPath(sx, sy) {
+    let best = null, bd = 9;
+    for (const h of pathHits) for (let k = 0; k + 1 < h.pts.length; k++) {
+      const a = h.pts[k], b = h.pts[k + 1], dx = b[0] - a[0], dy = b[1] - a[1], L2 = dx * dx + dy * dy;
+      const u = L2 > 0 ? Math.max(0, Math.min(1, ((sx - a[0]) * dx + (sy - a[1]) * dy) / L2)) : 0;
+      const qx = a[0] + dx * u, qy = a[1] + dy * u, d = Math.hypot(sx - qx, sy - qy);
+      if (d < bd) { bd = d; const w = world(qx, qy); best = { i: h.i, span: b[2], x: Math.round(w[0] * 10) / 10, y: Math.round(w[1] * 10) / 10 }; }
+    }
+    return best;
+  }
+  const hitAnchor = (sx, sy) => anchorHits.find(h => Math.hypot(h.x - sx, h.y - sy) <= 9) || null;
+  function addAnchor(i, span, x, y) {
+    // the curve now passes through (x, y) on its way; the anchor sits between the points it was clicked between
+    const e = data.elements[ei], s = e.steps[i]; pushSnapshot();
+    s.via = (s.via || []).slice(); s.via.splice(span, 0, [x, y]);
+    if (mirrorOn(e) && s.dancer === 'L') mirrorInto(e, s);
+    markDirty(); refresh(); setStatus(`an anchor on the path of count ${s.count}: drag it to shape the curve; right-click it to remove it (ctrl-z undoes)`);
+  }
+  function removeAnchor(i, k) {
+    const e = data.elements[ei], s = e.steps[i]; pushSnapshot();
+    s.via = (s.via || []).filter((v, j) => j !== k); if (!s.via.length) delete s.via;
+    if (mirrorOn(e) && s.dancer === 'L') mirrorInto(e, s);
+    markDirty(); refresh(); setStatus(`anchor removed from the path of count ${s.count} (ctrl-z brings it back)`);
+  }
   cv.addEventListener('contextmenu', ev => ev.preventDefault());
   cv.addEventListener('mousedown', ev => {
     const r = cv.getBoundingClientRect(); const [wx, wy] = world(ev.clientX - r.left, ev.clientY - r.top);
+    const sx = ev.clientX - r.left, sy = ev.clientY - r.top;
+    if (!readOnly() && !player.on && ev.button === 2) {
+      // right-click: on an anchor, remove it; on a path, add one there
+      const an = hitAnchor(sx, sy);
+      if (an) { openMenu(ev.clientX, ev.clientY, [['remove this anchor', () => removeAnchor(an.i, an.k)]]); ev.preventDefault(); return; }
+      const ph = hitStep(wx, wy) === null ? hitPath(sx, sy) : null;   // a foot comes first: a right-drag on it turns it
+      if (ph) { openMenu(ev.clientX, ev.clientY, [['add an anchor here (the path will pass through it)', () => addAnchor(ph.i, ph.span, ph.x, ph.y)]]); ev.preventDefault(); return; }
+    }
     if (!readOnly() && !player.on && ev.button === 0) {
-      const sx = ev.clientX - r.left, sy = ev.clientY - r.top, a = arrowHits.find(h => Math.hypot(h.x - sx, h.y - sy) <= 15);
+      const a = arrowHits.find(h => Math.hypot(h.x - sx, h.y - sy) <= 15);
       if (a) { flipTurn(a.i); ev.preventDefault(); return; }
+      const an = hitAnchor(sx, sy);
+      if (an) { const s = elem().steps[an.i], v = s.via[an.k]; pushSnapshot();
+        drag = { anchor: an, i: an.i, ox: wx - v[0], oy: wy - v[1], mirrored: mirrorOn(elem()) && s.dancer === 'L' }; ev.preventDefault(); return; }
     }
     const i = (readOnly() || player.on) ? null : hitStep(wx, wy);
     if (i === null) { if (ev.button === 0) { drag = { pan: true, sx: ev.clientX, sy: ev.clientY, cx: view.cx, cy: view.cy }; } return; }
@@ -830,6 +900,11 @@
     if (!drag) return; const r = cv.getBoundingClientRect(); const [wx, wy] = world(ev.clientX - r.left, ev.clientY - r.top);
     if (drag.pan) { view.cx = drag.cx - (ev.clientX - drag.sx) / view.scale; view.cy = drag.cy + (ev.clientY - drag.sy) / view.scale; draw(); return; }
     const s = elem().steps[drag.i];
+    if (drag.anchor) {   // an anchor follows the mouse; the curve follows the anchor
+      const v = s.via[drag.anchor.k]; v[0] = Math.round((wx - drag.ox) * 10) / 10; v[1] = Math.round((wy - drag.oy) * 10) / 10; drag.moved = true;
+      if (drag.mirrored) mirrorInto(elem(), s);
+      markDirty(); refresh(); return;
+    }
     if (drag.mode === 'move') { s.x = Math.round(wx - drag.ox); s.y = Math.round(wy - drag.oy); }
     else {   // turn about the heel: the heading follows the mouse, the centre swings round the heel
       const ang = Math.atan2(wx - drag.hx, wy - drag.hy) * 180 / Math.PI; const q = ev.altKey ? 1 : 5;
@@ -839,7 +914,8 @@
     if (drag.mirrored) { const e = elem(); if (mirrorInto(e, s)) { sortSteps(e); drag.i = e.steps.indexOf(s); } }
     markDirty(); refresh();
   });
-  window.addEventListener('mouseup', () => { if (drag && !drag.pan && !drag.mirrored) { const u = undo[undo.length - 1]; const s = elem().steps[u.i]; if (u.x === s.x && u.y === s.y && u.heading === s.heading) undo.pop(); } drag = null; });
+  window.addEventListener('mouseup', () => { if (drag && drag.anchor) { if (!drag.moved) undo.pop(); drag = null; return; }
+    if (drag && !drag.pan && !drag.mirrored) { const u = undo[undo.length - 1]; const s = elem().steps[u.i]; if (u.x === s.x && u.y === s.y && u.heading === s.heading) undo.pop(); } drag = null; });
   cv.addEventListener('wheel', ev => { ev.preventDefault(); const r = cv.getBoundingClientRect(); const [wx, wy] = world(ev.clientX - r.left, ev.clientY - r.top);
     const k = ev.deltaY < 0 ? 1.1 : 1 / 1.1; view.scale = Math.max(0.6, Math.min(12, view.scale * k));
     const [nx, ny] = world(ev.clientX - r.left, ev.clientY - r.top); view.cx += wx - nx; view.cy += wy - ny; draw(); }, { passive: false });
@@ -898,7 +974,7 @@
       setStatus(`the file changed on disk meanwhile: your changes (${Object.keys(mine.changed).length + mine.deleted.size} element${Object.keys(mine.changed).length + mine.deleted.size === 1 ? '' : 's'}) were merged into it; the undo history starts again here`);
       return save();
     }
-    const t = await r.text(); if (r.ok) { dirty = false; fileVersion = versionOf(r) || fileVersion; baseElems = snapshotElems(data); const was = $('status').textContent; const msg = 'saved to dance/skeletons.json at ' + new Date().toLocaleTimeString();
+    const t = await r.text(); if (r.ok) { dirty = false; fileVersion = versionOf(r) || fileVersion; baseElems = snapshotElems(data); const was = $('status').textContent; const msg = 'saved to dance/skeletons/ at ' + new Date().toLocaleTimeString();
       // keep a message the last action wrote ("deleted …; ctrl-z brings it back"), with the save under it
       const head = was.split('\nsaved')[0];
       setStatus(head && !head.startsWith('saved') && !head.startsWith('loaded') && !head.startsWith('SAVE FAILED') ? head + '\n' + msg : msg); } else setStatus('SAVE FAILED: ' + t);
@@ -930,13 +1006,13 @@
       start = {}; for (const k in cv_.start) start[k] = cv_.start[k].slice();
       elements = (cv_.elements || []).map(x => ({ name: x.name, start: x.start, beats: x.beats, filler: !!x.filler }));
       const bases = elements.map((x, k) => Math.min(...src.filter(s => s.element === k).map(s => countTime(s.count, 0))));
-      steps = src.map(s => ({ t: elements[s.element].start + countTime(s.count, swing) - bases[s.element], dancer: s.dancer, foot: s.foot, x: s.x, y: s.y, heading: s.heading, hands: s.hands || [], count: s.count, element: s.element, noweight: !!s.noweight }));
+      steps = src.map(s => ({ t: elements[s.element].start + countTime(s.count, swing) - bases[s.element], dancer: s.dancer, foot: s.foot, x: s.x, y: s.y, heading: s.heading, hands: s.hands || [], count: s.count, element: s.element, noweight: !!s.noweight, via: s.via || [] }));
       startHands = cv_.start_hands || (data.states[(composed ? composed.start_state : e.start_state) || 'side'] || {}).hands || [];
     } else {
       start = startFeet();
       const base = Math.min(...e.steps.map(s => countTime(s.count, 0)));
       elements = [{ name: e.name, start: 0, beats: e.beats }];
-      steps = e.steps.map((s, i) => ({ t: countTime(s.count, swing) - base, dancer: s.dancer, foot: s.foot, x: s.x, y: s.y, heading: s.heading, hands: handsAt(i), count: s.count, element: 0, noweight: !!s.noweight }));
+      steps = e.steps.map((s, i) => ({ t: countTime(s.count, swing) - base, dancer: s.dancer, foot: s.foot, x: s.x, y: s.y, heading: s.heading, hands: handsAt(i), count: s.count, element: 0, noweight: !!s.noweight, via: s.via || [] }));
       startHands = data.states[e.start_state].hands || [];
     }
     steps.sort((a, b) => a.t - b.t || (a.dancer < b.dancer ? -1 : 1));
@@ -950,7 +1026,7 @@
         let release = lastRampEnd === null ? s.t - 0.6 : lastRampEnd;
         const prev = tr[s.foot].landings[tr[s.foot].landings.length - 1][2];
         if (dist(prev, [s.x, s.y]) < 0.5 && Math.abs(prev[2] - s.heading) < 0.5) release = s.t;
-        tr[s.foot].landings.push([s.t, Math.min(release, s.t), [s.x, s.y, s.heading]]);
+        tr[s.foot].landings.push([s.t, Math.min(release, s.t), [s.x, s.y, s.heading], s.via || []]);
         if (!s.noweight) { const k = wds.indexOf(s), nxt = k + 1 < wds.length ? wds[k + 1].t : s.t + 2, ramp = Math.min(RAMP, RAMP_FRACTION * (nxt - s.t));
           ramps.push([s.t, ramp, s.foot]); lastRampEnd = s.t + ramp; }
       });
@@ -968,7 +1044,9 @@
     for (let j = 0; j < L.length; j++) if (L[j][0] <= t) i = j;
     const [tl, tr, p] = L[i];
     if (i + 1 < L.length) { const [ntl, ntr, np] = L[i + 1];
-      if (t >= ntr && t < ntl) { const u = smoothstep((t - ntr) / Math.max(1e-6, ntl - ntr)); const dh = np[2] - p[2];   /* the raw difference: the stored winding chooses the way round */ return [p[0] + (np[0] - p[0]) * u, p[1] + (np[1] - p[1]) * u, p[2] + dh * u]; } }
+      if (t >= ntr && t < ntl) { const u = smoothstep((t - ntr) / Math.max(1e-6, ntl - ntr)); const dh = np[2] - p[2];   /* the raw difference: the stored winding chooses the way round */
+        const via = L[i + 1][3] || [], q = via.length ? curveAt([[p[0], p[1]]].concat(via, [[np[0], np[1]]]), u) : [p[0] + (np[0] - p[0]) * u, p[1] + (np[1] - p[1]) * u];
+        return [q[0], q[1], p[2] + dh * u]; } }
     return p;
   }
   function weightsAt(dt, t) {

@@ -56,21 +56,23 @@ def smoothstep(u):
     u = max(0.0, min(1.0, u)); return u * u * (3 - 2 * u)
 
 class FootTrack:
-    """Landings of one foot: list of (t_land, t_release_prev, placement). Travel happens in [t_release_prev, t_land]."""
+    """Landings of one foot: list of (t_land, t_release_prev, placement, via). Travel happens in [t_release_prev, t_land],
+    along the curve through the anchors via (the user's, in the editor)."""
     def __init__(self, start_placement):
-        self.landings = [(-1e9, -1e9, start_placement)]
+        self.landings = [(-1e9, -1e9, start_placement, [])]
     def placement_at(self, t):
         # find the last landing with t_land <= t, and whether we are travelling toward the next one
         i = 0
-        for j, (tl, tr, p) in enumerate(self.landings):
+        for j, (tl, tr, p, _v) in enumerate(self.landings):
             if tl <= t: i = j
-        tl, tr, p = self.landings[i]
+        tl, tr, p, _v = self.landings[i]
         if i + 1 < len(self.landings):
-            ntl, ntr, npl = self.landings[i + 1]
+            ntl, ntr, npl, via = self.landings[i + 1]
             if t >= ntr and t < ntl:
                 u = smoothstep((t - ntr) / max(1e-6, ntl - ntr))
                 dh = npl[2] - p[2]   # the raw difference: the stored winding chooses the way round
-                return (p[0] + (npl[0] - p[0]) * u, p[1] + (npl[1] - p[1]) * u, p[2] + dh * u)
+                x, y = model.curve_at([p] + list(via) + [npl], u)
+                return (x, y, p[2] + dh * u)
         return p
 
 def build_tracks(comp, swing):
@@ -96,7 +98,7 @@ def build_tracks(comp, swing):
             prev = tr.landings[-1][2]
             if dist(prev, (s['x'], s['y'])) < 0.5 and abs(prev[2] - s['heading']) < 0.5:
                 release = s['t']  # replace: no travel
-            tr.landings.append((s['t'], min(release, s['t']), (s['x'], s['y'], s['heading'])))
+            tr.landings.append((s['t'], min(release, s['t']), (s['x'], s['y'], s['heading']), list(s.get('via') or [])))
         # before the first step: the neutral stance, weight on both feet; it moves onto the foot that stays (the other one
         # steps first) over SHIFT beats, ending as the first foot leaves (user 2026-10-19)
         if steps:

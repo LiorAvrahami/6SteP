@@ -72,6 +72,8 @@ def invalid_skeletons(data):
                 return f'{e["name"]!r} count {s.get("count")}: dancer must be L or F and foot L or R'
             if not all(isinstance(s.get(c), (int, float)) for c in ('x', 'y', 'heading')):
                 return f'{e["name"]!r} count {s.get("count")}: x, y and heading must be numbers'
+            if 'via' in s and not (isinstance(s['via'], list) and all(isinstance(v, list) and len(v) == 2 and all(isinstance(c, (int, float)) for c in v) for v in s['via'])):
+                return f'{e["name"]!r} count {s.get("count")}: via must be a list of [x, y] anchors'
     return None
 
 BACKUPS = os.path.join(OUT, 'backups')

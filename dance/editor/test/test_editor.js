@@ -7,7 +7,7 @@ const ROOT = path.resolve(__dirname, '..', '..');   // dance/
 const html = fs.readFileSync(ROOT + '/editor/index.html', 'utf8');
 let js = html.match(/<script>([\s\S]*)<\/script>/)[1];
 js = js.replace('(function () {', 'globalThis.__editor = (function () {');
-js = js.replace(/\}\)\(\);\s*$/, '  return { get sel() { return sel; }, get data() { return data; }, get ei() { return ei; }, get view() { return view; }, get mode() { return mode; }, get compView() { return compView; }, get comps() { return comps; }, px, world, elem, flipTurn, get arrowHits() { return arrowHits; }, buildTimeline, placementAt, weightsAt, heelOf, get overlayKind() { return overlayKind; } };\n})();');
+js = js.replace(/\}\)\(\);\s*$/, '  return { get sel() { return sel; }, get data() { return data; }, get ei() { return ei; }, get view() { return view; }, get mode() { return mode; }, get compView() { return compView; }, get comps() { return comps; }, px, world, elem, flipTurn, curveAt, get arrowHits() { return arrowHits; }, get anchorHits() { return anchorHits; }, buildTimeline, placementAt, weightsAt, heelOf, get overlayKind() { return overlayKind; } };\n})();');
 
 class El {
   constructor(tag) { this.tagName = tag.toUpperCase(); this.listeners = {}; this.children = []; this._cls = new Set(); this.classList = { add: c => this._cls.add(c), remove: c => this._cls.delete(c), has: c => this._cls.has(c), toggle: (c, on) => on ? this._cls.add(c) : this._cls.delete(c) }; this.style = {}; this.value = ''; this.textContent = ''; this.title = ''; this.width = 1000; this.height = 700; this.disabled = false; this.src = ''; this.max = '0'; }
@@ -138,7 +138,7 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   window.dispatch('mouseup', {});
   await tick(600);
   assert(saved && saved.elements.length === NSK && saved.states && saved.elements[CUT].steps[8].x === sx + 5, 'the edit saved itself to disk (the whole document, within half a second)');
-  assert(els['status'].textContent.includes('saved to dance/skeletons.json'), 'the status line says so');
+  assert(els['status'].textContent.includes('saved to dance/skeletons/'), 'the status line says so');
   document.dispatchKey({ key: 'z', ctrlKey: true });
   // ---- the timeline port: compare with render.py's numbers for the cutoff (elements mode, swing 0.68)
   const ref = JSON.parse(fs.readFileSync(path.join(__dirname, 'timeline_ref.json'), 'utf8')).cutoff;
@@ -380,4 +380,46 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   assert(Math.hypot(lastF.x - orig[0], lastF.y - orig[1]) < 3 && Math.abs(lastF.heading - orig[2]) < 10, 'her last step is back at the end position (within check.py\'s 3 cm): (' + lastF.x + ',' + lastF.y + ')');
   document.dispatchKey({ key: 'z', ctrlKey: true });
   assert(E.elem().steps.filter(st => st.dancer === 'F').pop().x === orig[0] + 30, 'ctrl-z undoes it');
+  // ---- curved paths (user 2026-10-25): anchors on the dashed line, set by right-click, dragged, mirrored, copied, undone
+  const cref = JSON.parse(fs.readFileSync(path.join(__dirname, 'curve_ref.json'), 'utf8'));
+  let cworst = 0; for (const c of cref) for (const [f, q] of c.at) { const r = E.curveAt(c.pts, f); cworst = Math.max(cworst, Math.abs(r[0] - q[0]), Math.abs(r[1] - q[1])); }
+  assert(cworst < 1e-6, 'the page\'s curve matches model.curve_at (videos, app) on ' + cref.length + ' paths (worst ' + cworst.toExponential(1) + ')');
+  els['element'].dispatch('change', { target: { value: 'rock step' } });
+  assert(E.elem().start_state === 'side' && E.sel.start === 0 && E.sel.len === 2, 'rock step, count 1 selected: his left foot goes from (0,0) to (0,-30)');
+  const onPath = E.px([0, -12]);   // a point of the dashed line (not within 15 cm of the landing, which would be the foot)
+  els['floor'].dispatch('mousedown', { button: 2, clientX: onPath[0], clientY: onPath[1] });
+  const addItem = $('ctxMenu').children.find(c => c.textContent.startsWith('add an anchor'));
+  assert($('ctxMenu').style.display === 'block' && !!addItem, 'right-click on the dashed line offers "add an anchor here"');
+  addItem.dispatch('click', {});
+  assert(at('L', '1').via && at('L', '1').via.length === 1 && Math.abs(at('L', '1').via[0][0]) < 0.6 && Math.abs(at('L', '1').via[0][1] + 12) < 0.6, 'the anchor sits on the line where it was clicked: ' + JSON.stringify(at('L', '1').via));
+  let ah = E.anchorHits.find(h => h.i === 0);
+  assert(!!ah, 'the anchor is drawn on the floor');
+  const sc3 = E.view.scale;
+  els['floor'].dispatch('mousedown', { button: 0, clientX: ah.x, clientY: ah.y });
+  window.dispatch('mousemove', { clientX: ah.x + 12 * sc3, clientY: ah.y }); window.dispatch('mouseup', {});
+  assert(Math.abs(at('L', '1').via[0][0] - 12) < 0.6 && Math.abs(at('L', '1').via[0][1] + 12) < 0.6, 'dragging the anchor moves it: ' + JSON.stringify(at('L', '1').via));
+  const tlc = E.buildTimeline(0.68), mid = E.placementAt(tlc.tracks.L.tracks.L, -0.3), want = E.curveAt([[0, 0], at('L', '1').via[0], [0, -30]], 0.5);
+  assert(Math.abs(mid[0] - want[0]) < 1e-9 && Math.abs(mid[1] - want[1]) < 1e-9 && mid[0] > 6, 'when it plays, the foot travels along the curve (halfway: x=' + mid[0].toFixed(1) + ', not 0)');
+  assert(E.placementAt(tlc.tracks.L.tracks.L, -0.6)[1] === 0 && Math.abs(E.placementAt(tlc.tracks.L.tracks.L, 0)[1] + 30) < 1e-9, 'the curve starts where the foot was and ends where it lands');
+  $('mirrorChk').checked = true; $('mirrorChk').dispatch('change', {});
+  ah = E.anchorHits.find(h => h.i === 0);
+  els['floor'].dispatch('mousedown', { button: 0, clientX: ah.x, clientY: ah.y });
+  window.dispatch('mousemove', { clientX: ah.x + 2 * sc3, clientY: ah.y }); window.dispatch('mouseup', {});
+  assert(Math.abs(at('L', '1').via[0][0] - 14) < 0.6 && at('F', '1').via && Math.abs(at('F', '1').via[0][0] - 40) < 0.6 && Math.abs(at('F', '1').via[0][1] + 12) < 0.6, 'mirrored: her path gets the reflected anchor: ' + JSON.stringify(at('F', '1').via));
+  ah = E.anchorHits.find(h => h.i === 0);
+  els['floor'].dispatch('mousedown', { button: 2, clientX: ah.x, clientY: ah.y });
+  const rmItem = $('ctxMenu').children.find(c => c.textContent.startsWith('remove this anchor'));
+  assert(!!rmItem, 'right-click on the anchor offers "remove this anchor"'); rmItem.dispatch('click', {});
+  assert(!at('L', '1').via && !at('F', '1').via, 'removed from his path, and from hers (mirrored)');
+  document.dispatchKey({ key: 'z', ctrlKey: true });
+  assert(at('L', '1').via && Math.abs(at('L', '1').via[0][0] - 14) < 0.6 && at('F', '1').via, 'ctrl-z brings both anchors back');
+  $('mirrorChk').checked = false; $('mirrorChk').dispatch('change', {});
+  const RSI = E.ei;
+  $('newElem').dispatch('click', {});
+  $('feName').value = 'rock step'; $('feStart').value = 'reversed_side'; $('feFree').value = 'R'; $('feEnd').value = 'reversed_side'; $('feNotes').value = ''; $('feFrom').value = String(RSI);   // a starting condition the fixture does not have
+  $('feOk').dispatch('click', {});
+  const cp = E.elem();
+  assert(cp.leader_free_start === 'R' && cp.steps[0].foot === 'R' && cp.steps[0].via && Math.abs(cp.steps[0].via[0][0] - 6) < 0.6 && Math.abs(cp.steps[0].via[0][1] + 12) < 0.6, 'a mirrored copy of the element mirrors the anchors about the leader\'s middle: ' + JSON.stringify(cp.steps[0].via));
+  $('deleteElem').dispatch('click', {});
+  assert(E.elem().name === 'rock step' && E.elem().leader_free_start === 'L', 'the copy is deleted again');
 })();

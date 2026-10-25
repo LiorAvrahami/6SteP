@@ -65,8 +65,11 @@ previous one, so the composer picks the variant itself and refuses a sequence th
 - **Lookup key** for a skeleton: (element name, start state, which of the leader's feet is free) = the element and its starting condition.
 - **Counts**: musical labels (`1`..`8`, `3&`). A two-beat triple keeps its own numbering (5, 5&, 6). The `&` lands at the
   track's measured swing fraction of the beat (0.68 on Hot Swing, 0.69 and 0.71 on the two Laughing Manny tracks).
-- **A step** is count, dancer, foot, x, y, heading, and nothing else (since 2026-10-25; the lurklurk codes, source tags and
-  notes are gone). `check.py` verifies that the feet alternate.
+- **A step** is count, dancer, foot, x, y, heading (since 2026-10-25; the lurklurk codes, source tags and notes are gone), and
+  optionally `via`: the anchors of the foot's curved path from its previous place, `[[x, y], ...]` in the element's frame. The
+  foot travels along a Catmull-Rom spline through its previous place, the anchors and the landing (the ends duplicated),
+  walked by length; the same algorithm in `model.curve_at` (videos, `render.py`), the editor's `curveAt` and the app's
+  `Curve.at`. Without anchors the path is the straight line, as before. The composer moves the anchors with the element. `check.py` verifies that the feet alternate.
 - **Hands** (`hands` list per element: changes at a count, in force until the next change): `LL-FR` leader's left hand holds
   the follower's right; `LR-back` his right hand on her back; `FL-rshoulder` her left hand on his right shoulder; `LR-lhip`
   his right hand on her left hip; `LL-FR^F` the joined hands raised with the follower passing under them (`^L`: the leader).

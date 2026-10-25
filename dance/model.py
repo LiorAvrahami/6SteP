@@ -58,6 +58,42 @@ def add(p, v, k=1.0):
     return (p[0] + k * v[0], p[1] + k * v[1])
 def dist(a, b):
     return math.hypot(a[0] - b[0], a[1] - b[1])
+CURVE_SEG = 16   # samples per span of a foot's curved path
+
+def curve_samples(pts):
+    """The path of a foot through its anchors: a Catmull-Rom spline through pts (start, anchors, landing), sampled; the ends
+    are duplicated so the curve starts and ends along the chord to the first/last anchor. Two points: the straight line."""
+    n = len(pts)
+    if n < 2:
+        return [tuple(p[:2]) for p in pts]
+    if n == 2:
+        return [tuple(pts[0][:2]), tuple(pts[1][:2])]
+    out = []
+    for i in range(n - 1):
+        p0, p1, p2, p3 = pts[max(i - 1, 0)], pts[i], pts[i + 1], pts[min(i + 2, n - 1)]
+        for k in range(0 if i == 0 else 1, CURVE_SEG + 1):
+            t = k / CURVE_SEG
+            out.append(tuple(0.5 * (2 * p1[c] + (-p0[c] + p2[c]) * t + (2 * p0[c] - 5 * p1[c] + 4 * p2[c] - p3[c]) * t * t
+                                    + (-p0[c] + 3 * p1[c] - 3 * p2[c] + p3[c]) * t * t * t) for c in (0, 1)))
+    return out
+
+def curve_at(pts, f):
+    """The point at fraction f (0..1) of the path's length, so the foot moves evenly along the curve."""
+    if len(pts) == 2:
+        return (pts[0][0] + (pts[1][0] - pts[0][0]) * f, pts[0][1] + (pts[1][1] - pts[0][1]) * f)
+    s = curve_samples(pts)
+    seg = [math.hypot(s[k + 1][0] - s[k][0], s[k + 1][1] - s[k][1]) for k in range(len(s) - 1)]
+    total = sum(seg)
+    if total <= 1e-9:
+        return s[-1]
+    want = max(0.0, min(1.0, f)) * total; run = 0.0
+    for k, L in enumerate(seg):
+        if run + L >= want:
+            u = (want - run) / L if L > 1e-12 else 0.0
+            return (s[k][0] + (s[k + 1][0] - s[k][0]) * u, s[k][1] + (s[k + 1][1] - s[k][1]) * u)
+        run += L
+    return s[-1]
+
 def norm_angle(a):
     return (a + 180.0) % 360.0 - 180.0
 
@@ -266,10 +302,11 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
                 hands = list(hand_changes[c]); seen.append(c)
             wx, wy, wh = frame.apply((s['x'], s['y'], s['heading']))
             wh += wind[f"{s['dancer']}.{s['foot']}"]
+            via = [list(frame.apply((v[0], v[1], 0.0))[:2]) for v in (s.get('via') or [])]   # the path's anchors, in the world
             last_h[f"{s['dancer']}.{s['foot']}"] = wh
             steps.append({'t': t + count_time(c, swing) - base, 'count': c, 'dancer': s['dancer'], 'foot': s['foot'],
                           'x': wx, 'y': wy, 'heading': wh, 'element': len(elements) - 1,
-                          'exempt': bool(s.get('exempt')), 'hands': list(hands), 'filler': is_filler, 'noweight': bool(s.get('noweight'))})
+                          'exempt': bool(s.get('exempt')), 'hands': list(hands), 'filler': is_filler, 'noweight': bool(s.get('noweight')), 'via': via})
         ef = element_end_frame(elem)
         frame = Frame(*frame.apply((ef.x, ef.y, ef.h)))
         free = element_free_feet_end(elem)
