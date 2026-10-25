@@ -1,7 +1,7 @@
 {
  "name": "side to side",
  "start_state": "side",
- "end_state": "reversed_side",
+ "end_state": "facing",
  "beats": 4,
  "leader_free_start": "L",
  "hands": [],
@@ -12,15 +12,15 @@
    "foot": "L",
    "x": 0,
    "y": -16,
-   "heading": -25
+   "heading": -5
   },
   {
    "count": "1",
    "dancer": "F",
    "foot": "R",
    "x": 54,
-   "y": -16,
-   "heading": 25
+   "y": -14,
+   "heading": 0
   },
   {
    "count": "2",
@@ -74,17 +74,17 @@
    "count": "4",
    "dancer": "L",
    "foot": "L",
-   "x": 15,
-   "y": 47,
-   "heading": 160
+   "x": 9,
+   "y": 43,
+   "heading": 85
   },
   {
    "count": "4",
    "dancer": "F",
    "foot": "R",
-   "x": 39,
-   "y": 47,
-   "heading": -160
+   "x": 45,
+   "y": 43,
+   "heading": -80
   }
  ],
  "winding": true,

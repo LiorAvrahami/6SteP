@@ -43,6 +43,16 @@
    ],
    "notes": "Follower underarm pass out to face to face and the recapture back to side by side (the user's name, 2026-10-19).",
    "revision": 1
+  },
+  {
+   "name": "side to side",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "side to side",
+    "side to side"
+   ],
+   "notes": ""
   }
  ]
 }

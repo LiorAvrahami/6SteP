@@ -9,31 +9,31 @@
    "count": "1",
    "dancer": "L",
    "foot": "L",
-   "x": 0,
-   "y": -30,
+   "x": -7,
+   "y": -12,
    "heading": 0
   },
   {
    "count": "1",
    "dancer": "F",
    "foot": "R",
-   "x": 0,
-   "y": 61,
+   "x": 8,
+   "y": 46,
    "heading": 180
   },
   {
    "count": "2",
    "dancer": "L",
    "foot": "R",
-   "x": 20,
-   "y": 0,
+   "x": 10,
+   "y": -1,
    "heading": 0
   },
   {
    "count": "2",
    "dancer": "F",
    "foot": "L",
-   "x": 20,
+   "x": 29,
    "y": 31,
    "heading": 180
   },
@@ -41,96 +41,108 @@
    "count": "3",
    "dancer": "L",
    "foot": "L",
-   "x": -16,
-   "y": 12,
-   "heading": -45
+   "x": -15,
+   "y": 19,
+   "heading": -15
   },
   {
    "count": "3",
    "dancer": "F",
    "foot": "R",
-   "x": 6,
-   "y": 44,
-   "heading": 225
-  },
-  {
-   "count": "3&",
-   "dancer": "L",
-   "foot": "R",
-   "x": -10,
-   "y": 30,
-   "heading": -45
-  },
-  {
-   "count": "3&",
-   "dancer": "F",
-   "foot": "L",
-   "x": 24,
-   "y": 30,
-   "heading": 225
-  },
-  {
-   "count": "4",
-   "dancer": "L",
-   "foot": "L",
-   "x": -26,
+   "x": 19,
    "y": 40,
-   "heading": -90
+   "heading": 185
   },
   {
-   "count": "4",
-   "dancer": "F",
-   "foot": "R",
-   "x": 14,
-   "y": 16,
-   "heading": 270
-  },
-  {
-   "count": "5",
+   "count": "3&",
    "dancer": "L",
    "foot": "R",
-   "x": -14,
-   "y": 56,
-   "heading": -135
+   "x": 1,
+   "y": 5,
+   "heading": -10
   },
   {
-   "count": "5",
+   "count": "3&",
    "dancer": "F",
    "foot": "L",
-   "x": 26,
-   "y": 2,
-   "heading": 315
-  },
-  {
-   "count": "5&",
-   "dancer": "L",
-   "foot": "L",
-   "x": 16,
-   "y": 44,
-   "heading": -135
-  },
-  {
-   "count": "5&",
-   "dancer": "F",
-   "foot": "R",
    "x": 34,
    "y": 22,
-   "heading": 315
+   "heading": 185
+  },
+  {
+   "count": "4",
+   "dancer": "L",
+   "foot": "L",
+   "x": -20,
+   "y": 30,
+   "heading": -40
+  },
+  {
+   "count": "4",
+   "dancer": "F",
+   "foot": "R",
+   "x": 22,
+   "y": 14,
+   "heading": 210
+  },
+  {
+   "count": "5",
+   "dancer": "L",
+   "foot": "R",
+   "x": 6,
+   "y": 40,
+   "heading": -145
+  },
+  {
+   "count": "5",
+   "dancer": "F",
+   "foot": "L",
+   "x": -1,
+   "y": -4,
+   "heading": 330,
+   "via": [
+    [
+     24.5,
+     -0.8
+    ]
+   ]
+  },
+  {
+   "count": "5&",
+   "dancer": "L",
+   "foot": "L",
+   "x": 17,
+   "y": 28,
+   "heading": -170,
+   "via": [
+    [
+     3.1,
+     24.8
+    ]
+   ]
+  },
+  {
+   "count": "5&",
+   "dancer": "F",
+   "foot": "R",
+   "x": 16,
+   "y": -8,
+   "heading": 365
   },
   {
    "count": "6",
    "dancer": "L",
    "foot": "R",
    "x": 0,
-   "y": 31,
+   "y": 32,
    "heading": -180
   },
   {
    "count": "6",
    "dancer": "F",
    "foot": "L",
-   "x": 0,
-   "y": 0,
+   "x": -1,
+   "y": -6,
    "heading": 360
   }
  ],

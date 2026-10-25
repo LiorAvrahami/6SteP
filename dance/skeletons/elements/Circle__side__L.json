@@ -59,7 +59,7 @@
    "dancer": "L",
    "foot": "R",
    "x": 38,
-   "y": 1,
+   "y": 8,
    "heading": 155
   },
   {
@@ -74,49 +74,71 @@
    "count": "4",
    "dancer": "L",
    "foot": "L",
-   "x": 66,
-   "y": 0,
-   "heading": 170
+   "x": 82,
+   "y": -8,
+   "heading": 185
   },
   {
    "count": "4",
    "dancer": "F",
    "foot": "R",
-   "x": 42,
-   "y": -29,
-   "heading": 20
-  },
-  {
-   "count": "5",
-   "dancer": "L",
-   "foot": "R",
-   "x": 46,
-   "y": 11,
-   "heading": 305
-  },
-  {
-   "count": "5",
-   "dancer": "F",
-   "foot": "L",
-   "x": 54,
-   "y": 31,
-   "heading": 75
-  },
-  {
-   "count": "6",
-   "dancer": "L",
-   "foot": "L",
    "x": 38,
-   "y": -32,
-   "heading": 255
+   "y": -8,
+   "heading": 100
+  },
+  {
+   "count": "5",
+   "dancer": "L",
+   "foot": "R",
+   "x": 73,
+   "y": 9,
+   "heading": 270
+  },
+  {
+   "count": "5",
+   "dancer": "F",
+   "foot": "L",
+   "x": 50,
+   "y": 26,
+   "heading": 145,
+   "via": [
+    [
+     20,
+     15
+    ]
+   ]
+  },
+  {
+   "count": "6",
+   "dancer": "L",
+   "foot": "L",
+   "x": 41.7,
+   "y": -27.8,
+   "heading": 345,
+   "via": [
+    [
+     60.9,
+     -24.2
+    ]
+   ]
   },
   {
    "count": "6",
    "dancer": "F",
    "foot": "R",
-   "x": 59,
-   "y": 23,
-   "heading": 265
+   "x": 53,
+   "y": -7,
+   "heading": 265,
+   "via": [
+    [
+     38.4,
+     -1.8
+    ],
+    [
+     47.1,
+     1.4
+    ]
+   ]
   },
   {
    "count": "7",
@@ -124,15 +146,27 @@
    "foot": "R",
    "x": 58,
    "y": -33,
-   "heading": 360
+   "heading": 360,
+   "via": [
+    [
+     69.9,
+     -13
+    ]
+   ]
   },
   {
    "count": "7",
    "dancer": "F",
    "foot": "L",
-   "x": 20,
-   "y": -23,
-   "heading": 380
+   "x": 72.8,
+   "y": -33,
+   "heading": 360,
+   "via": [
+    [
+     72.9,
+     0.3
+    ]
+   ]
   },
   {
    "count": "7&",
@@ -146,9 +180,15 @@
    "count": "7&",
    "dancer": "F",
    "foot": "R",
-   "x": 14,
-   "y": 12,
-   "heading": 485
+   "x": 93,
+   "y": -52,
+   "heading": 365,
+   "via": [
+    [
+     85.2,
+     -18.4
+    ]
+   ]
   },
   {
    "count": "8",
@@ -162,9 +202,9 @@
    "count": "8",
    "dancer": "F",
    "foot": "L",
-   "x": -6,
-   "y": 29,
-   "heading": 540
+   "x": 76,
+   "y": -65,
+   "heading": -720
   }
  ],
  "winding": true,
