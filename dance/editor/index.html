@@ -48,6 +48,7 @@
   #compList li { display: flex; align-items: center; gap: 4px; padding: 2px 0; font-size: 13px; }
   #compList li .n { color: var(--muted); font-size: 11px; width: 18px; text-align: right; }
   #compList li .name { flex: 1; }
+  #compList li select.endSel { font-size: 12px; padding: 1px 2px; max-width: 120px; }
   #compList li button { padding: 0 6px; font-size: 12px; line-height: 1.5; }
   #addElement { flex: 1; min-width: 160px; }
   #map { display: none; padding: 8px 12px; border-bottom: 1px solid #e3e3e3; background: #f3f3f0; }
@@ -149,8 +150,14 @@
   let comps = [], subs = [], ci = 0, compView = null, compsDirty = false;
   let listKind = 'composition';   // which list the dropdown shows and the editor edits: 'composition' | 'sub'
   function compList() { return listKind === 'sub' ? subs : comps; }
-  function parseEntry(entry) { let t = String(entry).trim(); if (t.length > 2 && t[0] === '(' && t[t.length - 1] === ')') t = t.slice(1, -1).trim();   // (quiet) entries: the phone does not announce them
-    const m = t.match(/^(.*?)\s*(?:[xX×]\s*(\d+))?\s*$/); return [m[1].trim(), Math.max(1, parseInt(m[2] || '1', 10))]; }
+  // an entry: "name x N → ending" inside optional quiet parentheses (model.parse_entry_full and the app's Entry.parse read it the
+  // same way); the ending pins the version when several start alike (2026-10-25)
+  function parseEntryFull(entry) { let t = String(entry).trim(), quiet = false;
+    if (t.length > 2 && t[0] === '(' && t[t.length - 1] === ')') { t = t.slice(1, -1).trim(); quiet = true; }   // (quiet) entries: the phone does not announce them
+    let end = null; const em = t.match(/\s*(?:→|->)\s*([A-Za-z_]+)\s*$/); if (em) { end = em[1]; t = t.slice(0, em.index).trim(); }
+    const m = t.match(/^(.*?)\s*(?:[xX×]\s*(\d+))?\s*$/); return { name: m[1].trim(), times: Math.max(1, parseInt(m[2] || '1', 10)), end, quiet }; }
+  function parseEntry(entry) { const p = parseEntryFull(entry); return [p.name, p.times]; }
+  function makeEntry(p) { const t = p.name + (p.times > 1 ? ' x' + p.times : '') + (p.end ? ' → ' + p.end : ''); return p.quiet ? '(' + t + ')' : t; }
   let sel = { start: 0, len: 1 };
   let view = { cx: 0, cy: 0, scale: 3 };
   let drag = null, undo = [], dirty = false;
@@ -426,7 +433,8 @@
   function elementNames() { const seen = new Set(); return data.elements.map(e => e.name).filter(nm => seen.has(nm) ? false : seen.add(nm)); }
   const STATE_ORDER = { side: 0, facing: 1, reversed_side: 2 };
   function variantsOf(name) { return data.elements.map((e, i) => i).filter(i => data.elements[i].name === name)
-    .sort((a, b) => (STATE_ORDER[data.elements[a].start_state] - STATE_ORDER[data.elements[b].start_state]) || ((data.elements[a].leader_free_start || 'L') < (data.elements[b].leader_free_start || 'L') ? -1 : 1)); }
+    .sort((a, b) => (STATE_ORDER[data.elements[a].start_state] - STATE_ORDER[data.elements[b].start_state]) || ((data.elements[a].leader_free_start || 'L') < (data.elements[b].leader_free_start || 'L') ? -1 : (data.elements[a].leader_free_start || 'L') > (data.elements[b].leader_free_start || 'L') ? 1 : 0)
+      || (STATE_ORDER[data.elements[a].end_state] - STATE_ORDER[data.elements[b].end_state])); }
   function variantLabel(e) { return `from ${e.start_state.replace('_', ' ')}, ${(e.leader_free_start || 'L') === 'L' ? 'left' : 'right'} foot free → ${e.end_state.replace('_', ' ')}`; }
   function renderVariant() {
     const row = $('variantRow'); if (mode !== 'elements') { row.style.display = 'none'; return; }
@@ -449,7 +457,7 @@
   // ---------- adding, editing and removing elements and their steps. Every change is saved to disk at once; ctrl-z undoes it (a snapshot each)
   const COUNT_OK = /^\d+&?$/;
   const otherFoot = f => (f === 'L' ? 'R' : 'L');
-  const keyOf = e => e.name + '|' + e.start_state + '|' + (e.leader_free_start || 'L');
+  const keyOf = e => e.name + '|' + e.start_state + '|' + (e.leader_free_start || 'L') + '|' + e.end_state;
   function pushSnapshot() { undo.push({ snap: JSON.stringify(data.elements), ei, sel: { start: sel.start, len: sel.len } }); if (undo.length > 200) undo.shift(); }
   function countSpan(steps) {   // the element's beats from its counts, as check.py reads them: counts 3, 3&, 4 span 2 beats
     if (!steps.length) return 0;
@@ -519,8 +527,8 @@
     const msg = t => { $('feMsg').textContent = t; };
     if (!name) return msg('give it a name');
     if (!(start in data.states) || !(end in data.states) || !['L', 'R'].includes(free)) return msg('pick where it starts and ends');
-    const k = name + '|' + start + '|' + free, cur = data.elements[ei];
-    if (data.elements.some(e => keyOf(e) === k && e !== cur) || (!editing && keyOf(cur) === k)) return msg(`"${name}" already exists from ${start.replace('_', ' ')} with the ${free === 'L' ? 'left' : 'right'} foot free`);
+    const k = name + '|' + start + '|' + free + '|' + end, cur = data.elements[ei];
+    if (data.elements.some(e => keyOf(e) === k && e !== cur) || (!editing && keyOf(cur) === k)) return msg(`"${name}" already exists from ${start.replace('_', ' ')} with the ${free === 'L' ? 'left' : 'right'} foot free, ending in ${end.replace('_', ' ')}`);
     pushSnapshot();
     if (editing) {
       const oldName = cur.name;
@@ -805,6 +813,19 @@
       const up = document.createElement('button'); up.textContent = '▲'; up.title = 'move up'; up.addEventListener('click', () => { if (i > 0) { [c.elements[i - 1], c.elements[i]] = [c.elements[i], c.elements[i - 1]]; compChanged(); } });
       const dn = document.createElement('button'); dn.textContent = '▼'; dn.title = 'move down'; dn.addEventListener('click', () => { if (i < c.elements.length - 1) { [c.elements[i + 1], c.elements[i]] = [c.elements[i], c.elements[i + 1]]; compChanged(); } });
       const rm = document.createElement('button'); rm.textContent = '✕'; rm.title = 'remove'; rm.addEventListener('click', () => { c.elements.splice(i, 1); compChanged(); });
+      if (!spans[i][2]) {
+        // which version: "auto" (the composer picks the one that lets the rest continue) or a pinned ending among those that fit here
+        const pe = parseEntryFull(entry), ce = compView && compView.elements ? compView.elements[spans[i][0]] : null;
+        const opts = (ce && ce.end_options ? ce.end_options.slice() : []); if (pe.end && !opts.includes(pe.end)) opts.push(pe.end);
+        if (opts.length > 1 || pe.end) {
+          const sel = document.createElement('select'); sel.className = 'endSel'; sel.title = 'ends in: which version of the element (auto = the composer picks the one that lets the next entry continue)';
+          const auto = document.createElement('option'); auto.value = ''; auto.textContent = 'ends: auto' + (ce && !pe.end ? ' (' + ce.end_state.replace('_', ' ') + ')' : ''); sel.appendChild(auto);
+          for (const o of opts) { const op = document.createElement('option'); op.value = o; op.textContent = 'ends: ' + o.replace('_', ' ') + (ce && ce.end_options && !ce.end_options.includes(o) ? ' (does not fit)' : ''); sel.appendChild(op); }
+          sel.value = pe.end || '';
+          sel.addEventListener('change', () => { c.elements[i] = makeEntry(Object.assign(pe, { end: sel.value || null })); compChanged(); });
+          li.appendChild(sel);
+        }
+      }
       li.appendChild(up); li.appendChild(dn); li.appendChild(rm); ol.appendChild(li);
     });
     const add = $('addElement'); const prev = add.value; add.innerHTML = '';
@@ -946,7 +967,7 @@
   // server refuses the save and the page merges: the newer file, with the elements the page changed put in (added, changed,
   // deleted). With nothing unsaved, the page picks up a change on disk by itself.
   let fileVersion = null, baseElems = null;
-  const elemKey = e => e.name + '|' + e.start_state + '|' + (e.leader_free_start || 'L');
+  const elemKey = e => e.name + '|' + e.start_state + '|' + (e.leader_free_start || 'L') + '|' + e.end_state;   // the ending too: two versions may start alike
   const snapshotElems = doc => { const m = {}; for (const e of doc.elements) m[elemKey(e)] = JSON.stringify(e); return m; };
   const versionOf = r => (r && r.headers && r.headers.get) ? r.headers.get('X-Version') : null;
   function adopt(doc, version, mine) {
@@ -984,7 +1005,7 @@
       setStatus(head && !head.startsWith('saved') && !head.startsWith('loaded') && !head.startsWith('SAVE FAILED') ? head + '\n' + msg : msg); } else setStatus('SAVE FAILED: ' + t);
   }
   async function renderVideo() {
-    const body = mode === 'compositions' ? { composition: compList()[ci] && compList()[ci].name, track: $('track').value } : { elements: [data.elements[ei].name], start: data.elements[ei].start_state, track: $('track').value };
+    const body = mode === 'compositions' ? { composition: compList()[ci] && compList()[ci].name, track: $('track').value } : { elements: [data.elements[ei].name], start: data.elements[ei].start_state, end: data.elements[ei].end_state, track: $('track').value };
     if (mode === 'compositions' && listKind === 'sub') { setStatus('a sub-composition is rendered inside a composition; use play here'); return; }
     if (mode === 'compositions' && compsDirty) { setStatus('save the compositions first; the video is rendered from the saved file'); return; }
     if (mode === 'elements' && (data.elements[ei].leader_free_start || 'L') !== 'L') { setStatus('this element starts on the right foot; render it inside a composition (or use play)'); return; }
@@ -1106,7 +1127,7 @@
     const chainBeats = Math.max(8, grid.beats.length - k00 + 16);
     const cc = compList()[ci];
     const req = e.composition ? { start_state: cc.start_state, elements: cc.elements, repeat: cc.repeat || 1, pad: true, chain_beats: chainBeats, sub_compositions: subs }
-                              : { start_state: e.start_state, leader_free: e.leader_free_start || 'L', elements: [e.name], repeat: 1, pad: true, chain_beats: chainBeats, sub_compositions: [] };   // the element itself, never a sub-composition of the same name
+                              : { start_state: e.start_state, leader_free: e.leader_free_start || 'L', elements: [e.name], repeat: 1, pad: true, chain_beats: chainBeats, sub_compositions: [], end: e.end_state };   // the element itself, never a sub-composition of the same name
     let composed;
     try { composed = await (await fetch('/api/compose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(req) })).json(); }
     catch (err) { setStatus('could not compose the loop: ' + err); return; }

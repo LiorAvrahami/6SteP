@@ -22,7 +22,7 @@ STATE_ORDER = {'side': 0, 'facing': 1, 'reversed_side': 2}
 def element_file(e):
     """The file name of an element: its name (letters and digits, the rest as _), start state and the leader's free foot."""
     nm = re.sub(r'[^A-Za-z0-9]+', '_', e['name']).strip('_') or 'element'
-    return f"{nm}__{e['start_state']}__{e.get('leader_free_start', 'L')}.json"
+    return f"{nm}__{e['start_state']}__{e.get('leader_free_start', 'L')}__{e['end_state']}.json"
 
 def skeletons_version(path=SKELETONS):
     """Changes whenever any of the files changes (the editor uses it to see that someone else wrote meanwhile)."""
@@ -260,7 +260,11 @@ def unwrap_all(data):
     """Converts every element that is not marked 'winding' yet (see unwrap_element); the names of those converted."""
     return [f"{e['name']} [{e['start_state']}, {e.get('leader_free_start', 'L')}]" for e in data['elements'] if unwrap_element(data, e)]
 
-def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free=None, pad_to_loop=False, filler='triple step', groups=None):
+def candidates(data, name, start_state, leader_free):
+    """Every version of an element that starts in this condition, in list order (since 2026-10-25 several may, ending apart)."""
+    return [e for e in data['elements'] if e['name'] == name and e['start_state'] == start_state and e.get('leader_free_start', 'L') == leader_free]
+
+def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free=None, pad_to_loop=False, filler='triple step', groups=None, ends=None):
     """Turn a list of element names into a world timeline.
 
     leader_free: which of the leader's feet is free at the start (default: the state's, i.e. the left).
@@ -285,10 +289,11 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
     t = 0.0
     steps, elements = [], []
 
-    def add(elem, name, is_filler, group=None):
+    def add(elem, name, is_filler, group=None, end_options=None, pinned=None):
         nonlocal frame, free, state, t, hands
         elements.append({'name': name, 'start': t, 'beats': elem['beats'], 'start_state': state, 'end_state': elem['end_state'],
-                         'free': elem.get('leader_free_start', 'L'), 'end_free': element_free_feet_end(elem)['L'], 'filler': is_filler, 'group': group})
+                         'free': elem.get('leader_free_start', 'L'), 'end_free': element_free_feet_end(elem)['L'], 'filler': is_filler, 'group': group,
+                         'end_options': end_options or [elem['end_state']], 'pinned': pinned})
         base = element_base_count(elem)
         hand_changes = {str(hc['count']): hc['hands'] for hc in elem.get('hands', [])}
         seen = []
@@ -313,8 +318,40 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
         state = elem['end_state']
         t += elem['beats']
 
+    # which version of each element: several may start alike and end apart. From the back: from which conditions (state, the
+    # leader's free foot) can the rest of the sequence still be danced; then from the front: the first version that honours the
+    # entry's pinned ending and keeps the rest possible (user 2026-10-25). The same in the app's Composer.
+    pins = list(ends or [])[:len(sequence)] + [None] * max(0, len(sequence) - len(ends or []))
+    conds = [(st, fr) for st in data['states'] for fr in 'LR']
+    end_of = lambda e: (e['end_state'], element_free_feet_end(e)['L'])
+    feas = [None] * (len(sequence) + 1)   # None: anything may follow (after the last element)
+    for i in range(len(sequence) - 1, -1, -1):
+        ok = set()
+        for st, fr in conds:
+            for c in candidates(data, sequence[i], st, fr):
+                if element_problem(c) or (pins[i] and c['end_state'] != pins[i]):
+                    continue
+                if feas[i + 1] is None or end_of(c) in feas[i + 1]:
+                    ok.add((st, fr)); break
+        feas[i] = ok
+    def fits(c, i):
+        return not element_problem(c) and (feas[i + 1] is None or end_of(c) in feas[i + 1])
+
     for idx, name in enumerate(sequence):
-        elem = find_element(data, name, state, free['L'])
+        cs = candidates(data, name, state, free['L'])
+        elem = None
+        if cs:
+            pinned = pins[idx]
+            cs_p = [c for c in cs if c['end_state'] == pinned] if pinned else cs
+            if not cs_p:
+                errors.append(f"no {name!r} from {state!r} ending in {pinned!r} (element {idx + 1} of {len(sequence)}); stopping")
+                break
+            good = [c for c in cs_p if fits(c, idx)]
+            elem = good[0] if good else cs_p[0]
+            options = []
+            for c in cs:
+                if fits(c, idx) and c['end_state'] not in options:
+                    options.append(c['end_state'])
         if elem is None:
             other = find_element(data, name, state, 'R' if free['L'] == 'L' else 'L')
             where = f" (element {idx + 1} of {len(sequence)})"
@@ -327,14 +364,15 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
         if problem:
             errors.append(f"{name!r} from {state!r}: {problem} (element {idx + 1} of {len(sequence)}); stopping")
             break
-        add(elem, name, False, groups[idx] if groups and idx < len(groups) else None)
+        add(elem, name, False, groups[idx] if groups and idx < len(groups) else None, options or [elem['end_state']], pins[idx])
     # pad only an element that ends where it started (only then can fillers close the loop); one that ends elsewhere restarts
     # from its start each time, unpadded (user 2026-10-25: "we dance side to side without filling")
     if pad_to_loop and not errors and sequence and state == start_state:
         fillers = 0
         while free['L'] != start_free and fillers < 4:
-            elem = find_element(data, filler, state, free['L'])
-            if elem is None or element_problem(elem):
+            cs = [c for c in candidates(data, filler, state, free['L']) if not element_problem(c)]
+            elem = next((c for c in cs if c['end_state'] == state), cs[0] if cs else None)   # one that stays in this state, so the loop closes
+            if elem is None:
                 break   # no filler for this condition: it plays unpadded (it restarts from its start), not an error
             add(elem, filler, True)
             fillers += 1
@@ -353,23 +391,38 @@ def find_composition(name, path=COMPOSITIONS):
     return None
 
 ENTRY_RE = re.compile(r'^(.*?)\s*(?:[xX×]\s*(\d+))?\s*$')
+END_RE = re.compile(r'\s*(?:→|->)\s*([A-Za-z_]+)\s*$')
+
+def parse_entry_full(entry):
+    """'triple step x2 → facing' -> ('triple step', 2, 'facing', False); '(RTT x5)' -> ('RTT', 5, None, True). The ending
+    (since 2026-10-25) pins which version of an element is danced when several start alike; without it the composer picks
+    the one that lets the rest continue. Written back by make_entry in the same form (the editor and the app do the same)."""
+    t = str(entry).strip(); quiet = False
+    if len(t) > 2 and t.startswith('(') and t.endswith(')'):
+        t = t[1:-1].strip(); quiet = True
+    end = None
+    m = END_RE.search(t)
+    if m:
+        end = m.group(1); t = t[:m.start()].strip()
+    m = ENTRY_RE.match(t)
+    return m.group(1).strip(), max(1, int(m.group(2) or 1)), end, quiet
+
+def make_entry(name, times=1, end=None, quiet=False):
+    t = name + (f' x{times}' if times > 1 else '') + (f' → {end}' if end else '')
+    return f'({t})' if quiet else t
 
 def parse_entry(entry):
     """'RTT x12' -> ('RTT', 12); 'rock step' -> ('rock step', 1); '(RTT x5)' -> ('RTT', 5). An entry in parentheses is
     quiet in the phone app (danced but never announced, not a swipe stop); here it is danced like any other."""
-    t = str(entry).strip()
-    if len(t) > 2 and t.startswith('(') and t.endswith(')'):
-        t = t[1:-1].strip()
-    m = ENTRY_RE.match(t)
-    name, times = m.group(1).strip(), int(m.group(2) or 1)
-    return name, max(1, times)
+    name, times, _end, _quiet = parse_entry_full(entry)
+    return name, times
 
 def load_subs(path=COMPOSITIONS):
     with open(path, encoding='utf-8') as f:
         return json.load(f).get('sub_compositions', [])
 
 def expand_sequence(entries, subs, _depth=0, _inside=()):
-    """Expand sub-composition names and 'x N' repeats into a flat list of (element name, group label or None).
+    """Expand sub-composition names and 'x N' repeats into a flat list of (element name, group label or None, ending or None).
     A group label names the sub-composition an element came from, e.g. 'RTT #3'. Inside a sub-composition its own name (or
     that of one it is inside) means the element of that name: a sub-composition "side to side" made of the element "side to
     side" twice is that element twice, not itself again and again (2026-10-25)."""
@@ -379,22 +432,27 @@ def expand_sequence(entries, subs, _depth=0, _inside=()):
     for entry in entries:
         if str(entry).strip().lower().startswith('say:'):
             continue  # an annotation (shown and read aloud by the phone app), no steps
-        name, times = parse_entry(entry)
+        name, times, end, _q = parse_entry_full(entry)
         for _ in range(times):
             if name in by_name and name not in _inside and _depth < 6:
                 counters[name] = counters.get(name, 0) + 1
                 label = f"{name} #{counters[name]}"
-                for el, _g in expand_sequence(by_name[name]['elements'], subs, _depth + 1, _inside + (name,)):
-                    out.append((el, label))
+                for el, _g, en in expand_sequence(by_name[name]['elements'], subs, _depth + 1, _inside + (name,)):
+                    out.append((el, label, en))
             else:
-                out.append((name, None))
+                out.append((name, None, end))
     return out
 
 def composition_sequence(comp, subs=None):
     """The flat element list of a composition: its entries (sub-compositions and 'x N' expanded) repeated 'repeat' times."""
     flat = expand_sequence(comp['elements'], subs if subs is not None else load_subs())
-    return [el for el, _ in flat] * int(comp.get('repeat', 1))
+    return [el for el, _g, _e in flat] * int(comp.get('repeat', 1))
 
 def composition_groups(comp, subs=None):
     flat = expand_sequence(comp['elements'], subs if subs is not None else load_subs())
-    return [g for _, g in flat] * int(comp.get('repeat', 1))
+    return [g for _el, g, _e in flat] * int(comp.get('repeat', 1))
+
+def composition_ends(comp, subs=None):
+    """The pinned endings of the flat sequence (None where the composer chooses)."""
+    flat = expand_sequence(comp['elements'], subs if subs is not None else load_subs())
+    return [en for _el, _g, en in flat] * int(comp.get('repeat', 1))

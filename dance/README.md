@@ -8,7 +8,7 @@ from the data), and the elements and compositions the 5 minutes exercise does no
 
 | File | Role |
 | --- | --- |
-| `skeletons/` | **The element data, one file per element** (since 2026-10-25, so that several people can edit different elements and git merges them): `elements/<name>__<start state>__<free foot>.json` holds one element's steps (count, dancer, foot, landing x, y, heading), `_states.json` the facing states. `model.load()` assembles the usual document; `model.save()` writes back only what changed. The editor writes it after every edit; `tools/make_assets.py` assembles one `skeletons.json` for the app. |
+| `skeletons/` | **The element data, one file per element** (since 2026-10-25, so that several people can edit different elements and git merges them): `elements/<name>__<start state>__<free foot>__<end state>.json` holds one element's steps (count, dancer, foot, landing x, y, heading), `_states.json` the facing states. `model.load()` assembles the usual document; `model.save()` writes back only what changed. The editor writes it after every edit; `tools/make_assets.py` assembles one `skeletons.json` for the app. |
 | `compositions.json` | Compositions and sub-compositions: named lists of entries (an element, a sub-composition such as RTT, or either "x N"); edited in the editor. |
 | `old_elements/` | The elements and compositions set aside on 2026-10-25, with the retired lurklurk authoring script, its baseline and `diff.py`. See its README. |
 | `model.py` | Shared model: units, rule constants, facing states, element lookup, composing a sequence of elements into a world timeline, compositions. |
@@ -151,6 +151,12 @@ any save it refuses). The page warns when the server runs older code than the fi
   stay sorted by count and `beats` follows the counts. The server refuses to save a duplicate (name, state, free foot), an
   unknown state or a bad count label; an element with no steps for a dancer is kept but cannot be played or shipped
   (`model.element_problem`; `tools/make_assets.py` refuses it).
+- **Versions that start alike** (since 2026-10-25): an element may have several versions with the same start (state and free
+  foot) and different endings; a version is name + start + free foot + end. In a composition, each element entry has an
+  "ends:" dropdown: "auto" (the default: the composer picks the first version that lets the rest of the sequence continue,
+  worked out from the back, `model.compose` and the app's `Composer` alike) or a pinned ending among those that fit there.
+  The pin is written in the entry: `triple step x2 → facing` (inside the parentheses of a quiet entry); the editor, the tools
+  and the app read and write it the same way. The elements tab plays and renders exactly the version it shows.
 - **compositions**: pick, create ("new composition"), edit (name, start state, repeat, add / reorder / remove entries with
   an "x N" count) and delete compositions; the file is saved as you go. An entry is an element, a **sub-composition** (a
   named list of elements that other compositions use by name, e.g. RTT = rock step, triple step, triple step; the checkbox

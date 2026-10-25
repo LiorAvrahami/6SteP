@@ -57,9 +57,9 @@ def invalid_skeletons(data):
             return 'an element has no name'
         if not e.get('winding'):
             return f'{e["name"]!r} has no winding mark: this page is older than the server; reload it (your last change was not saved)'
-        k = (e['name'], e['start_state'], e.get('leader_free_start', 'L'))
+        k = (e['name'], e['start_state'], e.get('leader_free_start', 'L'), e.get('end_state'))
         if k in seen:
-            return f'two skeletons of {k[0]!r} from {k[1]} with the leader\'s {k[2]} foot free'
+            return f'two skeletons of {k[0]!r} from {k[1]} with the leader\'s {k[2]} foot free, both ending in {k[3]}'
         seen.add(k)
         if e['start_state'] not in data['states'] or e['end_state'] not in data['states']:
             return f'{e["name"]!r}: unknown state {e["start_state"]!r} or {e["end_state"]!r}'
@@ -181,7 +181,7 @@ class H(BaseHTTPRequestHandler):
             if c is None:
                 return self._json({'errors': [f'no composition named {name!r}'], 'steps': [], 'elements': [], 'start': {}, 'length': 0, 'end_state': ''}, 404)
             data = model.load(model.SKELETONS)
-            comp = model.compose(data, model.composition_sequence(c), c['start_state'])
+            comp = model.compose(data, model.composition_sequence(c), c['start_state'], ends=model.composition_ends(c))
             comp['definition'] = c
             return self._json(comp)
         if p == '/api/version':
@@ -269,15 +269,18 @@ class H(BaseHTTPRequestHandler):
                 if subs is None:
                     subs = model.load_subs()
                 flat = model.expand_sequence(list(req.get('elements') or []), subs) * max(1, int(req.get('repeat', 1)))
-                elements = [el for el, _ in flat]
-                groups = [g for _, g in flat]
+                elements = [el for el, _g, _e in flat]
+                groups = [g for _el, g, _e in flat]
+                ends = [en for _el, _g, en in flat]
+                if req.get('end'):   # the elements tab plays exactly the version it shows
+                    ends = [req['end']] * len(elements)
                 start = req.get('start_state', 'side')
             except Exception as e:
                 return self._json({'errors': [f'bad request: {e}'], 'steps': [], 'elements': [], 'start': {}, 'length': 0, 'end_state': ''}, 400)
             data = model.load(model.SKELETONS)
             if start not in data['states']:
                 return self._json({'errors': [f'unknown start state {start!r}'], 'steps': [], 'elements': [], 'start': {}, 'length': 0, 'end_state': start}, 400)
-            comp = model.compose(data, elements, start, leader_free=req.get('leader_free') or None, pad_to_loop=bool(req.get('pad')), groups=groups)
+            comp = model.compose(data, elements, start, leader_free=req.get('leader_free') or None, pad_to_loop=bool(req.get('pad')), groups=groups, ends=ends)
             comp['loop_beats'] = comp['length']
             comp['closes'] = (not comp['errors']) and comp['end_state'] == start and comp['end_free'] == comp['start_free'] and comp['length'] > 0
             comp['chained'] = 1
@@ -289,7 +292,8 @@ class H(BaseHTTPRequestHandler):
                 loop_names = [e['name'] for e in comp['elements']]
                 loop_fillers = [bool(e.get('filler')) for e in comp['elements']]
                 loop_groups = [e.get('group') for e in comp['elements']]
-                chained = model.compose(data, loop_names * n, start, leader_free=req.get('leader_free') or None, groups=loop_groups * n)
+                loop_ends = [e['end_state'] for e in comp['elements']]   # every repetition dances the versions the first one chose
+                chained = model.compose(data, loop_names * n, start, leader_free=req.get('leader_free') or None, groups=loop_groups * n, ends=loop_ends * n)
                 if not chained['errors']:
                     for k, e in enumerate(chained['elements']):
                         e['filler'] = loop_fillers[k % len(loop_names)]
@@ -306,6 +310,9 @@ class H(BaseHTTPRequestHandler):
                 assert isinstance(comps, list)
                 for c in comps + (subs or []):
                     assert isinstance(c['name'], str) and c['name'].strip() and isinstance(c['elements'], list) and c['start_state'] in ('side', 'facing', 'reversed_side')
+                    for en in c['elements']:
+                        pin = model.parse_entry_full(en)[2]
+                        assert pin is None or pin in ('side', 'facing', 'reversed_side'), f'{en!r}: unknown ending {pin!r}'
                     c['repeat'] = max(1, int(c.get('repeat', 1)))
             except Exception as e:
                 return self._send(400, f'bad compositions: {e}')
@@ -339,7 +346,7 @@ class H(BaseHTTPRequestHandler):
                 if not elements:
                     return self._json({'ok': False, 'log': 'nothing to render'}, 400)
                 out_name = f'{slug("_".join(elements))[:60]}_{track}.mp4'
-                cmd += ['--start', req.get('start', 'side')] + list(elements)
+                cmd += ['--start', req.get('start', 'side')] + (['--end', req['end']] if req.get('end') else []) + list(elements)
             os.makedirs(OUT, exist_ok=True)
             cmd += ['--out', os.path.join(OUT, out_name)]
             try:

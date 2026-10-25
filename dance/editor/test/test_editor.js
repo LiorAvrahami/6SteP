@@ -7,14 +7,15 @@ const ROOT = path.resolve(__dirname, '..', '..');   // dance/
 const html = fs.readFileSync(ROOT + '/editor/index.html', 'utf8');
 let js = html.match(/<script>([\s\S]*)<\/script>/)[1];
 js = js.replace('(function () {', 'globalThis.__editor = (function () {');
-js = js.replace(/\}\)\(\);\s*$/, '  return { get sel() { return sel; }, get data() { return data; }, get ei() { return ei; }, get view() { return view; }, get mode() { return mode; }, get compView() { return compView; }, get comps() { return comps; }, px, world, elem, flipTurn, curveAt, get arrowHits() { return arrowHits; }, get anchorHits() { return anchorHits; }, buildTimeline, placementAt, weightsAt, heelOf, get overlayKind() { return overlayKind; } };\n})();');
+js = js.replace(/\}\)\(\);\s*$/, '  return { get sel() { return sel; }, get data() { return data; }, get ei() { return ei; }, get view() { return view; }, get mode() { return mode; }, get compView() { return compView; }, get comps() { return comps; }, px, world, elem, flipTurn, curveAt, parseEntryFull, makeEntry, get arrowHits() { return arrowHits; }, get anchorHits() { return anchorHits; }, buildTimeline, placementAt, weightsAt, heelOf, get overlayKind() { return overlayKind; } };\n})();');
 
 class El {
   constructor(tag) { this.tagName = tag.toUpperCase(); this.listeners = {}; this.children = []; this._cls = new Set(); this.classList = { add: c => this._cls.add(c), remove: c => this._cls.delete(c), has: c => this._cls.has(c), toggle: (c, on) => on ? this._cls.add(c) : this._cls.delete(c) }; this.style = {}; this.value = ''; this.textContent = ''; this.title = ''; this.width = 1000; this.height = 700; this.disabled = false; this.src = ''; this.max = '0'; }
   addEventListener(t, fn) { (this.listeners[t] = this.listeners[t] || []).push(fn); }
   dispatch(t, ev) { (this.listeners[t] || []).forEach(fn => fn(Object.assign({ preventDefault() {}, target: { tagName: 'BODY' } }, ev))); }
   appendChild(c) { this.children.push(c); return c; }
-  set innerHTML(v) { this._html = v; if (v === '') this.children = []; }
+  // as in a browser, HTML written into an element makes new elements: the ids it names start fresh (no listeners left over)
+  set innerHTML(v) { this._html = v; if (v === '') this.children = []; for (const m of String(v).matchAll(/id="([^"]+)"/g)) delete els[m[1]]; }
   get innerHTML() { return this._html; }
   get className() { return [...this._cls].join(' '); }
   set className(v) { this._cls = new Set(String(v).split(' ').filter(Boolean)); }
@@ -41,6 +42,10 @@ const fetch = async (url, opts) => {
   if (url === '/api/compositions' && opts) { savedComps = JSON.parse(opts.body); return { ok: true, text: async () => 'saved' }; }
   if (url === '/api/compose') { const req = JSON.parse(opts.body); composeCalls.push(req);
     if (req.elements.join(',') === 'rock step,triple step,triple step' && req.repeat === 4 && req.start_state === 'side') return { ok: true, json: async () => JSON.parse(fs.readFileSync(path.join(__dirname, 'comp_rdts.json'), 'utf8')) };
+    // a draft of one triple step: two versions start alike (side, left foot free) and end apart
+    if (req.elements.length === 1 && /^triple step/.test(req.elements[0]) && req.start_state === 'side' && !req.pad)
+      return { ok: true, json: async () => ({ steps: [], start: {}, start_hands: [], end_state: 'side', end_free: 'R', length: 2, errors: [],
+        elements: [{ name: 'triple step', start: 0, beats: 2, start_state: 'side', end_state: /facing/.test(req.elements[0]) ? 'facing' : 'side', free: 'L', end_free: 'R', end_options: ['side', 'facing'] }] }) };
     // a tiny fake for drafts: one element per entry, no geometry
     const st = req.start_state; const errs = req.elements.includes('circle') && st === 'side' ? ["no skeleton for 'circle' starting from state 'side'; stopping"] : [];
     return { ok: true, json: async () => ({ steps: [], elements: [], start: {}, start_hands: [], end_state: st, end_free: 'L', length: 0, errors: errs }) }; }
@@ -422,4 +427,36 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   assert(cp.leader_free_start === 'R' && cp.steps[0].foot === 'R' && cp.steps[0].via && Math.abs(cp.steps[0].via[0][0] - 6) < 0.6 && Math.abs(cp.steps[0].via[0][1] + 12) < 0.6, 'a mirrored copy of the element mirrors the anchors about the leader\'s middle: ' + JSON.stringify(cp.steps[0].via));
   $('deleteElem').dispatch('click', {});
   assert(E.elem().name === 'rock step' && E.elem().leader_free_start === 'L', 'the copy is deleted again');
+  // ---- versions that start alike and end apart (user 2026-10-25)
+  els['modeElements'].dispatch('click', {});
+  els['element'].dispatch('change', { target: { value: 'triple step' } });
+  const TSI = E.ei, NV = E.data.elements.length;
+  $('newElem').dispatch('click', {});
+  $('feName').value = 'triple step'; $('feStart').value = 'side'; $('feFree').value = 'L'; $('feEnd').value = 'facing'; $('feNotes').value = ''; $('feFrom').value = String(TSI);
+  $('feOk').dispatch('click', {});
+  assert(E.data.elements.length === NV + 1 && E.elem().name === 'triple step' && E.elem().start_state === 'side' && E.elem().end_state === 'facing', 'a second triple step with the same start and another ending is made');
+  assert(E.data.elements.filter(x => x.name === 'triple step' && x.start_state === 'side' && x.leader_free_start === 'L').length === 2, 'both versions are kept side by side');
+  $('newElem').dispatch('click', {});
+  $('feName').value = 'triple step'; $('feStart').value = 'side'; $('feFree').value = 'L'; $('feEnd').value = 'facing'; $('feFrom').value = '';
+  $('feOk').dispatch('click', {});
+  assert(E.data.elements.length === NV + 1 && $('feMsg').textContent.includes('ending in facing'), 'the same start and the same ending twice is refused');
+  $('ovClose').dispatch('click', {});
+  rendered = null; els['render'].dispatch('click', {}); await tick();
+  assert(rendered && rendered.end === 'facing' && rendered.elements[0] === 'triple step', 'the elements tab renders exactly the version it shows (end: facing)');
+  // the composition editor: an "ends in" dropdown, auto by default, pins the version
+  els['modeCompositions'].dispatch('click', {}); await tick(100);
+  $('newComp').dispatch('click', {}); await tick(80);
+  const NC2 = E.comps.length - 1;
+  document.getElementById('addElement').value = 'triple step'; document.getElementById('addTimes').value = '1'; els['addElementBtn'].dispatch('click', {}); await tick(80);
+  const row0 = $('compList').children[0], endSel = row0 && row0.children.find(x => x.tagName === 'SELECT');
+  assert(!!endSel && endSel.children.map(o => o.value).join(',') === ',side,facing' && endSel.value === '', 'an element entry has an "ends in" dropdown: auto, side, facing (auto chosen)');
+  endSel.value = 'facing'; endSel.dispatch('change', {}); await tick(80);
+  assert(E.comps[NC2].elements[0] === 'triple step → facing' && composeCalls[composeCalls.length - 1].elements[0] === 'triple step → facing', 'picking "facing" pins the entry: ' + E.comps[NC2].elements[0]);
+  const endSel2 = $('compList').children[0].children.find(x => x.tagName === 'SELECT');
+  endSel2.value = ''; endSel2.dispatch('change', {}); await tick(80);
+  assert(E.comps[NC2].elements[0] === 'triple step', 'back to auto removes the pin');
+  E.comps[NC2].elements[0] = '(triple step x2 → facing)';
+  const pe2 = E.parseEntryFull(E.comps[NC2].elements[0]);
+  assert(pe2.name === 'triple step' && pe2.times === 2 && pe2.end === 'facing' && pe2.quiet && E.makeEntry(pe2) === '(triple step x2 → facing)', 'a quiet repeated pinned entry reads and writes back the same');
+  els['deleteComp'].dispatch('click', {}); await tick(80);
 })();

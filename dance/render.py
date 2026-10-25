@@ -159,6 +159,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('elements', nargs='*')
     ap.add_argument('--start', default='side')
+    ap.add_argument('--end', default=None, help='the version of the elements that ends in this state (when several start alike)')
     ap.add_argument('--track', default='hot', choices=list(TRACKS))
     ap.add_argument('--out', default=os.path.join(model.HERE, 'out', 'sequence.mp4'))
     ap.add_argument('--fps', type=int, default=30)
@@ -180,12 +181,14 @@ def main():
             ap.error(f'no composition named {a.composition!r} in compositions.json')
         a.elements = model.composition_sequence(comp_def)
         a.groups = model.composition_groups(comp_def)
+        a.ends = model.composition_ends(comp_def)
         a.start = comp_def['start_state']
     if not a.elements:
         ap.error('give element names, --composition NAME, or --list')
     grid, mp3 = load_grid(a.track)
     swing = float(grid.get('swing', model.DEFAULT_SWING))
-    comp = model.compose(data, a.elements, a.start, swing, groups=getattr(a, 'groups', None))
+    ends = getattr(a, 'ends', None) or ([a.end] * len(a.elements) if a.end else None)
+    comp = model.compose(data, a.elements, a.start, swing, groups=getattr(a, 'groups', None), ends=ends)
     for err in comp['errors']:
         print('ERROR', err)
     if comp['errors']:
