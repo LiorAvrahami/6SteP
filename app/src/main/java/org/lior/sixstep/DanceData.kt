@@ -5,6 +5,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import kotlin.math.cos
+import kotlin.math.round
 import kotlin.math.sin
 
 /** cm, top view: x to the leader's starting right, y to his starting front; heading in degrees, clockwise from +y. */
@@ -263,6 +264,9 @@ object Composer {
         val errors = ArrayList<String>()
         val state0 = data.states[startState] ?: return Composed(emptyList(), emptyList(), emptyMap(), emptyList(), startState, 'L', startState, 'L', 0.0, listOf("unknown state $startState"))
         var frame = Frame(0.0, 0.0, 0.0)
+        // each foot's last world heading, winding included (headings are not wrapped since 2026-10-25)
+        val lastH = HashMap<String, Double>()
+        for ((k, p) in state0.feet) lastH[k] = p.h
         var state = startState
         var free = leaderFree ?: state0.leaderFree
         val startFree = free
@@ -278,10 +282,20 @@ object Composer {
             val base = elem.baseCount()
             val changes = elem.hands.associate { it.first to it.second }
             val seen = HashSet<String>()
+            // the element's headings assume its start state's: a foot that arrives wound by a full turn keeps it
+            val stFeet = data.states[state]?.feet ?: state0.feet
+            val wind = HashMap<String, Double>()
+            for ((k, h) in lastH) {
+                val nominal = frame.h + (stFeet[k]?.h ?: 0.0)
+                wind[k] = 360.0 * round((h - nominal) / 360.0)
+            }
             for (s in elem.steps) {
                 if (changes.containsKey(s.count) && seen.add(s.count)) hands = changes[s.count]!!
                 val w = frame.apply(s.x, s.y, s.heading)
-                steps.add(CStep(t + countTime(s.count, swing) - base, s.count, s.dancer, s.foot, w.x, w.y, w.h, idx, hands, filler))
+                val key = "${s.dancer}.${s.foot}"
+                val wh = w.h + (wind[key] ?: 0.0)
+                lastH[key] = wh
+                steps.add(CStep(t + countTime(s.count, swing) - base, s.count, s.dancer, s.foot, w.x, w.y, wh, idx, hands, filler))
             }
             // the end frame: where the leader's left foot stands in natural stance after his last weighted step
             val last = elem.steps.last { it.dancer == 'L' }

@@ -37,7 +37,7 @@ class Timeline(val composed: Composed, val swing: Double) {
                 val nx = landings[i + 1]
                 if (t >= nx.tRelease && t < nx.tLand) {
                     val u = smoothstep((t - nx.tRelease) / max(1e-6, nx.tLand - nx.tRelease))
-                    val dh = normAngle(nx.p.h - cur.p.h)
+                    val dh = nx.p.h - cur.p.h   // the raw difference: the stored winding chooses the way round
                     return Placement(cur.p.x + (nx.p.x - cur.p.x) * u, cur.p.y + (nx.p.y - cur.p.y) * u, cur.p.h + dh * u)
                 }
             }
@@ -70,7 +70,7 @@ class Timeline(val composed: Composed, val swing: Double) {
                 var release = if (i == 0) s.t - 0.6 else ramps[i - 1].first + ramps[i - 1].second
                 val track = tr[s.foot]!!
                 val prev = track.landings.last().p
-                if (hypot(prev.x - s.x, prev.y - s.y) < 0.5 && abs(normAngle(prev.h - s.heading)) < 0.5) release = s.t
+                if (hypot(prev.x - s.x, prev.y - s.y) < 0.5 && abs(prev.h - s.heading) < 0.5) release = s.t
                 track.landings.add(Landing(s.t, min(release, s.t), Placement(s.x, s.y, s.heading)))
             }
             val first = ds.firstOrNull()
