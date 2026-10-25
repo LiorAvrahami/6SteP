@@ -4,10 +4,10 @@
     python dance/check.py --storyboard    # also writes dance/out/storyboard_<element>_<state>_<free>.png
     python dance/check.py --element circle
 
-Rules (handover-what-i-want.md): a weighted foot never moves or rotates; a dancer's feet are never more than 70 cm apart;
-foot circles (diam 20) of the two dancers never overlap; body circles (diam 20) never overlap; a close hold the notes
-describe explicitly is exempt (user Q6), and the exempted steps are listed. No correction layers: a failure means the data
-is wrong.
+Rules (handover-what-i-want.md): the feet alternate; a dancer's feet are never more than 70 cm apart; the two dancers' shoes
+stay 4 cm apart and their body circles (diam 20) never overlap, except on a step marked exempt (a close hold); the element
+ends in its end state; the counts span its beats. No correction layers: a failure means the data is wrong.
+(Until 2026-10-25 it also checked the steps against their lurklurk codes; the codes are gone, see old_elements/README.md.)
 """
 import sys, os, re, math, argparse
 from PIL import Image, ImageDraw
@@ -20,22 +20,6 @@ import draw
 OWN_FEET_MIN = 10.0   # own feet may touch; below this they overlap (agent threshold, warn only)
 END_TOL_CM, END_TOL_DEG = 3.0, 10.0
 FREE_FOOT_WARN = 30.0
-
-ROT_RE = re.compile(r'(\d)([LR])$')
-
-def step_rotation(code):
-    m = ROT_RE.search(code)
-    if not m:
-        return 0.0
-    return int(m.group(1)) * 45.0 * (1 if m.group(2) == 'R' else -1)
-
-def is_replace(code):
-    c = code[1:] if code.startswith('e') else code
-    return c.startswith('R') and not c.startswith('RR') is None
-
-def step_type_replace(code):
-    c = code[1:] if code.startswith('e') else code
-    return len(c) >= 2 and c[0] == 'R' and c[1] in 'LR'
 
 def moments(elem, states):
     """Yield (count, feet) with feet = {'L.L':(x,y,h),...,'weighted':{'L':'R','F':'L'}, 'exempt':{'L.L':bool..}} after each count's landings."""
@@ -59,33 +43,19 @@ def moments(elem, states):
 def check_element(elem, states, out):
     errs, warns = [], []
     name = f"{elem['name']} [{elem['start_state']} -> {elem['end_state']}, leader free {elem.get('leader_free_start','L')}]"
-    nominal = model.state_feet({'states': states}, elem['start_state'])
-    # 1. structure: alternation, replace in place, rotation digits
+    problem = model.element_problem(elem)
+    if problem:   # an element still being built in the editor: report it, check the others
+        errs.append(problem)
+        out.append((name, errs, warns, []))
+        return errs, warns
+    # 1. structure: the feet alternate (a step is on the free foot)
     free = {'L': elem.get('leader_free_start', 'L')}
     free['F'] = 'R' if free['L'] == 'L' else 'L'
-    last_pos = dict(nominal)
-    last_heading = {'L': 0.0, 'F': nominal['F.L'][2]}
     for s in elem['steps']:
-        d, f, code = s['dancer'], s['foot'], s.get('code', '')
+        d, f = s['dancer'], s['foot']
         if f != free[d]:
-            errs.append(f"count {s['count']}: {d} steps on {f} but the free foot is {free[d]} (code {code})")
+            errs.append(f"count {s['count']}: {d} steps on {f} but the free foot is {free[d]}")
         free[d] = 'R' if f == 'L' else 'L'
-        key = f"{d}.{f}"
-        # the notation checks verify the agent's transcription of the notes; a step the user placed (src 'user') is the
-        # user's own statement, so for it they only warn
-        notation = warns if s.get('src') == 'user' else errs
-        if step_type_replace(code):
-            px, py, ph = last_pos[key]
-            if dist((px, py), (s['x'], s['y'])) > 1.0 or abs(norm_angle(ph - s['heading'])) > 1.0:
-                notation.append(f"count {s['count']}: {d}.{f} code {code} is a replace but the foot moved from ({px:.0f},{py:.0f},{ph:.0f}) to ({s['x']:.0f},{s['y']:.0f},{s['heading']:.0f})")
-        rot = step_rotation(code)
-        got = norm_angle(s['heading'] - last_heading[d])
-        if abs(norm_angle(got - rot)) > 1.0:
-            notation.append(f"count {s['count']}: {d}.{f} code {code} says rotation {rot:+.0f} but the heading changes {got:+.0f} (from {last_heading[d]:.0f} to {s['heading']:.0f})")
-        last_heading[d] = s['heading']
-        last_pos[key] = (s['x'], s['y'], s['heading'])
-        if 'code' not in s or not code:
-            warns.append(f"count {s['count']}: {d}.{f} has no code")
     # 2. geometry at every count
     exempted = []
     for count, feet, weighted, exempt in moments(elem, states):
@@ -219,7 +189,7 @@ def main():
             continue
         errs, warns = check_element(e, states, out)
         nerr += len(errs)
-        if a.storyboard:
+        if a.storyboard and not model.element_problem(e):
             os.makedirs(os.path.join(model.HERE, 'out'), exist_ok=True)
             fn = f"storyboard_{e['name'].replace(' ', '_')}_{e['start_state']}_{e.get('leader_free_start','L')}.png"
             storyboard(e, states, os.path.join(model.HERE, 'out', fn))

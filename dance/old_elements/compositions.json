@@ -1,0 +1,74 @@
+{
+ "_about": "Compositions and sub-compositions set aside on 2026-10-25: everything except the 5 minutes exercise and the building blocks it uses.",
+ "compositions": [
+  {
+   "name": "rock double triple step",
+   "start_state": "side",
+   "repeat": 4,
+   "elements": [
+    "rock step",
+    "triple step",
+    "triple step"
+   ],
+   "notes": "The six-count basic side by side (user 2026-10-18): rock step, left triple step drifting left, right triple step drifting right, and repeat. Four times = 24 beats."
+  },
+  {
+   "name": "rock triple step facing",
+   "start_state": "facing",
+   "repeat": 4,
+   "elements": [
+    "rock step",
+    "triple step",
+    "triple step"
+   ],
+   "notes": "The same six-count from open position with the notes' side-close-side triples (m_closed_basic)."
+  },
+  {
+   "name": "all elements demo",
+   "start_state": "side",
+   "repeat": 3,
+   "elements": [
+    "rock step",
+    "triple step",
+    "triple step",
+    "follower underarm pass",
+    "lead underarm pass",
+    "rock step",
+    "triple step",
+    "triple step",
+    "recapture underarm pass",
+    "rock back cutoff",
+    "triple step",
+    "triple step"
+   ],
+   "notes": "Every element once, for review. The cutoff ends side by side facing back; two side-by-side triples close the sequence."
+  },
+  {
+   "name": "test",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "rock step",
+    "triple step",
+    "triple step",
+    "follower underarm pass",
+    "lead underarm pass",
+    "lead underarm pass",
+    "rock step"
+   ],
+   "notes": ""
+  }
+ ],
+ "sub_compositions": [
+  {
+   "name": "pass+circle",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "follower underarm pass",
+    "circle"
+   ],
+   "notes": "Out with the pass, home with the circle."
+  }
+ ]
+}

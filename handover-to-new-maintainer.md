@@ -36,10 +36,11 @@ notes are "all rights reserved"; see `reference/README.md`), the Rubber Band exe
    decisions (who turns which way, where an element ends, distances): those are theirs.
 2. **Never add correction layers** (nudging, repulsion, clamping) to make a rule pass. A failed rule check means the data
    is wrong: fix the placements or ask.
-3. **Edits are messages.** Anything the user can edit (skeletons in the web editor) keeps a baseline copy and a diff
-   command. Run `python dance/diff.py` before touching `dance/skeletons.json`, respond to the diff, then `--accept`.
-   `dance/author_skeletons.py` refuses to run while the skeleton differs from the baseline (`--force` overrides); it once
-   overwrote an hour of the user's edits, which had to be recovered from sampled data.
+3. **Only the editor writes the skeletons.** Since 2026-10-25 the user writes every element by hand in the web editor
+   (`python RunWeb.py`), and every edit is saved to `dance/skeletons.json` at once: there is one version, the one on disk.
+   No script and no agent writes that file. (Until then an agent script, `author_skeletons.py`, generated the skeletons
+   from the lurklurk notes and a baseline + `diff.py` guarded the user's edits; it once overwrote an hour of them. The
+   script, the baseline and `diff.py` are retired in `dance/old_elements/`.) The same for `dance/compositions.json`.
 4. **Everything autosaves.** Any tool you build that holds the user's work writes it to disk on every change (and keeps a
    browser copy), and switching items never discards unsaved state. The beat annotator lost an hour of marks before this rule.
 5. **Compositions are the user's.** `dance/compositions.json` and the app's own composition file are edited by the user;
@@ -57,6 +58,12 @@ notes are "all rights reserved"; see `reference/README.md`), the Rubber Band exe
 8. **Ports.** 8765 belongs to another app of the user's (requests silently go there). The skeleton editor is on 8771, the
    beat annotator on 8772. Run `netstat -ano | grep :<port>` before starting a server; never kill a listener that is not yours.
 9. **Report short.** Lead with the outcome, numbers in tables, a numbered list of questions at the end.
+
+**lurklurk is disconnected (2026-10-25).** The user judged the notes unusable for foot placement after a day of trying
+to parse them ("I think this resource is absolute garbage"). Nothing in `dance/`, the editor or the app reads them any
+more; the step codes, source tags and notes are gone from the data. The elements and compositions the 5 minutes exercise
+does not use are set aside in `dance/old_elements/` (see its README). `reference/lurklurk/` and `dance/lab/` (both
+git-ignored) may still sit on the user's PC; they are not used.
 
 The user's own requirement documents, in their words: `old handovers/handover-what-i-want.md` (the dance model and the
 rules), `old handovers/handover-questions-and-answers.md` (their answers; authoritative), `old handovers/handover-reading-the-notes.md`
@@ -151,7 +158,7 @@ icon section was removed on 2026-10-19 so that it cannot overwrite this one). Ru
 **Local servers on the user's PC.** Both run from the clone `C:\Liors_Stuff\6SteP` (restarted there on 2026-10-19), so the
 user's edits land in tracked files that you commit: the skeleton editor (`python dance/editor/server.py`, port 8771) and the
 beat annotator (`python music/tools/beat_annotator/server.py`, port 8772). After the user edits, run `git status` and
-`python dance/diff.py`, respond, then commit. Their output logs are in `dance/out/` (git-ignored).
+commit (there is no diff step any more: the editor's file is the only version). Their output logs are in `dance/out/` (git-ignored).
 
 ## 6. The app (`app/`, reference: the repo's `README.md`)
 

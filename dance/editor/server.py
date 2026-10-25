@@ -1,28 +1,30 @@
-"""The skeleton editor: a local web page on http://127.0.0.1:8771 (8765 is taken on this PC).
+"""The skeleton editor: a local web page on http://127.0.0.1:8771 (8765 is taken on this PC). Start it with python RunWeb.py.
 
     python dance/editor/server.py [--port 8771]
 
+On start it ends any process already listening on the port (an editor started earlier would otherwise keep serving old code),
+and takes the port exclusively.
+
 GET  /                      -> the editor page
 GET  /api/skeletons         -> dance/skeletons.json
-GET  /api/baseline          -> dance/skeletons.baseline.json (what the agent wrote; never changed by the editor)
-POST /api/save              -> writes dance/skeletons.json (body: the whole JSON document)
-GET  /api/diff              -> text of `python dance/diff.py` (the user's edits as a message)
+POST /api/save              -> writes dance/skeletons.json (body: the whole JSON document); the page saves after every edit
 GET  /api/check             -> text of `python dance/check.py`
+GET  /api/version           -> {"stale": true} when a Python file is newer than this process (the page shows a banner)
 GET  /api/compositions      -> dance/compositions.json
 GET  /api/composition?name= -> the composed world timeline of that composition (model.compose), read-only
+POST /api/compositions      -> {"compositions": [...], "sub_compositions": [...]}: writes dance/compositions.json
+                               (an entry in an element list is an element name, a sub-composition name, or either followed by ' x N')
+POST /api/compose           -> {"start_state", "elements": [...], "repeat", "leader_free"?, "pad"?}: the composed timeline of a draft;
+                               pad=true appends triple-step fillers (flagged) until it loops (the free foot restored);
+                               chain_beats=N then chains a closing loop across N beats (chained = how many times), so the dance
+                               continues from where the dancers are instead of restarting
 POST /api/render            -> {"composition": name, "track": hot|sunday|slow} or {"elements": [...], "start": state, "track": ...};
                                runs render.py, returns {"ok", "url", "log"}; the video is served under /out/
 GET  /out/<file>            -> files from dance/out (videos, storyboards), with byte ranges for the <video> element
 GET  /api/track/<key>       -> the beat grid JSON of a track (hot|sunday|slow)
 GET  /music/<key>.mp3       -> the track itself (for in-browser playback)
-POST /api/compose           -> {"start_state", "elements": [...], "repeat", "leader_free"?, "pad"?}: the composed timeline of a draft;
-                               pad=true appends triple-step fillers (flagged) until it loops (>= 4 beats, free foot restored);
-                               chain_beats=N then chains a closing loop across N beats (chained = how many times), so the dance
-                               continues from where the dancers are instead of restarting
-POST /api/compositions      -> {"compositions": [...], "sub_compositions": [...]}: writes dance/compositions.json
-                               (an entry in an element list is an element name, a sub-composition name, or either followed by ' x N')
 """
-import sys, os, re, json, argparse, subprocess, urllib.parse
+import sys, os, re, json, time, argparse, subprocess, urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -31,6 +33,8 @@ OUT = os.path.join(DANCE, 'out')
 MUSIC = os.path.join(os.path.dirname(DANCE), 'music', 'chosen')
 sys.path.insert(0, DANCE)
 import model
+STARTED = time.time()
+CODE_FILES = [os.path.abspath(__file__), os.path.join(DANCE, 'model.py')]
 TRACKS = {
     'hot': 'Hot Swing - Kevin MacLeod - 5min loop (144bpm, CC BY)',
     'sunday': '15 - Laughing Manny - Sunday Reflection (127bpm)',
@@ -38,6 +42,34 @@ TRACKS = {
 }
 
 TYPES = {'.mp4': 'video/mp4', '.png': 'image/png', '.json': 'application/json', '.txt': 'text/plain; charset=utf-8', '.mp3': 'audio/mpeg'}
+
+ELEMENT_KEYS = ('name', 'start_state', 'end_state', 'beats', 'leader_free_start', 'hands', 'steps')
+
+def invalid_skeletons(data):
+    """Why the editor's document must not be written (one bad element would break check.py, render.py and the app), or None.
+    An element may have no steps yet: model.element_problem() keeps it out of the dance until it has them."""
+    seen = set()
+    for e in data['elements']:
+        if not isinstance(e, dict) or any(k not in e for k in ELEMENT_KEYS):
+            return f'an element misses one of {ELEMENT_KEYS}'
+        if not isinstance(e['name'], str) or not e['name'].strip():
+            return 'an element has no name'
+        k = (e['name'], e['start_state'], e.get('leader_free_start', 'L'))
+        if k in seen:
+            return f'two skeletons of {k[0]!r} from {k[1]} with the leader\'s {k[2]} foot free'
+        seen.add(k)
+        if e['start_state'] not in data['states'] or e['end_state'] not in data['states']:
+            return f'{e["name"]!r}: unknown state {e["start_state"]!r} or {e["end_state"]!r}'
+        if e['leader_free_start'] not in ('L', 'R'):
+            return f'{e["name"]!r}: the free foot must be L or R'
+        for s in e['steps']:
+            if not model.COUNT_RE.match(str(s.get('count', ''))):
+                return f'{e["name"]!r}: {s.get("count")!r} is not a count label (1, 2, 3&, ...)'
+            if s.get('dancer') not in ('L', 'F') or s.get('foot') not in ('L', 'R'):
+                return f'{e["name"]!r} count {s.get("count")}: dancer must be L or F and foot L or R'
+            if not all(isinstance(s.get(c), (int, float)) for c in ('x', 'y', 'heading')):
+                return f'{e["name"]!r} count {s.get("count")}: x, y and heading must be numbers'
+    return None
 
 def slug(s):
     return re.sub(r'[^a-z0-9]+', '_', s.lower()).strip('_')
@@ -103,9 +135,6 @@ class H(BaseHTTPRequestHandler):
         if p == '/api/skeletons':
             with open(model.SKELETONS, 'rb') as f:
                 return self._send(200, f.read(), 'application/json')
-        if p == '/api/baseline':
-            with open(model.BASELINE, 'rb') as f:
-                return self._send(200, f.read(), 'application/json')
         if p == '/api/compositions':
             with open(model.COMPOSITIONS, 'rb') as f:
                 return self._send(200, f.read(), 'application/json')
@@ -118,9 +147,12 @@ class H(BaseHTTPRequestHandler):
             comp = model.compose(data, model.composition_sequence(c), c['start_state'])
             comp['definition'] = c
             return self._json(comp)
-        if p in ('/api/diff', '/api/check'):
-            script = 'diff.py' if p == '/api/diff' else 'check.py'
-            r = subprocess.run([sys.executable, os.path.join(DANCE, script)], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=DANCE)
+        if p == '/api/version':
+            # the page warns when this process runs older code than the files on disk
+            newest = max(os.path.getmtime(f) for f in CODE_FILES if os.path.exists(f))
+            return self._json({'started': STARTED, 'newest': newest, 'stale': newest > STARTED + 1})
+        if p == '/api/check':
+            r = subprocess.run([sys.executable, os.path.join(DANCE, 'check.py')], capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=DANCE)
             return self._send(200, (r.stdout or '') + (r.stderr or ''))
         if p.startswith('/api/track/'):
             key = p[len('/api/track/'):]
@@ -173,6 +205,9 @@ class H(BaseHTTPRequestHandler):
                 assert 'elements' in data and 'states' in data
             except Exception as e:
                 return self._send(400, f'bad json: {e}')
+            bad = invalid_skeletons(data)
+            if bad:
+                return self._send(400, f'not saved: {bad}')
             model.save(data, model.SKELETONS)
             return self._send(200, 'saved')
         if p == '/api/compose':
@@ -267,12 +302,63 @@ class H(BaseHTTPRequestHandler):
     def log_message(self, fmt, *args):
         sys.stderr.write('%s %s\n' % (self.address_string(), fmt % args))
 
+def listeners(port):
+    """PIDs of the processes listening on this TCP port (other than this one)."""
+    pids = set()
+    if os.name == 'nt':
+        out = subprocess.run(['netstat', '-ano', '-p', 'TCP'], capture_output=True, text=True, errors='replace').stdout
+        out += subprocess.run(['netstat', '-ano', '-p', 'TCPv6'], capture_output=True, text=True, errors='replace').stdout
+        for line in out.splitlines():
+            f = line.split()
+            # TCP  <local>  <foreign>  <state>  <pid>; a listener's foreign address is 0.0.0.0:0 or [::]:0
+            if len(f) == 5 and f[0] == 'TCP' and f[1].rsplit(':', 1)[-1] == str(port) and f[2] in ('0.0.0.0:0', '[::]:0'):
+                pids.add(int(f[4]))
+    else:
+        out = subprocess.run(['lsof', '-t', f'-iTCP:{port}', '-sTCP:LISTEN'], capture_output=True, text=True).stdout
+        pids = {int(x) for x in out.split()}
+    pids.discard(os.getpid())
+    pids.discard(0)
+    return pids
+
+def end_old_servers(port):
+    """Stop whatever already listens on the port, such as an editor started earlier that still runs old code."""
+    for pid in listeners(port):
+        print(f'port {port} was taken by process {pid}: ending it', flush=True)
+        if os.name == 'nt':
+            subprocess.run(['taskkill', '/PID', str(pid), '/F'], capture_output=True)
+        else:
+            try:
+                os.kill(pid, 15)
+            except OSError:
+                pass
+
+class Server(ThreadingHTTPServer):
+    # Windows lets a second server bind a port that is in use when SO_REUSEADDR is set, and the requests keep going to
+    # the first one. Take the port exclusively there instead.
+    allow_reuse_address = os.name != 'nt'
+
+    def server_bind(self):
+        if os.name == 'nt':
+            import socket
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--port', type=int, default=8771)
     a = ap.parse_args()
-    srv = ThreadingHTTPServer(('127.0.0.1', a.port), H)
-    print(f'editor at http://127.0.0.1:{a.port}/   (ctrl-c to stop)')
+    end_old_servers(a.port)
+    for attempt in range(50):   # an ended process can take a moment to let go of the port
+        try:
+            srv = Server(('127.0.0.1', a.port), H)
+            break
+        except OSError:
+            if attempt == 49:
+                raise
+            if attempt % 10 == 9:
+                end_old_servers(a.port)
+            time.sleep(0.1)
+    print(f'editor at http://127.0.0.1:{a.port}/   (ctrl-c to stop)', flush=True)
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

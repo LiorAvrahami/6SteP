@@ -6,14 +6,14 @@
 <style>
   :root { --leader: #2e6ee6; --follower: #eb50a0; --bg: #f8f6f0; --ink: #222; --muted: #777; }
   html, body { margin: 0; height: 100%; font: 14px/1.4 system-ui, Segoe UI, Arial, sans-serif; color: var(--ink); background: var(--bg); }
-  #app { display: grid; grid-template-columns: 1fr 420px; height: 100vh; }
+  #app { display: grid; grid-template-columns: 1fr 400px; height: 100vh; }
   #floorWrap { position: relative; min-width: 0; }
   #floor { width: 100%; height: 100%; display: block; background: #fff; cursor: crosshair; }
   #videoWrap { position: absolute; right: 12px; bottom: 12px; width: 640px; max-width: 60%; background: #111; border-radius: 6px; box-shadow: 0 4px 18px rgba(0,0,0,.35); display: none; }
   #videoWrap video { width: 100%; display: block; border-radius: 6px 6px 0 0; }
   #videoBar { display: flex; justify-content: space-between; align-items: center; color: #ddd; font-size: 12px; padding: 4px 8px; }
   #videoBar button { padding: 2px 8px; }
-  #side { border-left: 1px solid #ddd; display: flex; flex-direction: column; min-height: 0; background: #fafafa; }
+  #side { border-left: 1px solid #ddd; display: flex; flex-direction: column; min-height: 0; background: #fafafa; overflow-y: auto; }
   #side header { padding: 10px 12px; border-bottom: 1px solid #e3e3e3; }
   #mode { display: flex; gap: 0; margin-bottom: 8px; }
   #mode button { flex: 1; border-radius: 0; }
@@ -27,13 +27,17 @@
   #compList li .cond { color: var(--muted); font-size: 11px; white-space: nowrap; }
   #compList li .sub { color: #7a4b00; font-size: 11px; }
   .mapBox .grp { color: #7a4b00; font-size: 11px; display: block; }
-  #buttons { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+  #buttons, #elemEdit { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
+  #elemEdit { margin-top: 6px; }
+  #elemEdit .sep { width: 1px; height: 22px; background: #ddd; margin: 0 2px; }
   button { font: inherit; padding: 5px 10px; border: 1px solid #bbb; background: #fff; border-radius: 4px; cursor: pointer; }
   button:hover { background: #f0f0f0; }
   button:disabled { opacity: .45; cursor: default; }
-  #save.dirty, #saveComps.dirty { border-color: #d33; color: #d33; font-weight: 600; }
+  #saveComps.dirty { border-color: #d33; color: #d33; font-weight: 600; }
   #play.on { background: #1a9c4a; color: #fff; border-color: #1a9c4a; }
+  #help { min-width: 32px; }
   #status { color: var(--muted); font-size: 12px; margin-top: 6px; min-height: 16px; white-space: pre-wrap; }
+  #stale { display: none; background: #fff0f0; color: #a11; border-bottom: 1px solid #f1c4c4; padding: 8px 12px; font-size: 13px; }
   #compEdit { display: none; padding: 8px 12px; border-bottom: 1px solid #e3e3e3; background: #f6f6f2; }
   #compEdit .row { display: flex; gap: 6px; align-items: center; margin-bottom: 6px; flex-wrap: wrap; }
   #compEdit label { font-size: 12px; color: var(--muted); }
@@ -47,29 +51,39 @@
   #addElement { flex: 1; min-width: 160px; }
   #map { display: none; padding: 8px 12px; border-bottom: 1px solid #e3e3e3; background: #f3f3f0; }
   #map h4 { margin: 0 0 6px; font-size: 12px; color: var(--muted); font-weight: 500; }
-  #mapStrip { display: flex; flex-wrap: wrap; gap: 4px; }
+  #mapStrip { display: flex; flex-wrap: wrap; gap: 4px; max-height: 18vh; overflow: auto; }
   .mapBox { border: 1px solid #bbb; border-radius: 4px; padding: 3px 7px; font-size: 12px; background: #fff; cursor: pointer; line-height: 1.25; }
   .mapBox:hover { background: #eef3ff; }
   .mapBox.on { border-color: #2e6ee6; background: #e2ebff; }
   .mapBox .n { color: var(--muted); font-size: 11px; }
   .mapBox .st { color: var(--muted); font-size: 11px; display: block; }
   .err { color: #c22; font-size: 12px; margin-top: 4px; }
-  #flow { flex: 1; overflow: auto; min-height: 0; }
+  #flow { flex: 1 0 180px; overflow: auto; min-height: 180px; }
   table { border-collapse: collapse; width: 100%; }
   tr.step { cursor: pointer; }
   tr.step:hover { background: #f0f4ff; }
   tr.step.sel { background: #e2ebff; }
   tr.step.sel.last { outline: 2px solid #6a8dff; outline-offset: -2px; }
   tr.step.elemStart td { border-top: 2px solid #c9c9c9; }
-  tr.step.now td { background: #fff3c4; }
   td, th { padding: 3px 6px; border-bottom: 1px solid #eee; font-variant-numeric: tabular-nums; white-space: nowrap; }
   th { text-align: left; color: var(--muted); font-weight: 500; position: sticky; top: 0; background: #fafafa; }
   td.L { color: var(--leader); font-weight: 600; } td.F { color: var(--follower); font-weight: 600; }
   td.num { text-align: right; }
   td.el { color: #555; font-size: 12px; }
-  #help { padding: 8px 12px; border-top: 1px solid #e3e3e3; color: var(--muted); font-size: 12px; }
-  #out { padding: 8px 12px; border-top: 1px solid #e3e3e3; font: 12px/1.35 ui-monospace, Consolas, monospace; white-space: pre-wrap; max-height: 30vh; overflow: auto; background: #fff; display: none; }
-  #notes { padding: 6px 12px; font-size: 12px; color: #555; border-top: 1px solid #e3e3e3; max-height: 18vh; overflow: auto; }
+  td.ed { cursor: text; } td input.cellEdit { width: 64px; font: inherit; padding: 1px 3px; }
+  #overlay { position: absolute; top: 12px; left: 12px; width: min(640px, calc(100% - 24px)); max-height: calc(100% - 24px); display: none; flex-direction: column;
+             background: #fff; border: 1px solid #ccc; border-radius: 8px; box-shadow: 0 6px 24px rgba(0,0,0,.25); z-index: 5; }
+  #ovHead { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid #eee; gap: 8px; }
+  #ovBody { padding: 10px 14px 14px; overflow: auto; white-space: pre-wrap; font-size: 14px; line-height: 1.5; }
+  #ovBody.mono { font: 12px/1.4 ui-monospace, Consolas, monospace; }
+  #ovBody.form { white-space: normal; }
+  #ovBody.form .f { display: grid; grid-template-columns: 120px 1fr; gap: 8px 10px; align-items: center; }
+  #ovBody.form label { color: var(--muted); font-size: 13px; }
+  #ovBody.form input, #ovBody.form select { font: inherit; padding: 4px 6px; box-sizing: border-box; min-width: 0; }
+  #ovBody.form .two { display: flex; gap: 6px; } #ovBody.form .two select { flex: 1; }
+  #ovBody.form .hint { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+  #ovBody.form .msg { grid-column: 1 / -1; color: #c22; font-size: 13px; min-height: 18px; }
+  #ovBody.form .act { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
 </style>
 </head>
 <body>
@@ -77,21 +91,30 @@
   <div id="floorWrap">
     <canvas id="floor"></canvas>
     <div id="videoWrap"><video id="video" controls></video><div id="videoBar"><span id="videoName"></span><button id="videoClose">close</button></div></div>
+    <div id="overlay"><div id="ovHead"><b id="ovTitle"></b><button id="ovClose" title="close (Esc)">close</button></div><div id="ovBody"></div></div>
   </div>
   <div id="side">
+    <div id="stale"></div>
     <header>
       <div id="mode"><button id="modeElements" class="on">elements</button><button id="modeCompositions">compositions</button></div>
       <select id="element"></select>
       <div id="variantRow"><label for="variant">starting condition</label><select id="variant"></select><span id="variantLabel"></span></div>
       <div id="buttons">
-        <button id="play" title="plays the dance on the floor in a loop, with the music">play</button>
+        <button id="play" title="plays the dance on the floor in a loop, with the music (space)">play</button>
         <select id="track" title="track"><option value="hot">Hot Swing 144</option><option value="sunday">Sunday Reflection 127</option><option value="slow">Slow Your Roll 123</option></select>
         <button id="render" title="renders an mp4 with ffmpeg">render video</button>
-        <button id="save">save edits</button>
-        <button id="diff">show diff</button>
-        <button id="check">run check</button>
-        <button id="undo">undo</button>
-        <button id="fit">fit view</button>
+        <button id="undo" title="undo (ctrl-z)">undo</button>
+        <button id="fit" title="fit the floor to the element">fit view</button>
+        <button id="check" title="runs the rule checker (python dance/check.py)">check</button>
+        <button id="help" title="how to use the editor">?</button>
+      </div>
+      <div id="elemEdit">
+        <button id="newElem" title="a new element, or a new starting condition of an existing one">new element…</button>
+        <button id="editElem" title="name, where it starts and ends">edit…</button>
+        <button id="deleteElem" title="delete this starting condition of the element (ctrl-z brings it back)">delete</button>
+        <span class="sep"></span>
+        <button id="addCount" title="adds a count after the selection: each dancer's free foot, in place; then drag the feet">add count</button>
+        <button id="removeSteps" title="removes the selected steps (Delete key; ctrl-z brings them back)">remove steps</button>
       </div>
       <div id="status"></div>
     </header>
@@ -105,17 +128,13 @@
     </div>
     <div id="map"><h4>map of the composition (click an element to select its steps)</h4><div id="mapStrip"></div></div>
     <div id="flow"><table><thead id="head"></thead><tbody id="rows"></tbody></table></div>
-    <div id="notes"></div>
-    <div id="out"></div>
-    <div id="help">click a step; shift-click extends the range; up/down move the selection by one (wrapping); shift+up/down grow it at that edge, ctrl+shift+up/down shrink it there. On the floor: left-drag moves a selected foot (1 cm), right-drag rotates it (5 deg, hold alt for 1 deg); ctrl-z undoes; wheel zooms, dragging empty floor pans. Arrows show where each foot faces. Faint grey = where every foot stands before the first selected step; the start-state feet are outlined. "play" loops the element or composition on the floor with the music (no ffmpeg): the music runs on and the dance continues from where the dancers are, padded with triple steps (marked as filler) when it would not loop on its own; an element that ends in another position restarts from its start; "render video" makes an mp4. An element has one skeleton per starting condition (state and free foot): the dropdown picks it. Every edit autosaves within a second. Compositions are lists of entries: an element, a sub-composition (a named list of elements, e.g. RTT), or either "x N"; each entry's starting condition is dictated by the previous one and the add list offers only what can follow.</div>
   </div>
 </div>
 <script>
 (function () {
-  const FOOT_LEN = 26.4, SHOULDER = 18, ARM_MAX = 65, BODY_R = 10;
-  const SHOW_BODIES = false, SHOW_HANDS = false;   // not drawn for now (user 2026-10-19), as in the app
+  const FOOT_LEN = 26.4, HEEL_AXIS = 8.7;   // a foot turns about the centre of its heel, 8.7 cm behind the shoe's centre (user 2026-10-25)
   const RAMP = 0.3, RAMP_FRACTION = 0.45, DEFAULT_SWING = 0.67, SHIFT = 0.3;   // SHIFT: neutral stance to the standing foot
-  const COL = { L: '#2e6ee6', F: '#eb50a0' }, RGB = { L: [46, 110, 230], F: [235, 80, 160] };
+  const COL = { L: '#2e6ee6', F: '#eb50a0' };
   let data = null, ei = 0;
   let mode = 'elements';
   let comps = [], subs = [], ci = 0, compView = null, compsDirty = false;
@@ -134,15 +153,15 @@
   const norm = a => ((a + 180) % 360 + 360) % 360 - 180;
   const dist = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
   const smoothstep = u => { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
   // ---------- the current step list: an element, or a composition's composed timeline (read-only on the floor)
   function elem() {
     if (mode === 'elements') return data.elements[ei];
     const c = compList()[ci];
-    if (!c) return { name: '(no composition)', start_state: 'side', end_state: 'side', beats: 0, steps: [], hands: [], composition: true, source: '', notes: '' };
+    if (!c) return { name: '(no composition)', start_state: 'side', end_state: 'side', beats: 0, steps: [], hands: [], composition: true };
     return { name: c.name, start_state: c.start_state, end_state: compView ? compView.end_state : c.start_state,
-             beats: compView ? compView.length : 0, steps: compView ? compView.steps : [], hands: [], composition: true,
-             source: 'composition: ' + c.elements.join(', ') + (c.repeat > 1 ? ' (x' + c.repeat + ')' : ''), notes: c.notes || '' };
+             beats: compView ? compView.length : 0, steps: compView ? compView.steps : [], hands: [], composition: true };
   }
   function startFeet() {
     if (mode === 'compositions' && compView && compView.start && Object.keys(compView.start).length) { const o = {}; for (const k in compView.start) o[k] = compView.start[k].slice(); return o; }
@@ -152,6 +171,26 @@
   function selIndices() { const out = []; for (let k = 0; k < sel.len; k++) out.push((sel.start + k) % n()); return out; }
   function selLast() { return (sel.start + sel.len - 1) % n(); }
   function readOnly() { return mode === 'compositions'; }
+  // ---------- counts: the steps that land on the same count (of the same element) move together, so the selection and the
+  // arrow keys go count by count. The steps of a count are consecutive in every step list.
+  function groupKey(s) { return (s.element === undefined ? '' : s.element) + '|' + s.count; }
+  function groups() { const st = elem().steps, g = []; st.forEach((s, i) => { if (i && groupKey(st[i - 1]) === groupKey(s)) g[g.length - 1][1]++; else g.push([i, 1]); }); return g; }
+  function groupAt(i) { return groups().find(([a, l]) => i >= a && i < a + l) || [i, 1]; }
+  function selectCount(i) { const [a, l] = groupAt(i); sel = { start: a, len: l }; }
+  function selLastCount() { const e = elem(); if (!e.steps.length) return []; const k = groupKey(e.steps[selLast()]); return selIndices().filter(i => groupKey(e.steps[i]) === k); }
+  function moveSelection(key, shift, ctrl) {
+    // up/down: the previous or next count; shift: grow by a count at that edge; ctrl+shift: shrink by a count there
+    const N = n(); if (!elem().steps.length) return;
+    const dir = key === 'ArrowDown' ? 1 : -1, last = selLast();
+    if (shift && ctrl) {
+      if (dir === 1) { const [a] = groupAt(last); const cut = ((last - a) % N + N) % N + 1; if (cut < sel.len) sel.len -= cut; }
+      else { const [a, l] = groupAt(sel.start); const cut = a + l - sel.start; if (cut < sel.len) { sel.start = (sel.start + cut) % N; sel.len -= cut; } }
+    } else if (shift) {
+      if (sel.len >= N) return;
+      if (dir === 1) { const [a, l] = groupAt((last + 1) % N); sel.len = Math.min(N, ((a + l - 1 - sel.start) % N + N) % N + 1); }
+      else { const [a] = groupAt((sel.start - 1 + N) % N); sel.len = Math.min(N, sel.len + ((sel.start - a) % N + N) % N); sel.start = a; }
+    } else selectCount(dir === 1 ? (last + 1) % N : (sel.start - 1 + N) % N);
+  }
 
   // ---------- geometry helpers
   function px(p) { return [cv.width / 2 + (p[0] - view.cx) * view.scale, cv.height / 2 - (p[1] - view.cy) * view.scale]; }
@@ -177,6 +216,8 @@
     const f = fwd(h), r = right(h), m = side === 'L' ? 1 : -1;
     return SHOE_L.map(piece => piece.map(([u, v]) => [x + u * m * r[0] + v * f[0], y + u * m * r[1] + v * f[1]]));
   }
+  /** the centre of the heel of a foot placed at (x, y, h): the point a foot turns about */
+  function heelOf(x, y, h) { const f = fwd(h); return [x - f[0] * HEEL_AXIS, y - f[1] * HEEL_AXIS]; }
   function feetBefore(upto) {
     const e = elem(); const feet = startFeet();
     for (let i = 0; i < upto; i++) { const s = e.steps[i]; feet[s.dancer + '.' + s.foot] = [s.x, s.y, s.heading]; }
@@ -194,42 +235,6 @@
     view.scale = Math.max(1.2, Math.min(cv.width / (x1 - x0 + 90), cv.height / (y1 - y0 + 90), 6));
     draw();
   }
-  function bodyOf(a, b) {
-    const cx = (a[0] + b[0]) / 2, cy = (a[1] + b[1]) / 2;
-    const sx = Math.sin(a[2] * Math.PI / 180) + Math.sin(b[2] * Math.PI / 180), sy = Math.cos(a[2] * Math.PI / 180) + Math.cos(b[2] * Math.PI / 180);
-    return [cx, cy, Math.atan2(sx, sy) * 180 / Math.PI];
-  }
-  function shoulder(b, side) { const r = right(b[2]); const k = side === 'R' ? SHOULDER : -SHOULDER; return [b[0] + r[0] * k, b[1] + r[1] * k]; }
-  function bodyPoint(b, which) {
-    const f = fwd(b[2]), r = right(b[2]);
-    if (which === 'back') return [b[0] - f[0] * 8, b[1] - f[1] * 8];
-    if (which === 'lshoulder') return shoulder(b, 'L');
-    if (which === 'rshoulder') return shoulder(b, 'R');
-    if (which === 'lhip') return [b[0] - r[0] * 12, b[1] - r[1] * 12];
-    if (which === 'rhip') return [b[0] + r[0] * 12, b[1] + r[1] * 12];
-    return [b[0], b[1]];
-  }
-  function resolveHand(conn, bodies) {
-    const raised = conn.includes('^'); const under = raised ? conn.split('^')[1] : null; const c = conn.split('^')[0];
-    const [owner, target] = c.split('-'); const d1 = owner[0], h1 = owner[1]; const s1 = shoulder(bodies[d1], h1); const arms = [];
-    if (target.length === 2 && (target[0] === 'L' || target[0] === 'F')) {
-      const d2 = target[0], h2 = target[1]; const s2 = shoulder(bodies[d2], h2);
-      const hand = (under === 'L' || under === 'F') ? [bodies[under][0], bodies[under][1]] : [(s1[0] + s2[0]) / 2, (s1[1] + s2[1]) / 2];
-      const ok = dist(s1, hand) <= ARM_MAX && dist(s2, hand) <= ARM_MAX;
-      arms.push([d1, h1, s1, hand, raised, ok]); arms.push([d2, h2, s2, hand, raised, ok]);
-    } else {
-      const d2 = d1 === 'L' ? 'F' : 'L'; const hand = bodyPoint(bodies[d2], target);
-      arms.push([d1, h1, s1, hand, raised, dist(s1, hand) <= ARM_MAX]);
-    }
-    return arms;
-  }
-  function elbow(sh, hand, sign) {
-    const half = ARM_MAX / 2, d = dist(sh, hand), mx = (sh[0] + hand[0]) / 2, my = (sh[1] + hand[1]) / 2;
-    if (d < 1e-6) return [mx, my];
-    const limit = Math.sqrt(Math.max(0, half * half - (d / 2) ** 2)), off = Math.min(0.22 * d + 4, limit);
-    const ux = (hand[0] - sh[0]) / d, uy = (hand[1] - sh[1]) / d;
-    return [mx + uy * sign * off, my - ux * sign * off];
-  }
 
   // ---------- drawing
   function drawFoot(x, y, h, side, color, alpha, label, outlineOnly, greyBase) {
@@ -239,22 +244,9 @@
     path(); ctx.globalAlpha = alpha;
     if (outlineOnly) { ctx.strokeStyle = color; ctx.lineWidth = 1.5; ctx.stroke(); }
     else if (alpha > 0.001) { ctx.fillStyle = color; ctx.fill(); }
-    // no arrow and no letter, as in the app: the pointed toe shows the heading and sits on the big-toe side (user 2026-10-19)
     ctx.globalAlpha = 1;
     const f = fwd(h);
     if (label) { const tp = px([x + f[0] * (FOOT_LEN / 2 + 6), y + f[1] * (FOOT_LEN / 2 + 6)]); ctx.fillStyle = color; ctx.font = 'bold ' + Math.max(10, view.scale * 5) + 'px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(label, tp[0], tp[1]); }
-  }
-  function drawBody(b, d, alpha) {
-    const p = px([b[0], b[1]]); ctx.beginPath(); ctx.arc(p[0], p[1], BODY_R * view.scale, 0, Math.PI * 2);
-    ctx.fillStyle = COL[d]; ctx.globalAlpha = alpha || 0.15; ctx.fill(); ctx.globalAlpha = 0.6; ctx.strokeStyle = COL[d]; ctx.lineWidth = 1; ctx.stroke(); ctx.globalAlpha = 1;
-    const f = fwd(b[2]); const t = px([b[0] + f[0] * 16, b[1] + f[1] * 16]); ctx.beginPath(); ctx.moveTo(p[0], p[1]); ctx.lineTo(t[0], t[1]); ctx.stroke();
-  }
-  function drawArm(d, side, sh, hand, raised, ok) {
-    const el = elbow(sh, hand, side === 'R' ? 1 : -1);
-    ctx.strokeStyle = ok ? COL[d] : '#dc1e1e'; ctx.globalAlpha = raised ? 0.5 : 0.9; ctx.lineWidth = Math.max(2, view.scale * 2);
-    const a = px(sh), b = px(el), c = px(hand);
-    ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.lineTo(c[0], c[1]); ctx.stroke();
-    ctx.fillStyle = ok ? COL[d] : '#dc1e1e'; ctx.beginPath(); ctx.arc(c[0], c[1], Math.max(2, view.scale * 2.2), 0, Math.PI * 2); ctx.fill(); ctx.globalAlpha = 1;
   }
   function drawGrid() {
     const W = cv.width, H = cv.height; ctx.clearRect(0, 0, W, H);
@@ -269,18 +261,27 @@
     ctx.fillStyle = '#999'; ctx.font = '12px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.fillText((readOnly() ? 'composition: ' + elem().name + '. ' : '') + 'cm; +y is the leader\'s forward at the start, heading clockwise from +y; grid 20 cm', 8, 8);
     const e = elem();
-    const st = startFeet();
-    for (const k in st) { const [d, s] = k.split('.'); drawFoot(st[k][0], st[k][1], st[k][2], s, COL[d], 0.35, '', true); }
-    if (!e.steps.length) return;
+    if (!e.steps.length) { const st = startFeet(); for (const k in st) { const [d, s] = k.split('.'); drawFoot(st[k][0], st[k][1], st[k][2], s, COL[d], 0.35, '', true); } return; }
     const idx = selIndices(); const before = feetBefore(idx[0]);
-    for (const k in before) { const s = k.split('.')[1]; drawFoot(before[k][0], before[k][1], before[k][2], s, '#777', 0.18, '', false); }
-    const after = feetBefore(selLast() + 1);
-    if (SHOW_BODIES) { drawBody(bodyOf(after['L.L'], after['L.R']), 'L'); drawBody(bodyOf(after['F.L'], after['F.R']), 'F'); }
+    // where each selected step comes from: the foot's place just before that step (a range that wraps round restarts at the start)
+    let cur = feetBefore(idx[0]); const firstFrom = {}, paths = [];
+    idx.forEach(i => { if (i === 0 && idx[0] !== 0) cur = startFeet(); const s = e.steps[i], k = s.dancer + '.' + s.foot;
+      if (!(k in firstFrom)) firstFrom[k] = cur[k]; paths.push([cur[k], s]); cur[k] = [s.x, s.y, s.heading]; });
+    // a foot that does not move in the selected steps: light grey with its dancer's outline
+    for (const k in before) { if (k in firstFrom) continue; const [d, s] = k.split('.'); const p = before[k];
+      drawFoot(p[0], p[1], p[2], s, '#777', 0.18, '', false); drawFoot(p[0], p[1], p[2], s, COL[d], 0.35, '', true); }
+    // a foot that moves: grey where it was before its first selected step, and a dashed line from there to each landing
+    for (const k in firstFrom) { const p = firstFrom[k]; drawFoot(p[0], p[1], p[2], k.split('.')[1], '#777', 0.5, '', false); }
+    ctx.setLineDash([6, 5]); ctx.lineWidth = 1.5; ctx.globalAlpha = 0.85;
+    for (const [from, s] of paths) { if (!from || Math.hypot(s.x - from[0], s.y - from[1]) < 0.5) continue;
+      const a = px(from), b = px([s.x, s.y]); ctx.strokeStyle = COL[s.dancer]; ctx.beginPath(); ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]); ctx.stroke(); }
+    ctx.setLineDash([]); ctx.globalAlpha = 1;
     const lastOf = {}; idx.forEach(i => { const s = e.steps[i]; lastOf[s.dancer + '.' + s.foot] = i; });
     idx.forEach(i => { const s = e.steps[i]; const key = s.dancer + '.' + s.foot;
       drawFoot(s.x, s.y, s.heading, s.foot, COL[s.dancer], lastOf[key] === i ? 0.9 : 0.45, s.count, false); });
-    const ls = e.steps[selLast()];
-    ctx.beginPath(); for (const piece of footPoly(ls.x, ls.y, ls.heading, ls.foot)) { piece.map(px).forEach((p, i) => i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); }
+    // outline every foot of the last selected count: the leader's and the follower's step of that count move together
+    ctx.beginPath();
+    for (const i of selLastCount()) { const ls = e.steps[i]; for (const piece of footPoly(ls.x, ls.y, ls.heading, ls.foot)) { piece.map(px).forEach((p, j) => j ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1])); ctx.closePath(); } }
     ctx.strokeStyle = '#222'; ctx.lineWidth = 2; ctx.stroke();
   }
 
@@ -292,22 +293,32 @@
   }
   function renderRows() {
     const e = elem(), tb = $('rows'); tb.innerHTML = '';
-    $('head').innerHTML = '<tr><th>#</th>' + (e.composition ? '<th>element</th>' : '') + '<th>count</th><th>who</th><th>code</th><th>x</th><th>y</th><th>head</th><th>hands</th></tr>';
-    const idx = new Set(selIndices()), last = selLast();
+    $('head').innerHTML = '<tr><th>#</th>' + (e.composition ? '<th>element</th>' : '') + '<th>count</th><th>who</th><th>x</th><th>y</th><th>head</th></tr>';
+    const idx = new Set(selIndices()), lastCount = new Set(selLastCount());
     e.steps.forEach((s, i) => {
       const tr = document.createElement('tr');
       const elemStart = e.composition && (i === 0 || e.steps[i - 1].element !== s.element);
-      tr.className = 'step' + (idx.has(i) ? ' sel' : '') + (i === last ? ' last' : '') + (elemStart ? ' elemStart' : '');
-      const elCell = e.composition ? `<td class="el">${elemStart ? (s.element + ' ' + compView.elements[s.element].name + (compView.elements[s.element].group ? ' · ' + compView.elements[s.element].group : '')) : ''}</td>` : '';
-      tr.innerHTML = `<td class="num">${i}</td>${elCell}<td>${s.count}</td><td class="${s.dancer}">${s.dancer}.${s.foot}</td><td>${s.code || ''}</td>` +
-        `<td class="num">${s.x.toFixed(0)}</td><td class="num">${s.y.toFixed(0)}</td><td class="num">${(((s.heading % 360) + 360) % 360).toFixed(0)}</td><td style="color:#999">${handsAt(i).join(' ')}</td>`;
-      tr.title = (s.src ? 'src: ' + s.src : '') + (s.note ? '\n' + s.note : '') + (s.exempt ? '\nexempt from the collision rule (close hold)' : '');
-      tr.addEventListener('click', ev => { if (ev.shiftKey) { sel.len = ((i - sel.start) % n() + n()) % n() + 1; } else { sel = { start: i, len: 1 }; } refresh(); });
+      tr.className = 'step' + (idx.has(i) ? ' sel' : '') + (lastCount.has(i) ? ' last' : '') + (elemStart ? ' elemStart' : '');
+      const cell = (text, cls) => { const c = document.createElement('td'); c.textContent = text; if (cls) c.className = cls; tr.appendChild(c); return c; };
+      cell(String(i), 'num');
+      if (e.composition) cell(elemStart ? (s.element + ' ' + compView.elements[s.element].name + (compView.elements[s.element].group ? ' · ' + compView.elements[s.element].group : '')) : '', 'el');
+      const cCount = cell(String(s.count)), cWho = cell(s.dancer + '.' + s.foot, s.dancer);
+      cell(s.x.toFixed(0), 'num'); cell(s.y.toFixed(0), 'num'); cell((((s.heading % 360) + 360) % 360).toFixed(0), 'num');
+      if (!readOnly()) {
+        // double-click edits: the count (of every selected step when this one is selected), the foot (switches L/R)
+        cCount.className = 'ed'; cCount.title = 'double-click to change the count';
+        cCount.addEventListener('dblclick', () => editCell(cCount, String(s.count), v => setCount(i, v)));
+        cWho.className = s.dancer + ' ed'; cWho.title = 'double-click to switch the foot';
+        cWho.addEventListener('dblclick', () => switchFoot(i));
+      }
+      if (s.exempt) tr.title = 'exempt from the collision rule (close hold)';
+      // a click selects the whole count (both dancers' feet); shift-click extends to the end of the clicked count; ctrl-click picks one foot
+      tr.addEventListener('click', ev => { if (ev.ctrlKey || ev.metaKey) sel = { start: i, len: 1 };
+        else if (ev.shiftKey) { const [a, l] = groupAt(i); sel.len = ((a + l - 1 - sel.start) % n() + n()) % n() + 1; } else selectCount(i); refreshSelection(); });
       tb.appendChild(tr);
     });
     const row = tb.querySelector('tr.last'); if (row && !player.on) row.scrollIntoView({ block: 'nearest' });
-    $('notes').textContent = `${e.name} — from ${e.start_state} to ${e.end_state}, ${e.beats} beats` + (e.composition ? '' : `, leader free ${e.leader_free_start || 'L'}`) + `\nsource: ${e.source}\n${e.notes || ''}`;
-    renderMap();
+    renderMap(); renderElemEdit();
   }
   function renderMap() {
     const m = $('map'), strip = $('mapStrip');
@@ -324,8 +335,15 @@
     if (compView.errors && compView.errors.length) { const err = document.createElement('div'); err.className = 'err'; err.textContent = compView.errors.join('; '); strip.appendChild(err); }
   }
   function refresh() { renderRows(); draw(); }
+  // a click on a row changes only the highlights: the rows stay, so a double-click on a cell reaches the same cell
+  function refreshSelection() {
+    const e = elem(), idx = new Set(selIndices()), lastCount = new Set(selLastCount()), rows = Array.from($('rows').children);
+    rows.forEach((tr, i) => { const elemStart = e.composition && i > 0 && e.steps[i - 1].element !== e.steps[i].element || (e.composition && i === 0);
+      tr.className = 'step' + (idx.has(i) ? ' sel' : '') + (lastCount.has(i) ? ' last' : '') + (elemStart ? ' elemStart' : ''); });
+    renderMap(); draw();
+  }
 
-  // ---------- one element, several starting conditions (state + free foot): the slider picks the variant
+  // ---------- one element, several starting conditions (state + free foot): the dropdown picks the variant
   function elementNames() { const seen = new Set(); return data.elements.map(e => e.name).filter(nm => seen.has(nm) ? false : seen.add(nm)); }
   const STATE_ORDER = { side: 0, facing: 1, reversed_side: 2 };
   function variantsOf(name) { return data.elements.map((e, i) => i).filter(i => data.elements[i].name === name)
@@ -342,11 +360,186 @@
   }
   function selectElement(name, preferState, preferFree) {
     const vs = variantsOf(name); if (!vs.length) return;
+    if (overlayKind === 'form') closeOverlay();   // the form belongs to the element it was opened on
     let k = vs.findIndex(i => data.elements[i].start_state === preferState && (data.elements[i].leader_free_start || 'L') === preferFree);
     if (k < 0) k = vs.findIndex(i => data.elements[i].start_state === preferState);
-    ei = vs[Math.max(0, k)]; sel = { start: 0, len: 1 }; fillSelect(); renderVariant(); fit(); refresh();
+    ei = vs[Math.max(0, k)]; selectCount(0); fillSelect(); renderVariant(); fit(); refresh();
   }
-  $('variant').addEventListener('change', ev => { stopPlay(); const vs = variantsOf(data.elements[ei].name); const k = Math.max(0, Math.min(vs.length - 1, parseInt(ev.target.value, 10) || 0)); ei = vs[k]; sel = { start: 0, len: 1 }; renderVariant(); fit(); refresh(); });
+  $('variant').addEventListener('change', ev => { stopPlay(); if (overlayKind === 'form') closeOverlay(); const vs = variantsOf(data.elements[ei].name); const k = Math.max(0, Math.min(vs.length - 1, parseInt(ev.target.value, 10) || 0)); ei = vs[k]; selectCount(0); renderVariant(); fit(); refresh(); });
+
+  // ---------- adding, editing and removing elements and their steps. Every change is saved to disk at once; ctrl-z undoes it (a snapshot each)
+  const COUNT_OK = /^\d+&?$/;
+  const otherFoot = f => (f === 'L' ? 'R' : 'L');
+  const keyOf = e => e.name + '|' + e.start_state + '|' + (e.leader_free_start || 'L');
+  function pushSnapshot() { undo.push({ snap: JSON.stringify(data.elements), ei, sel: { start: sel.start, len: sel.len } }); if (undo.length > 200) undo.shift(); }
+  function countSpan(steps) {   // the element's beats from its counts, as check.py reads them: counts 3, 3&, 4 span 2 beats
+    if (!steps.length) return 0;
+    return Math.max(...steps.map(s => countTime(s.count, 1))) - Math.min(...steps.map(s => countTime(s.count, 0))) + 1;
+  }
+  function sortSteps(e) {   // by count, the leader before the follower; steps of equal place keep their order
+    const order = e.steps.map((s, k) => [countTime(s.count, 0.5), s.dancer === 'L' ? 0 : 1, k, s]);
+    order.sort((a, b) => a[0] - b[0] || a[1] - b[1] || a[2] - b[2]); e.steps = order.map(x => x[3]);
+  }
+  function stepsChanged(e, focus) {   // after a change of the step list: order, beats, selection on the focused step, save
+    sortSteps(e); e.beats = countSpan(e.steps);
+    const k = focus ? e.steps.indexOf(focus) : -1;
+    if (e.steps.length) selectCount(k >= 0 ? k : Math.min(sel.start, e.steps.length - 1)); else sel = { start: 0, len: 1 };
+    markDirty(); refresh();
+  }
+  // a dancer's frame in a state: the middle of the two feet and the heading (the same for both feet in every state)
+  function dancerFrame(feet, d) { const a = feet[d + '.L'], b = feet[d + '.R']; return { x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2, h: a[2] }; }
+  /** the steps of a template variant for another starting condition: each dancer dances the same relative to their own start
+      (the leader's left foot is at the origin in every state); a different free foot mirrors each dancer about their own middle */
+  function copySteps(t, start, free) {
+    const S0 = data.states[t.start_state].feet, S1 = data.states[start].feet, mirror = (t.leader_free_start || 'L') !== free;
+    return t.steps.map(s => {
+      const f0 = dancerFrame(S0, s.dancer), f1 = dancerFrame(S1, s.dancer);
+      const r0 = right(f0.h), q0 = fwd(f0.h), r1 = right(f1.h), q1 = fwd(f1.h);
+      const dx = s.x - f0.x, dy = s.y - f0.y; let u = dx * r0[0] + dy * r0[1], v = dx * q0[0] + dy * q0[1], dh = norm(s.heading - f0.h);
+      if (mirror) { u = -u; dh = -dh; }
+      const out = { count: String(s.count), dancer: s.dancer, foot: mirror ? otherFoot(s.foot) : s.foot,
+                    x: Math.round((f1.x + u * r1[0] + v * q1[0]) * 10) / 10, y: Math.round((f1.y + u * r1[1] + v * q1[1]) * 10) / 10,
+                    heading: Math.round((((f1.h + dh) % 360) + 360) % 360 * 10) / 10 };
+      if (s.exempt) out.exempt = true;
+      return out;
+    });
+  }
+  // the form for a new element (blank, or a copy of any skeleton) and for editing the selected one; it lives in the overlay
+  const stateOptions = sel_ => Object.keys(data.states).map(k => `<option value="${k}"${k === sel_ ? ' selected' : ''}>${k.replace('_', ' ')}</option>`).join('');
+  const freeOptions = sel_ => ['L', 'R'].map(f => `<option value="${f}"${f === sel_ ? ' selected' : ''}>${f === 'L' ? 'left' : 'right'} foot free</option>`).join('');
+  function openElementForm(editing) {
+    const cur = data.elements[ei];
+    let name = cur.name, start = cur.start_state, free = cur.leader_free_start || 'L', end = cur.end_state;
+    if (!editing) {   // propose the first starting condition this element does not have yet: a new orientation of it
+      const have = new Set(variantsOf(name).map(i => data.elements[i].start_state + '|' + (data.elements[i].leader_free_start || 'L')));
+      const freeCombo = Object.keys(data.states).flatMap(st => ['L', 'R'].map(f => [st, f])).find(([st, f]) => !have.has(st + '|' + f));
+      if (freeCombo) [start, free] = freeCombo; else name = '';
+    }
+    const templates = data.elements.map((e, i) => `<option value="${i}"${!editing && i === ei ? ' selected' : ''}>a copy of ${esc(e.name)}, ${esc(variantLabel(e))}</option>`).join('');
+    overlayKind = 'form'; $('ovTitle').textContent = editing ? 'edit element: ' + cur.name : 'new element';
+    $('ovBody').classList.toggle('mono', false); $('ovBody').classList.toggle('form', true);
+    $('ovBody').innerHTML = `<div class="f">
+      <label for="feName">name</label><div><input id="feName" list="feNames" value="${esc(name)}" style="width:100%"><datalist id="feNames">${elementNames().map(nm => `<option value="${esc(nm)}">`).join('')}</datalist></div>
+      <div class="hint">An existing name adds a new starting condition of that element; a new name makes a new element.</div>
+      <label>starts from</label><div class="two"><select id="feStart">${stateOptions(start)}</select><select id="feFree">${freeOptions(free)}</select></div>
+      <label for="feEnd">ends in</label><div class="two"><select id="feEnd">${stateOptions(end)}</select></div>
+      ${editing ? '<div class="hint">Changing where it starts does not move the steps: they stay where they are on the floor.</div>'
+                : `<label for="feFrom">steps</label><div class="two"><select id="feFrom"><option value="">none yet (add counts, then drag the feet)</option>${templates}</select></div>
+      <div class="hint">A copy keeps the counts; each dancer dances it the same way from their own start, mirrored onto the other feet when the free foot differs. Then drag the feet where they belong.</div>`}
+      <div class="msg" id="feMsg"></div>
+      <div class="act"><button id="feCancel">cancel</button><button id="feOk">${editing ? 'save' : 'create'}</button></div></div>`;
+    $('overlay').style.display = 'flex';
+    $('feCancel').addEventListener('click', closeOverlay);
+    $('feOk').addEventListener('click', () => submitElementForm(editing));
+    $('feName').addEventListener('input', () => { const nm = $('feName').value.trim(); const vs = variantsOf(nm);
+      $('feMsg').textContent = vs.length ? `"${nm}" exists ${vs.map(i => variantLabel(data.elements[i])).join('; ')}` : ''; });
+    if ($('feName').focus) $('feName').focus();
+  }
+  function submitElementForm(editing) {
+    const name = String($('feName').value || '').trim(), start = $('feStart').value, free = $('feFree').value, end = $('feEnd').value;
+    const msg = t => { $('feMsg').textContent = t; };
+    if (!name) return msg('give it a name');
+    if (!(start in data.states) || !(end in data.states) || !['L', 'R'].includes(free)) return msg('pick where it starts and ends');
+    const k = name + '|' + start + '|' + free, cur = data.elements[ei];
+    if (data.elements.some(e => keyOf(e) === k && e !== cur) || (!editing && keyOf(cur) === k)) return msg(`"${name}" already exists from ${start.replace('_', ' ')} with the ${free === 'L' ? 'left' : 'right'} foot free`);
+    pushSnapshot();
+    if (editing) {
+      const oldName = cur.name;
+      Object.assign(cur, { name, start_state: start, leader_free_start: free, end_state: end });
+      const orphaned = oldName !== name && !variantsOf(oldName).length ? [...comps, ...subs].filter(c => c.elements.some(x => parseEntry(x)[0] === oldName)).map(c => c.name) : [];
+      closeOverlay(); fillSelect(); renderVariant(); markDirty(); refresh();
+      if (orphaned.length) setStatus(`renamed; these compositions still name "${oldName}" and no longer compose: ${orphaned.join(', ')}`);
+      return;
+    }
+    const from = $('feFrom').value, t = from === '' ? null : data.elements[parseInt(from, 10)];
+    const e = { name, start_state: start, end_state: end, beats: 0, leader_free_start: free, hands: [], steps: [] };
+    if (t) {
+      e.steps = copySteps(t, start, free); e.beats = countSpan(e.steps);
+      if (t.start_state === start && (t.leader_free_start || 'L') === free) e.hands = JSON.parse(JSON.stringify(t.hands || []));
+    }
+    data.elements.push(e); ei = data.elements.length - 1; selectCount(0);
+    closeOverlay(); fillSelect(); renderVariant(); fit(); markDirty(); refresh();
+    setStatus(`created ${name}, ${variantLabel(e)}` + (e.steps.length ? '' : ': add counts with "add count", then drag the feet'));
+  }
+  function deleteElement() {
+    const e = data.elements[ei]; if (!e || data.elements.length < 2) return;
+    const others = variantsOf(e.name).filter(i => i !== ei);
+    const users = others.length ? [] : [...comps, ...subs].filter(c => c.elements.some(x => parseEntry(x)[0] === e.name)).map(c => c.name);
+    if (!confirm(`Delete "${e.name}", ${variantLabel(e)} (${e.steps.length} steps)?` +
+      (users.length ? `\n\nIt is the last starting condition of "${e.name}" and these compositions use it: ${users.join(', ')}. They will stop composing.` : '') + '\n\nctrl-z brings it back.')) return;
+    pushSnapshot(); data.elements.splice(ei, 1);
+    const next = others.length ? others[0] : Math.min(ei, data.elements.length - 1); ei = next > ei ? next - 1 : next;
+    selectCount(0); fillSelect(); renderVariant(); fit(); markDirty(); refresh();
+    setStatus(`deleted ${e.name}, ${variantLabel(e)}; ctrl-z brings it back`);
+  }
+  // steps: add a count, remove the selection, edit a count or a foot
+  function addCount() {
+    const e = data.elements[ei]; pushSnapshot();
+    const at = e.steps.length ? (() => { const [a, l] = groupAt(selLast()); return a + l; })() : 0;
+    const taken = new Set(e.steps.map(s => String(s.count)));
+    let label = null, where = at;
+    if (!e.steps.length) label = '1';
+    else { const p = String(e.steps[at - 1].count), k = parseInt(p, 10); label = (p.endsWith('&') ? [String(k + 1)] : [String(k + 1), k + '&']).find(c => !taken.has(c)) || null; }
+    if (!label) { label = String(Math.max(...e.steps.map(s => parseInt(s.count, 10))) + 1); where = e.steps.length; }
+    const free = { L: e.leader_free_start || 'L' }; free.F = otherFoot(free.L);
+    e.steps.slice(0, where).forEach(s => { free[s.dancer] = otherFoot(s.foot); });
+    const feet = feetBefore(where), added = ['L', 'F'].map(d => { const p = feet[d + '.' + free[d]];
+      return { count: label, dancer: d, foot: free[d], x: p[0], y: p[1], heading: p[2] }; });
+    e.steps.splice(where, 0, ...added);
+    stepsChanged(e, added[0]);
+    setStatus(`added count ${label}: each dancer's free foot, in place; drag the feet, double-click a count to change it`);
+  }
+  function removeSteps() {
+    const e = data.elements[ei]; if (!e.steps.length) return;
+    pushSnapshot(); const gone = new Set(selIndices());
+    e.steps = e.steps.filter((s, i) => !gone.has(i)); sel.start = Math.min(sel.start, Math.max(0, e.steps.length - 1));
+    stepsChanged(e, null); setStatus(`removed ${gone.size} step${gone.size > 1 ? 's' : ''}; ctrl-z brings them back`);
+  }
+  function setCount(i, v) {
+    if (!COUNT_OK.test(v)) { setStatus(`"${v}" is not a count: use 1, 2, 3 … or 3& for the half beat after 3`); refresh(); return; }
+    const e = data.elements[ei], s = e.steps[i], targets = selIndices().includes(i) ? selIndices().map(j => e.steps[j]) : [s];
+    pushSnapshot(); targets.forEach(t => { t.count = v; }); stepsChanged(e, s);
+  }
+  function switchFoot(i) { const e = data.elements[ei]; pushSnapshot(); e.steps[i].foot = otherFoot(e.steps[i].foot); markDirty(); refresh(); }
+  function editCell(td, value, apply) {
+    const inp = document.createElement('input'); inp.value = value; inp.className = 'cellEdit';
+    td.textContent = ''; td.appendChild(inp); if (inp.focus) inp.focus(); if (inp.select) inp.select();
+    let done = false;
+    const finish = ok => { if (done) return; done = true; const v = String(inp.value).trim(); if (ok && v !== value) apply(v); else refresh(); };
+    inp.addEventListener('keydown', ev => { if (ev.key === 'Enter') finish(true); else if (ev.key === 'Escape') finish(false); if (ev.stopPropagation) ev.stopPropagation(); });
+    inp.addEventListener('click', ev => { if (ev.stopPropagation) ev.stopPropagation(); });
+    inp.addEventListener('blur', () => finish(true));
+  }
+  function renderElemEdit() {
+    const box = $('elemEdit'); if (mode !== 'elements') { box.style.display = 'none'; return; }
+    box.style.display = 'flex';
+    $('removeSteps').disabled = !(data && data.elements[ei] && data.elements[ei].steps.length);
+    $('deleteElem').disabled = !(data && data.elements.length > 1);
+  }
+  $('newElem').addEventListener('click', () => { stopPlay(); openElementForm(false); });
+  $('editElem').addEventListener('click', () => { stopPlay(); openElementForm(true); });
+  $('deleteElem').addEventListener('click', () => { stopPlay(); deleteElement(); });
+  $('addCount').addEventListener('click', () => { stopPlay(); addCount(); });
+  $('removeSteps').addEventListener('click', () => { stopPlay(); removeSteps(); });
+
+  // ---------- the overlay: the element form, the checker's output, the help
+  const HELP = [
+    'Steps. A click on a row selects its count: the leader\'s and the follower\'s steps of that count together. Ctrl-click selects one foot alone; shift-click extends to the clicked count. Up/down move to the previous or next count (wrapping round); shift+up/down grow the selection by a count at that edge, ctrl+shift+up/down shrink it there. Double-click a count to change it (every selected step of that count changes with it); double-click the who cell to switch the foot.',
+    'Floor. Left-drag moves a selected foot (1 cm); right-drag turns it about its heel (5°, hold alt for 1°). The wheel zooms, dragging the empty floor pans. Grey = where a moving foot was, with a dashed line to where it lands; light grey with a coloured outline = a foot that stays; a dark outline = the feet of the last selected count.',
+    'Elements. An element has one skeleton per starting condition (state and free foot): the dropdown picks it. "new element…" makes an element, or a new starting condition of one when you give its name: from no steps, or from a copy of any skeleton (mirrored onto the other feet when the free foot differs). "add count" adds a count after the selection with each dancer\'s free foot in place; "remove steps" (or Delete) removes the selection. Every change is saved to dance/skeletons.json at once; ctrl-z undoes it.',
+    'Play and video. "play" (or space) loops the element or composition on the floor with the music: the music runs on and the dance continues from where the dancers are, padded with triple steps (marked as filler) when it would not loop on its own; an element that ends in another position restarts from its start. "render video" makes an mp4. "check" runs the rule checker.',
+    'Compositions. Lists of entries: an element, a sub-composition (a named list of elements, e.g. RTT), or either "x N". Each entry\'s starting condition is dictated by the previous one, and the add list offers only what can follow.',
+  ].join('\n\n');
+  let overlayKind = null;
+  function openOverlay(kind, title, text, mono) {
+    overlayKind = kind; $('ovTitle').textContent = title; $('ovBody').classList.toggle('form', false); $('ovBody').textContent = text; $('ovBody').classList.toggle('mono', !!mono);
+    $('overlay').style.display = 'flex'; $('help').classList.toggle('on', kind === 'help');
+  }
+  function closeOverlay() { overlayKind = null; $('overlay').style.display = 'none'; $('help').classList.remove('on'); }
+  $('ovClose').addEventListener('click', closeOverlay);
+  $('help').addEventListener('click', () => { if (overlayKind === 'help') closeOverlay(); else openOverlay('help', 'how to use the editor', HELP); });
+  async function showText(url, title) { const r = await fetch(url); const t = await r.text(); openOverlay('text', title, t, true); }
+  $('check').addEventListener('click', () => showText('/api/check', 'python dance/check.py'));
 
   // ---------- composition editing
   function renderCompEdit() {
@@ -389,7 +582,7 @@
     ['compName', 'compState', 'compRepeat', 'addElement', 'addElementBtn', 'deleteComp'].forEach(id => $(id).disabled = !c);
   }
   let compsAutosaveTimer = null;
-  function markCompsDirty() { compsDirty = true; $('saveComps').classList.add('dirty'); clearTimeout(compsAutosaveTimer); compsAutosaveTimer = setTimeout(saveComps, 600); }
+  function markCompsDirty() { compsDirty = true; $('saveComps').classList.add('dirty'); clearTimeout(compsAutosaveTimer); compsAutosaveTimer = setTimeout(saveComps, 400); }
   function compChanged() { markCompsDirty(); fillSelect(); renderCompEdit(); loadComposition(); }
   $('compName').addEventListener('input', ev => { const c = compList()[ci]; if (!c) return; c.name = ev.target.value; markCompsDirty(); fillSelect(); });
   $('compState').addEventListener('change', ev => { const c = compList()[ci]; if (!c) return; c.start_state = ev.target.value; compChanged(); });
@@ -402,13 +595,13 @@
   $('saveComps').addEventListener('click', saveComps);
   async function saveComps() {
     const r = await fetch('/api/compositions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ compositions: comps, sub_compositions: subs }) });
-    const t = await r.text(); if (r.ok) { compsDirty = false; $('saveComps').classList.remove('dirty'); setStatus('compositions autosaved to dance/compositions.json at ' + new Date().toLocaleTimeString()); } else setStatus('SAVE FAILED: ' + t);
+    const t = await r.text(); if (r.ok) { compsDirty = false; $('saveComps').classList.remove('dirty'); setStatus('compositions saved to dance/compositions.json at ' + new Date().toLocaleTimeString()); } else setStatus('SAVE FAILED: ' + t);
   }
 
-  // ---------- editing of elements
+  // ---------- editing on the floor: drags, undo, saving (every change is written to disk right away)
   function setStatus(t) { $('status').textContent = t; }
   let autosaveTimer = null;
-  function markDirty() { dirty = true; $('save').classList.add('dirty'); setStatus('saving…'); clearTimeout(autosaveTimer); autosaveTimer = setTimeout(save, 600); }
+  function markDirty() { dirty = true; clearTimeout(autosaveTimer); autosaveTimer = setTimeout(save, 400); }
   function pushUndo(i) { const s = elem().steps[i]; undo.push({ ei, i, x: s.x, y: s.y, heading: s.heading }); if (undo.length > 200) undo.shift(); }
   function hitStep(wx, wy) {
     const e = elem(); let best = null, bd = 15;
@@ -422,7 +615,7 @@
     if (i === null) { if (ev.button === 0) { drag = { pan: true, sx: ev.clientX, sy: ev.clientY, cx: view.cx, cy: view.cy }; } return; }
     const s = elem().steps[i]; pushUndo(i);
     if (ev.button === 0) drag = { i, mode: 'move', ox: wx - s.x, oy: wy - s.y };
-    else if (ev.button === 2) drag = { i, mode: 'rotate' };
+    else if (ev.button === 2) { const [hx, hy] = heelOf(s.x, s.y, s.heading); drag = { i, mode: 'rotate', hx, hy }; }   // the heel stays put
     ev.preventDefault();
   });
   window.addEventListener('mousemove', ev => {
@@ -430,7 +623,11 @@
     if (drag.pan) { view.cx = drag.cx - (ev.clientX - drag.sx) / view.scale; view.cy = drag.cy + (ev.clientY - drag.sy) / view.scale; draw(); return; }
     const s = elem().steps[drag.i];
     if (drag.mode === 'move') { s.x = Math.round(wx - drag.ox); s.y = Math.round(wy - drag.oy); }
-    else { const ang = Math.atan2(wx - s.x, wy - s.y) * 180 / Math.PI; const q = ev.altKey ? 1 : 5; s.heading = ((Math.round(ang / q) * q) % 360 + 360) % 360; }
+    else {   // turn about the heel: the heading follows the mouse, the centre swings round the heel
+      const ang = Math.atan2(wx - drag.hx, wy - drag.hy) * 180 / Math.PI; const q = ev.altKey ? 1 : 5;
+      s.heading = ((Math.round(ang / q) * q) % 360 + 360) % 360;
+      const f = fwd(s.heading); s.x = Math.round((drag.hx + f[0] * HEEL_AXIS) * 10) / 10; s.y = Math.round((drag.hy + f[1] * HEEL_AXIS) * 10) / 10;
+    }
     markDirty(); refresh();
   });
   window.addEventListener('mouseup', () => { if (drag && !drag.pan) { const u = undo[undo.length - 1]; const s = elem().steps[u.i]; if (u.x === s.x && u.y === s.y && u.heading === s.heading) undo.pop(); } drag = null; });
@@ -438,24 +635,29 @@
     const k = ev.deltaY < 0 ? 1.1 : 1 / 1.1; view.scale = Math.max(0.6, Math.min(12, view.scale * k));
     const [nx, ny] = world(ev.clientX - r.left, ev.clientY - r.top); view.cx += wx - nx; view.cy += wy - ny; draw(); }, { passive: false });
   document.addEventListener('keydown', ev => {
-    if (ev.target.tagName === 'SELECT' || ev.target.tagName === 'INPUT') return;
-    const N = n();
-    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') {
-      const dir = ev.key === 'ArrowDown' ? 1 : -1;
-      if (ev.shiftKey && ev.ctrlKey) { if (sel.len > 1) { if (dir === 1) sel.len -= 1; else { sel.start = (sel.start + 1) % N; sel.len -= 1; } } }
-      else if (ev.shiftKey) { if (sel.len < N) { if (dir === 1) sel.len += 1; else { sel.start = (sel.start - 1 + N) % N; sel.len += 1; } } }
-      else sel.start = (sel.start + dir + N) % N;
-      ev.preventDefault(); refresh();
-    } else if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z') { if (!readOnly()) doUndo(); ev.preventDefault(); }
-    else if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's') { if (readOnly()) saveComps(); else save(); ev.preventDefault(); }
+    if (ev.key === 'Escape' && overlayKind) { closeOverlay(); ev.preventDefault(); return; }
+    // a dropdown keeps the focus after a pick: the arrow keys must not change it; up/down step the counts instead
+    const inSelect = ev.target.tagName === 'SELECT' && ev.key.startsWith('Arrow');
+    if (inSelect) ev.preventDefault();
+    if (overlayKind === 'form') return;   // the element form is open: only Esc (above) acts
+    if (inSelect) { if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { moveSelection(ev.key, ev.shiftKey, ev.ctrlKey); refresh(); } return; }
+    if (ev.target.tagName === 'SELECT' || ev.target.tagName === 'INPUT' || ev.target.tagName === 'TEXTAREA') return;
+    if ((ev.key === 'Delete') && !readOnly() && !player.on) { removeSteps(); ev.preventDefault(); return; }
+    if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { moveSelection(ev.key, ev.shiftKey, ev.ctrlKey); ev.preventDefault(); refresh(); }
+    else if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z') { if (!readOnly()) doUndo(); ev.preventDefault(); }
+    else if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's') { if (readOnly()) saveComps(); else { clearTimeout(autosaveTimer); save(); } ev.preventDefault(); }
     else if (ev.key === ' ') { togglePlay(); ev.preventDefault(); }
   });
-  function doUndo() { const u = undo.pop(); if (!u) return; const s = data.elements[u.ei].steps[u.i]; s.x = u.x; s.y = u.y; s.heading = u.heading; if (mode === 'elements') { ei = u.ei; fillSelect(); renderVariant(); } markDirty(); refresh(); }
+  function doUndo() { const u = undo.pop(); if (!u) return;
+    if (u.snap) { data.elements = JSON.parse(u.snap); ei = Math.min(u.ei, data.elements.length - 1); sel = u.sel; fillSelect(); renderVariant(); markDirty(); refresh(); setStatus('undone'); return; }
+    const s = data.elements[u.ei].steps[u.i]; s.x = u.x; s.y = u.y; s.heading = u.heading; if (mode === 'elements') { ei = u.ei; fillSelect(); renderVariant(); } markDirty(); refresh(); }
   async function save() {
     const r = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
-    const t = await r.text(); if (r.ok) { dirty = false; $('save').classList.remove('dirty'); setStatus('autosaved to dance/skeletons.json at ' + new Date().toLocaleTimeString()); } else setStatus('SAVE FAILED: ' + t);
+    const t = await r.text(); if (r.ok) { dirty = false; const was = $('status').textContent; const msg = 'saved to dance/skeletons.json at ' + new Date().toLocaleTimeString();
+      // keep a message the last action wrote ("deleted …; ctrl-z brings it back"), with the save under it
+      const head = was.split('\nsaved')[0];
+      setStatus(head && !head.startsWith('saved') && !head.startsWith('loaded') && !head.startsWith('SAVE FAILED') ? head + '\n' + msg : msg); } else setStatus('SAVE FAILED: ' + t);
   }
-  async function showText(url, title) { const r = await fetch(url); const t = await r.text(); const o = $('out'); o.style.display = 'block'; o.textContent = title + '\n' + t; }
   async function renderVideo() {
     const body = mode === 'compositions' ? { composition: compList()[ci] && compList()[ci].name, track: $('track').value } : { elements: [data.elements[ei].name], start: data.elements[ei].start_state, track: $('track').value };
     if (mode === 'compositions' && listKind === 'sub') { setStatus('a sub-composition is rendered inside a composition; use play here'); return; }
@@ -483,13 +685,13 @@
       start = {}; for (const k in cv_.start) start[k] = cv_.start[k].slice();
       elements = (cv_.elements || []).map(x => ({ name: x.name, start: x.start, beats: x.beats, filler: !!x.filler }));
       const bases = elements.map((x, k) => Math.min(...src.filter(s => s.element === k).map(s => countTime(s.count, 0))));
-      steps = src.map(s => ({ t: elements[s.element].start + countTime(s.count, swing) - bases[s.element], dancer: s.dancer, foot: s.foot, x: s.x, y: s.y, heading: s.heading, hands: s.hands || [], count: s.count, element: s.element }));
+      steps = src.map(s => ({ t: elements[s.element].start + countTime(s.count, swing) - bases[s.element], dancer: s.dancer, foot: s.foot, x: s.x, y: s.y, heading: s.heading, hands: s.hands || [], count: s.count, element: s.element, noweight: !!s.noweight }));
       startHands = cv_.start_hands || (data.states[(composed ? composed.start_state : e.start_state) || 'side'] || {}).hands || [];
     } else {
       start = startFeet();
       const base = Math.min(...e.steps.map(s => countTime(s.count, 0)));
       elements = [{ name: e.name, start: 0, beats: e.beats }];
-      steps = e.steps.map((s, i) => ({ t: countTime(s.count, swing) - base, dancer: s.dancer, foot: s.foot, x: s.x, y: s.y, heading: s.heading, hands: handsAt(i), count: s.count, element: 0 }));
+      steps = e.steps.map((s, i) => ({ t: countTime(s.count, swing) - base, dancer: s.dancer, foot: s.foot, x: s.x, y: s.y, heading: s.heading, hands: handsAt(i), count: s.count, element: 0, noweight: !!s.noweight }));
       startHands = data.states[e.start_state].hands || [];
     }
     steps.sort((a, b) => a.t - b.t || (a.dancer < b.dancer ? -1 : 1));
@@ -497,12 +699,15 @@
     for (const d of ['L', 'F']) {
       const ds = steps.filter(s => s.dancer === d);
       const tr = { L: { landings: [[-1e9, -1e9, start[d + '.L']]] }, R: { landings: [[-1e9, -1e9, start[d + '.R']]] } };
-      const ramps = ds.map((s, i) => { const nxt = i + 1 < ds.length ? ds[i + 1].t : s.t + 2; return [s.t, Math.min(RAMP, RAMP_FRACTION * (nxt - s.t)), s.foot]; });
+      // weight ramps only for steps that take the weight (a kick, a point, a tap keeps it where it was)
+      const wds = ds.filter(s => !s.noweight), ramps = []; let lastRampEnd = null;
       ds.forEach((s, i) => {
-        let release = i === 0 ? s.t - 0.6 : ramps[i - 1][0] + ramps[i - 1][1];
+        let release = lastRampEnd === null ? s.t - 0.6 : lastRampEnd;
         const prev = tr[s.foot].landings[tr[s.foot].landings.length - 1][2];
         if (dist(prev, [s.x, s.y]) < 0.5 && Math.abs(norm(prev[2] - s.heading)) < 0.5) release = s.t;
         tr[s.foot].landings.push([s.t, Math.min(release, s.t), [s.x, s.y, s.heading]]);
+        if (!s.noweight) { const k = wds.indexOf(s), nxt = k + 1 < wds.length ? wds[k + 1].t : s.t + 2, ramp = Math.min(RAMP, RAMP_FRACTION * (nxt - s.t));
+          ramps.push([s.t, ramp, s.foot]); lastRampEnd = s.t + ramp; }
       });
       // before the first step: the neutral stance, weight on both feet; it moves onto the foot that stays (the other one
       // steps first) over SHIFT beats, ending as the first foot leaves (user 2026-10-19)
@@ -531,7 +736,6 @@
       if (u >= 1) { w[foot] = 1; w[other] = 0; } else { w[foot] = Math.max(w[foot], u); w[other] = Math.min(w[other], 1 - u); } }
     return w;
   }
-  function handsAtTime(tl, b) { let h = tl.startHands; for (const s of tl.steps) { if (s.t <= b) h = s.hands; else break; } return h; }
   function labelAt(tl, b) {
     const e = tl.elements.find(x => b >= x.start && b < x.start + x.beats); if (!e) return ['', ''];
     const k = tl.elements.indexOf(e); const counts = tl.steps.filter(s => s.element === k).map(s => String(s.count));
@@ -543,9 +747,6 @@
     if (b < 0) b = -0.001;  // the count-in: every foot at its start position, no weight change yet
     const feet = {}, weights = {};
     for (const d of ['L', 'F']) { for (const f of ['L', 'R']) feet[d + '.' + f] = placementAt(tl.tracks[d].tracks[f], b); weights[d] = weightsAt(tl.tracks[d], b); }
-    const bodies = { L: bodyOf(feet['L.L'], feet['L.R']), F: bodyOf(feet['F.L'], feet['F.R']) };
-    if (SHOW_BODIES) { drawBody(bodies.L, 'L', 0.12); drawBody(bodies.F, 'F', 0.12); }
-    if (SHOW_HANDS) for (const conn of handsAtTime(tl, b)) for (const [d, side, sh, hand, raised, ok] of resolveHand(conn, bodies)) drawArm(d, side, sh, hand, raised, ok);
     const order = Object.keys(feet).sort((a, c) => weights[a[0]][a[2]] - weights[c[0]][c[2]]);
     for (const key of order) { const [d, f] = key.split('.'); const p = feet[key]; drawFoot(p[0], p[1], p[2], f, COL[d], weights[d][f], '', false, true); }
     let [name, count] = labelAt(tl, b);
@@ -557,7 +758,6 @@
 
   // ---------- the player: Web Audio loops the track segment sample-accurately; the animation follows the audio clock
   const player = { on: false, ctx: null, src: null, buffers: {}, grids: {}, raf: 0, tl: null, k0: 0, s0: 0, t0: 0, off: 0, info: '', loopBeats: 0, closes: false, cam: null, savedView: null, follow: false, lastT: 0 };
-  function beatSeconds(grid, b) { const beats = grid.beats; const k = Math.floor(b), frac = b - k; if (k + 1 < beats.length) return beats[k] + frac * (beats[k + 1] - beats[k]); return beats[beats.length - 1] + (b - (beats.length - 1)) * grid.beat; }
   function beatAt(grid, s) { const beats = grid.beats; let j = 0; while (j + 1 < beats.length - 1 && beats[j + 1] <= s) j++; return j + (s - beats[j]) / (beats[j + 1] - beats[j]); }
   async function startPlay() {
     const key = $('track').value;
@@ -628,9 +828,6 @@
   function togglePlay() { if (player.on) stopPlay(); else startPlay(); }
 
   $('play').addEventListener('click', togglePlay);
-  $('save').addEventListener('click', () => { if (!readOnly()) save(); });
-  $('diff').addEventListener('click', () => showText('/api/diff', '# diff against the baseline (python dance/diff.py)'));
-  $('check').addEventListener('click', () => showText('/api/check', '# python dance/check.py (on the saved file; save first)'));
   $('undo').addEventListener('click', () => { if (!readOnly()) doUndo(); });
   $('fit').addEventListener('click', fit);
   $('render').addEventListener('click', renderVideo);
@@ -654,8 +851,9 @@
   function setMode(m) {
     stopPlay();
     mode = m; $('modeElements').classList.toggle('on', m === 'elements'); $('modeCompositions').classList.toggle('on', m === 'compositions');
-    ['save', 'undo'].forEach(id => $(id).disabled = readOnly());
-    fillSelect(); sel = { start: 0, len: 1 }; renderCompEdit(); renderVariant();
+    $('undo').disabled = readOnly();
+    if (overlayKind === 'form') closeOverlay();
+    fillSelect(); selectCount(0); renderCompEdit(); renderVariant(); renderElemEdit();
     if (m === 'compositions') loadComposition(); else { fit(); refresh(); }
   }
   let composeSeq = 0;
@@ -664,17 +862,21 @@
     const seq = ++composeSeq; setStatus('composing ' + c.name + '…');
     const r = await fetch('/api/compose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start_state: c.start_state, elements: c.elements, repeat: c.repeat || 1, sub_compositions: subs }) });
     const v = await r.json(); if (seq !== composeSeq) return;
-    compView = v; sel = { start: 0, len: 1 }; fit(); refresh(); renderCompEdit();
+    compView = v; selectCount(0); fit(); refresh(); renderCompEdit();
     $('compErr').textContent = (v.errors && v.errors.length) ? v.errors.join('; ') : '';
     setStatus(v.errors && v.errors.length ? 'composition error: ' + v.errors.join('; ') : `${c.name}: ${(v.elements || []).length} elements, ${v.length} beats, ends ${v.end_state}`);
   }
   function resize() { const r = cv.getBoundingClientRect(); cv.width = Math.floor(r.width); cv.height = Math.floor(r.height); draw(); }
   window.addEventListener('resize', resize);
+  async function checkVersion() {   // the server warns when it runs older code than the files on disk
+    try { const j = await (await fetch('/api/version')).json(); if (j && j.stale) { const b = $('stale'); b.style.display = 'block'; b.textContent = 'The server runs older code than the files on disk: restart it (python RunWeb.py) and reload this page.'; } } catch (err) { /* the page still works */ }
+  }
 
   async function load() {
     data = await (await fetch('/api/skeletons')).json();
     try { const doc = await (await fetch('/api/compositions')).json(); comps = doc.compositions || []; subs = doc.sub_compositions || []; } catch (e) { comps = []; subs = []; }
-    fillSelect(); renderCompEdit(); renderVariant(); resize(); fit(); refresh();
+    selectCount(0); fillSelect(); renderCompEdit(); renderVariant(); resize(); fit(); refresh();
+    checkVersion();
     setStatus('loaded ' + elementNames().length + ' elements (' + data.elements.length + ' starting conditions) and ' + comps.length + ' compositions');
   }
   load();

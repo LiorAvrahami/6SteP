@@ -16,6 +16,14 @@ for d in ['raw']:
     os.makedirs(os.path.join(RES, d), exist_ok=True)
 
 # ---- dance data: skeletons as they are; compositions with the "daily exercise" name the app looks for
+# an element still being built in the editor (no steps for a dancer, a bad count label) must not reach the app
+import sys as _sys
+_sys.path.insert(0, os.path.join(SW, 'dance'))
+import model as _model
+_unfinished = [f"{e['name']} [from {e['start_state']}, leader free {e.get('leader_free_start', 'L')}]: {_model.element_problem(e)}"
+               for e in _model.load(os.path.join(SW, 'dance', 'skeletons.json'))['elements'] if _model.element_problem(e)]
+if _unfinished:
+    _sys.exit('REFUSING: elements not finished in the editor would reach the app:\n  ' + '\n  '.join(_unfinished))
 shutil.copyfile(os.path.join(SW, 'dance', 'skeletons.json'), os.path.join(A, 'dance', 'skeletons.json'))
 json.load(open(os.path.join(SW, 'dance', 'compositions.json'), encoding='utf-8'))   # fails here on broken JSON
 shutil.copyfile(os.path.join(SW, 'dance', 'compositions.json'), os.path.join(A, 'dance', 'compositions.json'))   # as written: revisions, quiet entries

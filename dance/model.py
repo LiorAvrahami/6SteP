@@ -11,7 +11,6 @@ import json, math, copy, os, re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SKELETONS = os.path.join(HERE, 'skeletons.json')
-BASELINE = os.path.join(HERE, 'skeletons.baseline.json')
 COMPOSITIONS = os.path.join(HERE, 'compositions.json')
 
 STANCE = 20.0        # natural distance between a dancer's feet (user rule)
@@ -75,6 +74,20 @@ def find_element(data, name, start_state, leader_free='L'):
             return e
     return None
 
+COUNT_RE = re.compile(r'^\d+&?$')
+
+def element_problem(elem):
+    """Why an element cannot be danced or checked yet (an element being built in the editor), or None.
+    Every tool calls this before it reads an element's steps."""
+    steps = elem.get('steps') or []
+    bad = [s.get('count') for s in steps if not COUNT_RE.match(str(s.get('count', '')))]
+    if bad:
+        return f"count {bad[0]!r} is not a count label (1, 2, 3&, ...)"
+    for d, who in (('L', 'leader'), ('F', 'follower')):
+        if not any(s.get('dancer') == d and not s.get('noweight') for s in steps):
+            return f"no steps for the {who} yet"
+    return None
+
 def element_base_count(elem):
     """Beat offset of the element's first count (counts are the musical labels, e.g. a triple on 5&6 starts at count 5)."""
     return min(count_time(s['count'], 0.0) for s in elem['steps'])
@@ -89,14 +102,14 @@ def nominal_left_frame(foot, placement):
 
 def element_end_frame(elem):
     """Frame at the end of an element (local coords of that element), from the leader's last weighted foot."""
-    last = [s for s in elem['steps'] if s['dancer'] == 'L'][-1]
+    last = [s for s in elem['steps'] if s['dancer'] == 'L' and not s.get('noweight')][-1]
     return nominal_left_frame(last['foot'], (last['x'], last['y'], last['heading']))
 
 def element_free_feet_end(elem):
     """Which foot is free for each dancer at the end of an element."""
     out = {}
     for d in 'LF':
-        last = [s for s in elem['steps'] if s['dancer'] == d][-1]
+        last = [s for s in elem['steps'] if s['dancer'] == d and not s.get('noweight')][-1]   # a kick or a point keeps the weight
         out[d] = 'R' if last['foot'] == 'L' else 'L'
     return out
 
@@ -137,8 +150,8 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
                 hands = list(hand_changes[c]); seen.append(c)
             wx, wy, wh = frame.apply((s['x'], s['y'], s['heading']))
             steps.append({'t': t + count_time(c, swing) - base, 'count': c, 'dancer': s['dancer'], 'foot': s['foot'],
-                          'x': wx, 'y': wy, 'heading': wh, 'code': s.get('code', ''), 'element': len(elements) - 1,
-                          'exempt': bool(s.get('exempt')), 'hands': list(hands), 'note': s.get('note', ''), 'filler': is_filler})
+                          'x': wx, 'y': wy, 'heading': wh, 'element': len(elements) - 1,
+                          'exempt': bool(s.get('exempt')), 'hands': list(hands), 'filler': is_filler, 'noweight': bool(s.get('noweight'))})
         ef = element_end_frame(elem)
         frame = Frame(*frame.apply((ef.x, ef.y, ef.h)))
         free = element_free_feet_end(elem)
@@ -155,6 +168,10 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
             else:
                 errors.append(f"no skeleton for {name!r} starting from state {state!r}{where}; stopping")
             break
+        problem = element_problem(elem)
+        if problem:
+            errors.append(f"{name!r} from {state!r}: {problem} (element {idx + 1} of {len(sequence)}); stopping")
+            break
         add(elem, name, False, groups[idx] if groups and idx < len(groups) else None)
     if pad_to_loop and not errors and sequence:
         fillers = 0
@@ -162,6 +179,9 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
             elem = find_element(data, filler, state, free['L'])
             if elem is None:
                 errors.append(f"cannot fill the loop: no {filler!r} from {state!r} with the leader's {free['L']} foot free")
+                break
+            if element_problem(elem):
+                errors.append(f"cannot fill the loop: the {filler!r} from {state!r}: {element_problem(elem)}")
                 break
             add(elem, filler, True)
             fillers += 1

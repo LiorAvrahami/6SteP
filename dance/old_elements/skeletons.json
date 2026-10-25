@@ -1,0 +1,644 @@
+{
+ "_about": "Elements set aside on 2026-10-25: the ones the 5 minutes exercise does not use, exactly as they were (with the lurklurk codes and notes). To bring one back, copy its object into the elements of dance/skeletons.json.",
+ "units": "cm",
+ "stance": 20,
+ "max_spread": 70,
+ "foot_diam": 20,
+ "body_diam": 20,
+ "states": {
+  "side": {
+   "desc": "Side by side, both facing the same way, follower on the leader's right (the user's basic position). His right shoe and her left shoe 4 cm apart: 34 cm between body centres (user 2026-10-19; it was 45, an agent guess).",
+   "feet": {
+    "L.L": [
+     0,
+     0,
+     0
+    ],
+    "L.R": [
+     20,
+     0,
+     0
+    ],
+    "F.L": [
+     34,
+     0,
+     0
+    ],
+    "F.R": [
+     54,
+     0,
+     0
+    ]
+   },
+   "leader_free": "L",
+   "hands": [
+    "LR-back",
+    "FL-rshoulder"
+   ]
+  },
+  "facing": {
+   "desc": "Facing each other, open hold, leader's left hand holding the follower's right. 31 cm between body centres: a 5 cm gap between the toes of the facing shoes (user 2026-10-19; it was 70, user Q5).",
+   "feet": {
+    "L.L": [
+     0,
+     0,
+     0
+    ],
+    "L.R": [
+     20,
+     0,
+     0
+    ],
+    "F.L": [
+     20,
+     31,
+     180
+    ],
+    "F.R": [
+     0,
+     31,
+     180
+    ]
+   },
+   "leader_free": "L",
+   "hands": [
+    "LL-FR"
+   ]
+  },
+  "reversed_side": {
+   "desc": "Side by side, follower on the leader's LEFT, his left arm around her back (lurklurk Closed Changing Places; user Q1). Her right shoe 4 cm from his left.",
+   "feet": {
+    "L.L": [
+     0,
+     0,
+     0
+    ],
+    "L.R": [
+     20,
+     0,
+     0
+    ],
+    "F.L": [
+     -34,
+     0,
+     0
+    ],
+    "F.R": [
+     -14,
+     0,
+     0
+    ]
+   },
+   "leader_free": "L",
+   "hands": [
+    "LL-back",
+    "FR-lshoulder"
+   ]
+  }
+ },
+ "elements": [
+  {
+   "name": "rock step",
+   "start_state": "side",
+   "end_state": "side",
+   "beats": 2,
+   "leader_free_start": "R",
+   "source": "mirror of the rock step on the other feet (user 2026-10-18: \"same for rock step\"); no lurklurk page starts a rock step on the right",
+   "notes": "Only reachable when the leader's right foot is free, i.e. after a left triple step.",
+   "steps": [
+    {
+     "count": "1",
+     "dancer": "L",
+     "foot": "R",
+     "code": "BR",
+     "x": 20,
+     "y": -30,
+     "heading": 0,
+     "src": "user+guess"
+    },
+    {
+     "count": "1",
+     "dancer": "F",
+     "foot": "L",
+     "code": "BL",
+     "x": 34,
+     "y": -30,
+     "heading": 0,
+     "src": "user+guess"
+    },
+    {
+     "count": "2",
+     "dancer": "L",
+     "foot": "L",
+     "code": "RL",
+     "x": 0,
+     "y": 0,
+     "heading": 0,
+     "src": "user+guess"
+    },
+    {
+     "count": "2",
+     "dancer": "F",
+     "foot": "R",
+     "code": "RR",
+     "x": 54,
+     "y": 0,
+     "heading": 0,
+     "src": "user+guess"
+    }
+   ],
+   "hands": []
+  },
+  {
+   "name": "rock step",
+   "start_state": "facing",
+   "end_state": "facing",
+   "beats": 2,
+   "leader_free_start": "L",
+   "source": "m_changing_places counts 1-2 (M:BL W:BR, M:RR W:RL) from open position",
+   "notes": "Back step 30 cm (guess). Bodies separate to about 91 cm on count 1; both arms stay within reach.",
+   "steps": [
+    {
+     "count": "1",
+     "dancer": "L",
+     "foot": "L",
+     "code": "BL",
+     "x": 0,
+     "y": -30,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "1",
+     "dancer": "F",
+     "foot": "R",
+     "code": "BR",
+     "x": 0,
+     "y": 61,
+     "heading": 180,
+     "src": "notes+guess"
+    },
+    {
+     "count": "2",
+     "dancer": "L",
+     "foot": "R",
+     "code": "RR",
+     "x": 20,
+     "y": 0,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "2",
+     "dancer": "F",
+     "foot": "L",
+     "code": "RL",
+     "x": 20,
+     "y": 31,
+     "heading": 180,
+     "src": "notes+guess"
+    }
+   ],
+   "hands": []
+  },
+  {
+   "name": "rock step",
+   "start_state": "facing",
+   "end_state": "facing",
+   "beats": 2,
+   "leader_free_start": "R",
+   "source": "mirror of the rock step on the other feet (user 2026-10-18)",
+   "notes": "Parity variant: the right foot rocks back.",
+   "steps": [
+    {
+     "count": "1",
+     "dancer": "L",
+     "foot": "R",
+     "code": "BR",
+     "x": 20,
+     "y": -30,
+     "heading": 0,
+     "src": "user+guess"
+    },
+    {
+     "count": "1",
+     "dancer": "F",
+     "foot": "L",
+     "code": "BL",
+     "x": 20,
+     "y": 61,
+     "heading": 180,
+     "src": "user+guess"
+    },
+    {
+     "count": "2",
+     "dancer": "L",
+     "foot": "L",
+     "code": "RL",
+     "x": 0,
+     "y": 0,
+     "heading": 0,
+     "src": "user+guess"
+    },
+    {
+     "count": "2",
+     "dancer": "F",
+     "foot": "R",
+     "code": "RR",
+     "x": 0,
+     "y": 31,
+     "heading": 180,
+     "src": "user+guess"
+    }
+   ],
+   "hands": []
+  },
+  {
+   "name": "triple step",
+   "start_state": "facing",
+   "end_state": "facing",
+   "beats": 2,
+   "leader_free_start": "L",
+   "source": "m_closed_basic counts 3&4: M:eSL W:eSR, M:TR W:TL, M:eSL W:eSR (side-close-side), judged \"more accurate\" by the user for the facing case",
+   "notes": "Small side step = 10 cm, the close lands with the feet 10 cm apart (together). The couple shifts 20 cm to the leader's left; the right triple brings it back.",
+   "steps": [
+    {
+     "count": "3",
+     "dancer": "L",
+     "foot": "L",
+     "code": "eSL",
+     "x": -10,
+     "y": 0,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "3",
+     "dancer": "F",
+     "foot": "R",
+     "code": "eSR",
+     "x": -10,
+     "y": 31,
+     "heading": 180,
+     "src": "notes+guess"
+    },
+    {
+     "count": "3&",
+     "dancer": "L",
+     "foot": "R",
+     "code": "TR",
+     "x": 0,
+     "y": 0,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "3&",
+     "dancer": "F",
+     "foot": "L",
+     "code": "TL",
+     "x": 0,
+     "y": 31,
+     "heading": 180,
+     "src": "notes+guess"
+    },
+    {
+     "count": "4",
+     "dancer": "L",
+     "foot": "L",
+     "code": "eSL",
+     "x": -20,
+     "y": 0,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "4",
+     "dancer": "F",
+     "foot": "R",
+     "code": "eSR",
+     "x": -20,
+     "y": 31,
+     "heading": 180,
+     "src": "notes+guess"
+    }
+   ],
+   "hands": []
+  },
+  {
+   "name": "triple step",
+   "start_state": "facing",
+   "end_state": "facing",
+   "beats": 2,
+   "leader_free_start": "R",
+   "source": "m_closed_basic counts 5&6: M:eSR W:eSL, M:TL W:TR, M:eSR W:eSL",
+   "notes": "Mirror of the left triple: shifts the couple 20 cm to the leader's right.",
+   "steps": [
+    {
+     "count": "5",
+     "dancer": "L",
+     "foot": "R",
+     "code": "eSR",
+     "x": 30,
+     "y": 0,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "5",
+     "dancer": "F",
+     "foot": "L",
+     "code": "eSL",
+     "x": 30,
+     "y": 31,
+     "heading": 180,
+     "src": "notes+guess"
+    },
+    {
+     "count": "5&",
+     "dancer": "L",
+     "foot": "L",
+     "code": "TL",
+     "x": 20,
+     "y": 0,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "5&",
+     "dancer": "F",
+     "foot": "R",
+     "code": "TR",
+     "x": 20,
+     "y": 31,
+     "heading": 180,
+     "src": "notes+guess"
+    },
+    {
+     "count": "6",
+     "dancer": "L",
+     "foot": "R",
+     "code": "eSR",
+     "x": 40,
+     "y": 0,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "6",
+     "dancer": "F",
+     "foot": "L",
+     "code": "eSL",
+     "x": 40,
+     "y": 31,
+     "heading": 180,
+     "src": "notes+guess"
+    }
+   ],
+   "hands": []
+  },
+  {
+   "name": "circle",
+   "start_state": "facing",
+   "end_state": "side",
+   "beats": 8,
+   "leader_free_start": "L",
+   "source": "m_lindy_circle (all codes and rotations). End: side by side, follower on the leader's right (user Q4); the notes' 7-8 \"closed hold\" read as the hinge-out of m_dance_positions (closed -> side), which is her 180 R on 7&8.",
+   "notes": "Clockwise circle about the point between the dancers; the radius shrinks from 35 to 24 cm on count 3 and 20 cm from 3& (close hold). Counts 5 and 6 are the notes' close hold ('between the legs'): marked exempt from the collision rule (user Q6); with these distances only count 6 needs it (bodies 19 cm). The 7&8 hinge-out to side position makes her steps long (27-50 cm) and leaves her free right foot 31 cm ahead of its side-position spot. Every distance is a guess.",
+   "steps": [
+    {
+     "count": "1",
+     "dancer": "L",
+     "foot": "L",
+     "code": "BL",
+     "x": 0,
+     "y": -30,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "1",
+     "dancer": "F",
+     "foot": "R",
+     "code": "TweFR",
+     "x": 0,
+     "y": 25,
+     "heading": 180,
+     "src": "notes+guess",
+     "note": "twist step slightly forward"
+    },
+    {
+     "count": "2",
+     "dancer": "L",
+     "foot": "R",
+     "code": "RR",
+     "x": 20,
+     "y": 0,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "2",
+     "dancer": "F",
+     "foot": "L",
+     "code": "TwFL",
+     "x": 20,
+     "y": 31,
+     "heading": 180,
+     "src": "notes+guess",
+     "note": "twist step in place: face to face there is no room forward (2026-10-19)"
+    },
+    {
+     "count": "3",
+     "dancer": "L",
+     "foot": "L",
+     "code": "FL2R",
+     "x": -11,
+     "y": 23,
+     "heading": 90,
+     "src": "notes+guess",
+     "note": "forward and off to his left; right hand to her back"
+    },
+    {
+     "count": "3",
+     "dancer": "F",
+     "foot": "R",
+     "code": "FR2R",
+     "x": 31,
+     "y": 47,
+     "heading": 270,
+     "src": "notes+guess",
+     "note": "left hand to his right shoulder"
+    },
+    {
+     "count": "3&",
+     "dancer": "L",
+     "foot": "R",
+     "code": "TR1R",
+     "x": -20,
+     "y": 18,
+     "heading": 135,
+     "src": "notes+guess"
+    },
+    {
+     "count": "3&",
+     "dancer": "F",
+     "foot": "L",
+     "code": "TL1R",
+     "x": 10,
+     "y": 6,
+     "heading": 315,
+     "src": "notes+guess",
+     "note": "a travelling close: 30 cm"
+    },
+    {
+     "count": "4",
+     "dancer": "L",
+     "foot": "L",
+     "code": "FL1R",
+     "x": 20,
+     "y": 45,
+     "heading": 180,
+     "src": "notes+guess",
+     "note": "facing the opposite way to the start"
+    },
+    {
+     "count": "4",
+     "dancer": "F",
+     "foot": "R",
+     "code": "FR1R",
+     "x": 20,
+     "y": 5,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "5",
+     "dancer": "L",
+     "foot": "R",
+     "code": "eFR2R",
+     "x": 30,
+     "y": 35,
+     "heading": 270,
+     "src": "notes+guess",
+     "note": "between her feet (close hold in the notes); 53 cm of travel for the trailing foot",
+     "exempt": true
+    },
+    {
+     "count": "5",
+     "dancer": "F",
+     "foot": "L",
+     "code": "DfL2R",
+     "x": -10,
+     "y": 35,
+     "heading": 90,
+     "src": "notes+guess",
+     "exempt": true
+    },
+    {
+     "count": "6",
+     "dancer": "L",
+     "foot": "L",
+     "code": "SL2R",
+     "x": 0,
+     "y": 5,
+     "heading": 0,
+     "src": "notes+guess",
+     "exempt": true
+    },
+    {
+     "count": "6",
+     "dancer": "F",
+     "foot": "R",
+     "code": "XR2R",
+     "x": 10,
+     "y": 28,
+     "heading": 180,
+     "src": "notes+guess",
+     "note": "crosses in front, between his feet (close hold in the notes)",
+     "exempt": true
+    },
+    {
+     "count": "7",
+     "dancer": "L",
+     "foot": "R",
+     "code": "BR",
+     "x": 20,
+     "y": 10,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "7",
+     "dancer": "F",
+     "foot": "L",
+     "code": "BL2R",
+     "x": 40,
+     "y": 28,
+     "heading": 270,
+     "src": "notes+guess",
+     "note": "hinging out to his right: 50 cm"
+    },
+    {
+     "count": "7&",
+     "dancer": "L",
+     "foot": "L",
+     "code": "TL",
+     "x": 0,
+     "y": 10,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "7&",
+     "dancer": "F",
+     "foot": "R",
+     "code": "TR1R",
+     "x": 59,
+     "y": 35,
+     "heading": 315,
+     "src": "notes+guess",
+     "note": "swings around: 50 cm"
+    },
+    {
+     "count": "8",
+     "dancer": "L",
+     "foot": "R",
+     "code": "eBR",
+     "x": 20,
+     "y": 5,
+     "heading": 0,
+     "src": "notes+guess"
+    },
+    {
+     "count": "8",
+     "dancer": "F",
+     "foot": "L",
+     "code": "eBL1R",
+     "x": 34,
+     "y": 5,
+     "heading": 0,
+     "src": "notes+guess",
+     "note": "side position, on his right"
+    }
+   ],
+   "hands": [
+    {
+     "count": "3",
+     "hands": [
+      "LL-FR",
+      "LR-back",
+      "FL-rshoulder"
+     ]
+    },
+    {
+     "count": "7",
+     "hands": [
+      "LR-back",
+      "FL-rshoulder"
+     ]
+    }
+   ]
+  }
+ ]
+}
