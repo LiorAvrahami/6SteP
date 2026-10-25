@@ -107,6 +107,7 @@
       <div id="variantRow"><label for="variant">starting condition</label><select id="variant"></select><span id="variantLabel"></span></div>
       <div id="buttons">
         <button id="play" title="plays the dance on the floor in a loop, with the music (space)">play</button>
+        <select id="stitch" title="experiment: how two elements join. The leader's weight-bearing foot always keeps its place and orientation across the join; the follower: from the leader = her steps land where the next element's start position says, even if that makes her feet jump; her first step from her own foot = her first step of the next element is placed from her own weight-bearing foot, later steps from the leader; no snapping = all her steps from her own foot"><option value="leader">join: from the leader</option><option value="first">join: her first step from her own foot</option><option value="none">join: no snapping</option></select>
         <select id="track" title="track"><option value="hot">Hot Swing 144</option><option value="sunday">Sunday Reflection 127</option><option value="slow">Slow Your Roll 123</option></select>
         <button id="render" title="renders an mp4 with ffmpeg">render video</button>
         <button id="undo" title="undo (ctrl-z)">undo</button>
@@ -664,6 +665,10 @@
     if (ls.via && ls.via.length) t.via = ls.via.map(v => mirrorFn(e)([v[0], v[1], 0]).slice(0, 2)); else delete t.via;
     return created;
   }
+  $('stitch').addEventListener('change', () => { stopPlay(); if (mode === 'compositions') loadComposition();
+    setStatus({ leader: 'join from the leader: each element puts the follower where its start position says',
+      first: 'join: her first step of each element is placed from her own weight-bearing foot, later steps from the leader',
+      none: 'join, no snapping: the follower continues each element from where she stands' }[$('stitch').value] + ' (in compositions, and when play runs on)'); });
   $('mirrorChk').addEventListener('change', () => {
     const e = data.elements[ei], on = !!$('mirrorChk').checked; stopPlay(); pushSnapshot();
     if (on) { e.mirror = true; markDirty(); refresh(); setStatus('from now on every change to his steps also moves her matching foot to the mirrored place; nothing changed yet'); }
@@ -1126,8 +1131,8 @@
     let k00 = 0; grid.beats.forEach((t, i) => { if (Math.abs(t - barT0) < Math.abs(grid.beats[k00] - barT0)) k00 = i; });
     const chainBeats = Math.max(8, grid.beats.length - k00 + 16);
     const cc = compList()[ci];
-    const req = e.composition ? { start_state: cc.start_state, elements: cc.elements, repeat: cc.repeat || 1, pad: true, chain_beats: chainBeats, sub_compositions: subs }
-                              : { start_state: e.start_state, leader_free: e.leader_free_start || 'L', elements: [e.name], repeat: 1, pad: true, chain_beats: chainBeats, sub_compositions: [], end: e.end_state };   // the element itself, never a sub-composition of the same name
+    const req = e.composition ? { start_state: cc.start_state, elements: cc.elements, repeat: cc.repeat || 1, pad: true, chain_beats: chainBeats, sub_compositions: subs, stitch: $('stitch').value }
+                              : { start_state: e.start_state, leader_free: e.leader_free_start || 'L', elements: [e.name], repeat: 1, pad: true, chain_beats: chainBeats, sub_compositions: [], end: e.end_state, stitch: $('stitch').value };   // the element itself, never a sub-composition of the same name
     let composed;
     try { composed = await (await fetch('/api/compose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(req) })).json(); }
     catch (err) { setStatus('could not compose the loop: ' + err); return; }
@@ -1211,7 +1216,7 @@ it plays only as far as it composes: ${problem}` : ''));
   async function loadComposition() {
     compView = null; const c = compList()[ci]; if (!c) { refresh(); return; }
     const seq = ++composeSeq; setStatus('composing ' + c.name + '…');
-    const r = await fetch('/api/compose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start_state: c.start_state, elements: c.elements, repeat: c.repeat || 1, sub_compositions: subs }) });
+    const r = await fetch('/api/compose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start_state: c.start_state, elements: c.elements, repeat: c.repeat || 1, sub_compositions: subs, stitch: $('stitch').value }) });
     const v = await r.json(); if (seq !== composeSeq) return;
     compView = v; selectCount(0); fit(); refresh(); renderCompEdit();
     $('compErr').textContent = (v.errors && v.errors.length) ? v.errors.join('; ') : '';

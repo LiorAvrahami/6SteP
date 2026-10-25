@@ -264,7 +264,7 @@ def candidates(data, name, start_state, leader_free):
     """Every version of an element that starts in this condition, in list order (since 2026-10-25 several may, ending apart)."""
     return [e for e in data['elements'] if e['name'] == name and e['start_state'] == start_state and e.get('leader_free_start', 'L') == leader_free]
 
-def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free=None, pad_to_loop=False, filler='triple step', groups=None, ends=None):
+def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free=None, pad_to_loop=False, filler='triple step', groups=None, ends=None, snap=True, stitch=None):
     """Turn a list of element names into a world timeline.
 
     leader_free: which of the leader's feet is free at the start (default: the state's, i.e. the left).
@@ -276,9 +276,19 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
     Returns dict with 'steps' (t beats, dancer, foot, x, y, heading, element index, count, code, exempt, hands),
     'elements' (name, start beat, beats, states, free feet, filler flag), 'start' (feet at t=0), 'start_hands', 'end_state',
     'end_free', 'length', 'errors' (list of str).
+
+    stitch (experiment, 2026-10-25), how two elements join; every element is placed in the frame of the leader's weighted
+    foot at the transition (the same place and orientation as at the end of the previous element), and then:
+      'leader' (as before; snap=True): the follower's steps too, so they land where the element's start state says she
+               stands, even when the previous element left her elsewhere (her feet jump);
+      'first'  (the user's idea): her first step of the element is placed from her own weighted foot (where she really
+               stands, the same orientation), her later steps from the leader's frame again;
+      'none'   (snap=False): all her steps from her own weighted foot.
     """
+    stitch = stitch or ('leader' if snap else 'none')
     errors = []
     feet = {k: v for k, v in state_feet(data, start_state).items()}
+    cur = {k: list(v) for k, v in feet.items()}   # where every foot is in the world (for snap=False)
     last_h = {k: v[2] for k, v in feet.items()}   # each foot's last world heading, winding included
     frame = Frame(0, 0, 0)
     state = start_state
@@ -300,15 +310,41 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
         # an element's headings assume its start state's headings: a foot that arrives wound by a full turn keeps it, instead of
         # spinning back on its first step
         st = state_feet(data, state)
-        wind = {k: 360.0 * round((last_h[k] - (frame.h + st[k][2])) / 360.0) for k in last_h}
+        # snap=False: the follower's steps are moved rigidly from where the start state puts her weighted foot to where it is
+        corr = None
+        if stitch in ('first', 'none'):
+            w = 'R' if free['F'] == 'L' else 'L'
+            nw, a = frame.apply(st['F.' + w]), cur['F.' + w]
+            corr = (nw[0], nw[1], a[0], a[1], a[2] - nw[2])
+        her_first = [True]   # 'first': only her first step of this element is placed from her own foot
+        def applies(d):
+            return corr is not None and d == 'F' and (stitch == 'none' or her_first[0])
+        def place(d, x, y, on=None):
+            if not (applies(d) if on is None else on):
+                return x, y
+            nx, ny, ax, ay, dl = corr; r = math.radians(dl); dx, dy = x - nx, y - ny
+            return ax + dx * math.cos(r) + dy * math.sin(r), ay - dx * math.sin(r) + dy * math.cos(r)
+        turn = lambda k: corr[4] if (corr and k[0] == 'F' and stitch == 'none') else 0.0
+        wind = {k: 360.0 * round((last_h[k] - (frame.h + st[k][2] + turn(k))) / 360.0) for k in last_h}
+        if stitch == 'first' and corr:   # her first stepping foot turns with her weighted foot
+            k0 = 'F.' + free['F']
+            wind_first = 360.0 * round((last_h[k0] - (frame.h + st[k0][2] + corr[4])) / 360.0)
         for s in elem['steps']:
             c = str(s['count'])
             if c in hand_changes and c not in seen:
                 hands = list(hand_changes[c]); seen.append(c)
             wx, wy, wh = frame.apply((s['x'], s['y'], s['heading']))
-            wh += wind[f"{s['dancer']}.{s['foot']}"]
-            via = [list(frame.apply((v[0], v[1], 0.0))[:2]) for v in (s.get('via') or [])]   # the path's anchors, in the world
-            last_h[f"{s['dancer']}.{s['foot']}"] = wh
+            k_ = f"{s['dancer']}.{s['foot']}"
+            on = applies(s['dancer'])
+            wx, wy = place(s['dancer'], wx, wy, on)
+            if on and stitch == 'first':
+                wh += corr[4] + wind_first
+            else:
+                wh += turn(k_) + wind[k_]
+            via = [list(place(s['dancer'], *frame.apply((v[0], v[1], 0.0))[:2], on)) for v in (s.get('via') or [])]   # the path's anchors, in the world
+            if s['dancer'] == 'F':
+                her_first[0] = False
+            last_h[k_] = wh; cur[k_] = [wx, wy, wh]
             steps.append({'t': t + count_time(c, swing) - base, 'count': c, 'dancer': s['dancer'], 'foot': s['foot'],
                           'x': wx, 'y': wy, 'heading': wh, 'element': len(elements) - 1,
                           'exempt': bool(s.get('exempt')), 'hands': list(hands), 'filler': is_filler, 'noweight': bool(s.get('noweight')), 'via': via})
