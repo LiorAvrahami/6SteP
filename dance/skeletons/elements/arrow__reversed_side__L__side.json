@@ -1,0 +1,141 @@
+{
+ "name": "arrow",
+ "start_state": "reversed_side",
+ "end_state": "side",
+ "beats": 6,
+ "leader_free_start": "L",
+ "hands": [],
+ "steps": [
+  {
+   "count": "1",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": -23,
+   "heading": 0
+  },
+  {
+   "count": "1",
+   "dancer": "F",
+   "foot": "R",
+   "x": -14,
+   "y": -22,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "F",
+   "foot": "L",
+   "x": -34,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "3",
+   "dancer": "L",
+   "foot": "L",
+   "x": 2,
+   "y": 23,
+   "heading": 0
+  },
+  {
+   "count": "3",
+   "dancer": "F",
+   "foot": "R",
+   "x": -16,
+   "y": 23,
+   "heading": 0
+  },
+  {
+   "count": "3&",
+   "dancer": "L",
+   "foot": "R",
+   "x": 24.9,
+   "y": -1.6,
+   "heading": 35
+  },
+  {
+   "count": "3&",
+   "dancer": "F",
+   "foot": "L",
+   "x": -38.9,
+   "y": -1.6,
+   "heading": -35
+  },
+  {
+   "count": "4",
+   "dancer": "L",
+   "foot": "L",
+   "x": 2,
+   "y": 23,
+   "heading": 0
+  },
+  {
+   "count": "4",
+   "dancer": "F",
+   "foot": "R",
+   "x": -16,
+   "y": 23,
+   "heading": 0
+  },
+  {
+   "count": "5",
+   "dancer": "L",
+   "foot": "R",
+   "x": 18,
+   "y": 45,
+   "heading": -80
+  },
+  {
+   "count": "5",
+   "dancer": "F",
+   "foot": "L",
+   "x": -32,
+   "y": 45,
+   "heading": 80
+  },
+  {
+   "count": "5&",
+   "dancer": "L",
+   "foot": "L",
+   "x": 13,
+   "y": 33,
+   "heading": -80
+  },
+  {
+   "count": "5&",
+   "dancer": "F",
+   "foot": "R",
+   "x": -27,
+   "y": 33,
+   "heading": 80
+  },
+  {
+   "count": "6",
+   "dancer": "L",
+   "foot": "R",
+   "x": 4,
+   "y": 60,
+   "heading": -180
+  },
+  {
+   "count": "6",
+   "dancer": "F",
+   "foot": "L",
+   "x": -18,
+   "y": 60,
+   "heading": 180
+  }
+ ],
+ "winding": true,
+ "mirror": true,
+ "order": 17
+}

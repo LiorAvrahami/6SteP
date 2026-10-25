@@ -62,96 +62,102 @@
    "count": "3",
    "dancer": "L",
    "foot": "L",
-   "x": -4,
-   "y": 18,
+   "x": 7,
+   "y": 22,
    "heading": 90
   },
   {
    "count": "3",
    "dancer": "F",
    "foot": "R",
-   "x": 54,
-   "y": 18,
+   "x": 50,
+   "y": 11,
    "heading": 0
   },
   {
    "count": "3&",
    "dancer": "L",
    "foot": "R",
-   "x": -4,
-   "y": -2,
+   "x": 8,
+   "y": 1,
    "heading": 90
   },
   {
    "count": "3&",
    "dancer": "F",
    "foot": "L",
-   "x": 39,
-   "y": 27,
+   "x": 36,
+   "y": 20,
    "heading": 0
   },
   {
    "count": "4",
    "dancer": "L",
    "foot": "L",
-   "x": -4,
-   "y": 18,
+   "x": 11,
+   "y": 19,
    "heading": 90
   },
   {
    "count": "4",
    "dancer": "F",
    "foot": "R",
-   "x": 51,
-   "y": 41,
-   "heading": -5
+   "x": 56.4,
+   "y": 32,
+   "heading": 40
   },
   {
    "count": "5",
    "dancer": "L",
    "foot": "R",
-   "x": 20,
-   "y": 10,
-   "heading": 180
+   "x": 4,
+   "y": 51,
+   "heading": 180,
+   "via": [
+    [
+     -9.6,
+     25.6
+    ]
+   ]
   },
   {
    "count": "5",
    "dancer": "F",
    "foot": "L",
-   "x": 34,
-   "y": 60,
-   "heading": 65
+   "x": 52.2,
+   "y": 58.1,
+   "heading": 115
   },
   {
    "count": "5&",
    "dancer": "L",
    "foot": "L",
-   "x": 38,
-   "y": 14,
+   "x": 18,
+   "y": 49,
    "heading": 180
   },
   {
    "count": "5&",
    "dancer": "F",
    "foot": "R",
-   "x": 1,
-   "y": 36,
+   "x": 36,
+   "y": 44,
    "heading": 180
   },
   {
    "count": "6",
    "dancer": "L",
    "foot": "R",
-   "x": 20,
-   "y": 10,
+   "x": 3,
+   "y": 50,
    "heading": 180
   },
   {
    "count": "6",
    "dancer": "F",
    "foot": "L",
-   "x": 20,
-   "y": 31,
+   "x": 53,
+   "y": 47,
    "heading": 180
   }
  ],
