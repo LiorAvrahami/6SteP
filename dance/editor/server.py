@@ -281,7 +281,7 @@ class H(BaseHTTPRequestHandler):
             if start not in data['states']:
                 return self._json({'errors': [f'unknown start state {start!r}'], 'steps': [], 'elements': [], 'start': {}, 'length': 0, 'end_state': start}, 400)
             # experiment (2026-10-25): how elements join, 'leader' (as before), 'first' (her first step from her own foot), 'none'
-            stitch = req.get('stitch') if req.get('stitch') in ('leader', 'first', 'none') else ('leader' if req.get('snap', True) is not False else 'none')
+            stitch = req.get('stitch') if req.get('stitch') in ('leader', 'first', 'none', 'centre') else ('leader' if req.get('snap', True) is not False else 'none')
             comp = model.compose(data, elements, start, leader_free=req.get('leader_free') or None, pad_to_loop=bool(req.get('pad')), groups=groups, ends=ends, stitch=stitch)
             comp['loop_beats'] = comp['length']
             comp['closes'] = (not comp['errors']) and comp['end_state'] == start and comp['end_free'] == comp['start_free'] and comp['length'] > 0

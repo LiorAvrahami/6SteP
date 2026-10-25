@@ -107,7 +107,7 @@
       <div id="variantRow"><label for="variant">starting condition</label><select id="variant"></select><span id="variantLabel"></span></div>
       <div id="buttons">
         <button id="play" title="plays the dance on the floor in a loop, with the music (space)">play</button>
-        <select id="stitch" title="experiment: how two elements join. The leader's weight-bearing foot always keeps its place and orientation across the join; the follower: from the leader = her steps land where the next element's start position says, even if that makes her feet jump; her first step from her own foot = her first step of the next element is placed from her own weight-bearing foot, later steps from the leader; no snapping = all her steps from her own foot"><option value="leader">join: from the leader</option><option value="first">join: her first step from her own foot</option><option value="none">join: no snapping</option></select>
+        <select id="stitch" title="experiment: how two elements join. The leader's weight-bearing foot always keeps its place and orientation across the join; the follower: from the leader = her steps land where the next element's start position says, even if that makes her feet jump; her first step from her own foot = her first step of the next element is placed from her own weight-bearing foot, later steps from the leader; no snapping = all her steps from her own foot"><option value="leader">join: from the leader</option><option value="first">join: her first step from her own foot</option><option value="none">join: no snapping</option><option value="centre">join: the couple's middle and direction</option></select>
         <select id="track" title="track"><option value="hot">Hot Swing 144</option><option value="sunday">Sunday Reflection 127</option><option value="slow">Slow Your Roll 123</option></select>
         <button id="render" title="renders an mp4 with ffmpeg">render video</button>
         <button id="undo" title="undo (ctrl-z)">undo</button>
@@ -668,7 +668,8 @@
   $('stitch').addEventListener('change', () => { stopPlay(); if (mode === 'compositions') loadComposition();
     setStatus({ leader: 'join from the leader: each element puts the follower where its start position says',
       first: 'join: her first step of each element is placed from her own weight-bearing foot, later steps from the leader',
-      none: 'join, no snapping: the follower continues each element from where she stands' }[$('stitch').value] + ' (in compositions, and when play runs on)'); });
+      none: 'join, no snapping: the follower continues each element from where she stands',
+      centre: 'join by the couple: each element keeps the middle of the four feet and the direction from him to her' }[$('stitch').value] + ' (in compositions, and when play runs on)'); });
   $('mirrorChk').addEventListener('change', () => {
     const e = data.elements[ei], on = !!$('mirrorChk').checked; stopPlay(); pushSnapshot();
     if (on) { e.mirror = true; markDirty(); refresh(); setStatus('from now on every change to his steps also moves her matching foot to the mirrored place; nothing changed yet'); }

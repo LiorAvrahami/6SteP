@@ -284,6 +284,9 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
       'first'  (the user's idea): her first step of the element is placed from her own weighted foot (where she really
                stands, the same orientation), her later steps from the leader's frame again;
       'none'   (snap=False): all her steps from her own weighted foot.
+      'centre' (the user's second idea): the element is turned and moved so that its start position has the same middle
+               (the average of all four feet) and the same direction from the leader to the follower (from the middle of his
+               feet to the middle of hers) as where the dancers really are; all its steps, both dancers', are placed so.
     """
     stitch = stitch or ('leader' if snap else 'none')
     errors = []
@@ -310,6 +313,18 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
         # an element's headings assume its start state's headings: a foot that arrives wound by a full turn keeps it, instead of
         # spinning back on its first step
         st = state_feet(data, state)
+        if stitch == 'centre':
+            # the element's start position, moved onto where the dancers are: the same middle of the four feet and the same
+            # direction from his middle to hers (weighted feet do not move: only where the next steps land)
+            mid = lambda P, d: ((P[d + '.L'][0] + P[d + '.R'][0]) / 2, (P[d + '.L'][1] + P[d + '.R'][1]) / 2)
+            c0 = (sum(p[0] for p in st.values()) / 4, sum(p[1] for p in st.values()) / 4)
+            c1 = (sum(p[0] for p in cur.values()) / 4, sum(p[1] for p in cur.values()) / 4)
+            l0, f0, l1, f1 = mid(st, 'L'), mid(st, 'F'), mid(cur, 'L'), mid(cur, 'F')
+            if math.hypot(f0[0] - l0[0], f0[1] - l0[1]) > 1 and math.hypot(f1[0] - l1[0], f1[1] - l1[1]) > 1:
+                d0 = math.degrees(math.atan2(f0[0] - l0[0], f0[1] - l0[1])); d1 = math.degrees(math.atan2(f1[0] - l1[0], f1[1] - l1[1]))
+                h = d1 - d0
+                rc = Frame(0, 0, h).apply((c0[0], c0[1], 0.0))
+                frame = Frame(c1[0] - rc[0], c1[1] - rc[1], h)
         # snap=False: the follower's steps are moved rigidly from where the start state puts her weighted foot to where it is
         corr = None
         if stitch in ('first', 'none'):
