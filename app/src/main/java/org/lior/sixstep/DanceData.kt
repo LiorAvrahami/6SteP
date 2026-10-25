@@ -321,12 +321,13 @@ object Composer {
             }
             add(elem, item, false)
         }
-        if (padToLoop && errors.isEmpty() && sequence.isNotEmpty()) {
+        // pad only a piece that ends where it started; one that ends elsewhere restarts from its start, unpadded (user 2026-10-25)
+        if (padToLoop && errors.isEmpty() && sequence.isNotEmpty() && state == startState) {
             var fillers = 0
             // only until the leader's free foot is back (user 2026-10-19: a rock step played alone stays a rock step)
             while (free != startFree && fillers < 4) {
                 val elem = data.find(FILLER, state, free)
-                if (elem == null) { errors.add("cannot fill the loop: no $FILLER from $state with the $free foot free"); break }
+                if (elem == null) break   // no filler for this condition: it plays unpadded, not an error
                 add(elem, null, true)
                 fillers++
             }
