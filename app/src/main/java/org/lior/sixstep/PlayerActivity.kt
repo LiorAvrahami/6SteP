@@ -83,7 +83,6 @@ class PlayerActivity : AppCompatActivity() {
     private var lastAnnouncedElement = -1
     private var banner: String? = null
     private var bannerUntilBeat = -1.0
-    private var bannerEntry = -1   // the entry the annotation on screen belongs to: it stays while that entry is danced
     private var blockStarts: List<Double> = emptyList()
     private var pendingStart: Runnable? = null
     private var pendingSwitch: Runnable? = null
@@ -605,12 +604,11 @@ class PlayerActivity : AppCompatActivity() {
             el.annotation?.let { parts.add(it) }
             if (daily && el.entryStart) parts.add(spokenLabel(el))
             if (parts.isNotEmpty()) {
-                banner = parts.joinToString("\n"); bannerUntilBeat = b + 3.0; bannerEntry = el.entryIndex
+                banner = parts.joinToString("\n"); bannerUntilBeat = b + 3.0
                 if (speakOn && !paused) speaker.speak(parts.joinToString(". "))
             }
         }
-        // the annotation stays on screen while its entry is danced (at least 3 beats); the next entry, or a quiet one, clears it
-        if (b > bannerUntilBeat && (el == null || el.entryIndex != bannerEntry)) banner = null
+        if (b > bannerUntilBeat) banner = null
         val feet = tl.feetAt(b)
         val title = when {
             b0 < 0 -> "ready"

@@ -178,16 +178,15 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         c.drawText(s.count, w - h * 0.03f, h * 0.03f + text.textSize * 0.85f, text)
         text.isFakeBoldText = false
         if (!s.banner.isNullOrBlank()) {
-            // the annotation: black on yellow at the bottom, only as wide as its text, so the dancers stay in view (user 2026-10-26)
-            text.textAlign = Paint.Align.CENTER; text.textSize = (h * 0.06f).coerceAtLeast(20f); text.isFakeBoldText = true
-            val lines = s.banner.split('\n').flatMap { wrap(it, text, w * 0.86f) }
-            val lh = text.textSize * 1.2f; val pad = text.textSize * 0.45f
-            val tw = lines.maxOf { text.measureText(it) }
-            val bottom = h - h * 0.03f; val top = bottom - (pad * 2 + text.textSize + (lines.size - 1) * lh)
-            fill.color = Color.rgb(255, 214, 0)
-            c.drawRoundRect(w / 2f - tw / 2 - pad * 1.5f, top, w / 2f + tw / 2 + pad * 1.5f, bottom, 16f, 16f, fill)
-            text.color = Color.BLACK
-            lines.forEachIndexed { i, ln -> c.drawText(ln, w / 2f, top + pad + text.textSize * 0.85f + i * lh, text) }
+            // the annotation, as it always looked, but at the top, under the title and the count, instead of over the middle of
+            // the floor where it hid the dancers (user 2026-10-26)
+            text.textAlign = Paint.Align.CENTER; text.textSize = (h * 0.12f).coerceAtLeast(28f); text.isFakeBoldText = true
+            val lines = wrap(s.banner, text, w * 0.9f)
+            val bh = lines.size * text.textSize * 1.15f
+            val cy = h * 0.15f + text.textSize * 0.5f + bh / 2   // the box's middle: its top just under the count
+            fill.color = withAlpha(Color.rgb(17, 17, 24), 0.78); c.drawRoundRect(w * 0.04f, cy - bh / 2 - text.textSize * 0.5f, w * 0.96f, cy + bh / 2 + text.textSize * 0.3f, 24f, 24f, fill)
+            text.color = context.getColor(R.color.accent)
+            lines.forEachIndexed { i, ln -> c.drawText(ln, w / 2f, cy - bh / 2 + text.textSize * (i + 0.9f) * 1.15f, text) }
             text.isFakeBoldText = false
         }
     }
