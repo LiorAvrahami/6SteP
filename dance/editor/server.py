@@ -73,6 +73,27 @@ def invalid_skeletons(data):
                 return f'{e["name"]!r} count {s.get("count")}: x, y and heading must be numbers'
     return None
 
+BACKUPS = os.path.join(OUT, 'backups')
+
+def keep_copy(path, tag, body=None):
+    """A dated copy in dance/out/backups (git-ignored): of the file before it is overwritten (one per minute), or of a save that
+    was refused (body). The user's edits must never be lost (2026-10-25: a forced checkout wiped two elements)."""
+    try:
+        os.makedirs(BACKUPS, exist_ok=True)
+        name = os.path.join(BACKUPS, f"{tag}_{time.strftime('%Y-%m-%d_%H-%M')}.json")
+        if body is not None:
+            name = name[:-5] + time.strftime('-%S') + '.json'
+            with open(name, 'wb') as f:
+                f.write(body)
+        elif os.path.exists(path) and not os.path.exists(name):
+            with open(path, 'rb') as a, open(name, 'wb') as b:
+                b.write(a.read())
+        olds = sorted(f for f in os.listdir(BACKUPS) if f.startswith(tag + '_'))
+        for f in olds[:-500]:
+            os.remove(os.path.join(BACKUPS, f))
+    except OSError:
+        pass
+
 def slug(s):
     return re.sub(r'[^a-z0-9]+', '_', s.lower()).strip('_')
 
@@ -206,10 +227,13 @@ class H(BaseHTTPRequestHandler):
                 data = json.loads(raw.decode('utf-8'))
                 assert 'elements' in data and 'states' in data
             except Exception as e:
+                keep_copy(None, 'skeletons_refused', raw)
                 return self._send(400, f'bad json: {e}')
             bad = invalid_skeletons(data)
             if bad:
-                return self._send(400, f'not saved: {bad}')
+                keep_copy(None, 'skeletons_refused', raw)   # kept: it may hold edits made in an old page
+                return self._send(400, f'not saved: {bad} (a copy is kept in dance/out/backups)')
+            keep_copy(model.SKELETONS, 'skeletons')
             model.save(data, model.SKELETONS)
             return self._send(200, 'saved')
         if p == '/api/compose':
@@ -264,6 +288,7 @@ class H(BaseHTTPRequestHandler):
             doc['compositions'] = comps
             if subs is not None:
                 doc['sub_compositions'] = subs
+            keep_copy(model.COMPOSITIONS, 'compositions')
             with open(model.COMPOSITIONS, 'w', encoding='utf-8') as f:
                 json.dump(doc, f, indent=1, ensure_ascii=False)
                 f.write('\n')
@@ -350,6 +375,7 @@ def main():
     ap.add_argument('--port', type=int, default=8771)
     a = ap.parse_args()
     end_old_servers(a.port)
+    keep_copy(model.SKELETONS, 'skeletons'); keep_copy(model.COMPOSITIONS, 'compositions')
     data = model.load(model.SKELETONS)
     converted = model.unwrap_all(data)   # once per element: headings keep their winding from now on
     if converted:

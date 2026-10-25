@@ -137,7 +137,8 @@
      "heading": 0
     }
    ],
-   "hands": []
+   "hands": [],
+   "winding": true
   },
   {
    "name": "triple step",
@@ -195,7 +196,8 @@
      "heading": 0
     }
    ],
-   "hands": []
+   "hands": [],
+   "winding": true
   },
   {
    "name": "triple step",
@@ -253,7 +255,8 @@
      "heading": 0
     }
    ],
-   "hands": []
+   "hands": [],
+   "winding": true
   },
   {
    "name": "rock back cutoff",
@@ -391,7 +394,8 @@
      "heading": 180
     }
    ],
-   "hands": []
+   "hands": [],
+   "winding": true
   },
   {
    "name": "follower underarm pass",
@@ -460,8 +464,8 @@
      "count": "3&",
      "dancer": "F",
      "foot": "L",
-     "x": 38,
-     "y": 30,
+     "x": 39,
+     "y": 27,
      "heading": 0
     },
     {
@@ -476,9 +480,9 @@
      "count": "4",
      "dancer": "F",
      "foot": "R",
-     "x": 22,
-     "y": 42,
-     "heading": 90
+     "x": 51,
+     "y": 41,
+     "heading": -5
     },
     {
      "count": "5",
@@ -492,9 +496,9 @@
      "count": "5",
      "dancer": "F",
      "foot": "L",
-     "x": 16,
-     "y": 64,
-     "heading": 135
+     "x": 34,
+     "y": 60,
+     "heading": 65
     },
     {
      "count": "5&",
@@ -508,9 +512,9 @@
      "count": "5&",
      "dancer": "F",
      "foot": "R",
-     "x": 0,
-     "y": 31,
-     "heading": 180
+     "x": 1,
+     "y": 36,
+     "heading": -180
     },
     {
      "count": "6",
@@ -549,7 +553,8 @@
       "LL-FR"
      ]
     }
-   ]
+   ],
+   "winding": true
   },
   {
    "name": "follower underarm pass",
@@ -700,7 +705,8 @@
       "LL-FR"
      ]
     }
-   ]
+   ],
+   "winding": true
   },
   {
    "name": "recapture underarm pass",
@@ -858,7 +864,8 @@
       "FL-rshoulder"
      ]
     }
-   ]
+   ],
+   "winding": true
   },
   {
    "name": "lead underarm pass",
@@ -905,7 +912,7 @@
      "foot": "L",
      "x": -16,
      "y": 12,
-     "heading": 315
+     "heading": -45
     },
     {
      "count": "3",
@@ -921,7 +928,7 @@
      "foot": "R",
      "x": -10,
      "y": 30,
-     "heading": 315
+     "heading": -45
     },
     {
      "count": "3&",
@@ -937,7 +944,7 @@
      "foot": "L",
      "x": -26,
      "y": 40,
-     "heading": 270
+     "heading": -90
     },
     {
      "count": "4",
@@ -953,7 +960,7 @@
      "foot": "R",
      "x": -14,
      "y": 56,
-     "heading": 225
+     "heading": -135
     },
     {
      "count": "5",
@@ -969,7 +976,7 @@
      "foot": "L",
      "x": 16,
      "y": 44,
-     "heading": 225
+     "heading": -135
     },
     {
      "count": "5&",
@@ -985,7 +992,7 @@
      "foot": "R",
      "x": 0,
      "y": 31,
-     "heading": 180
+     "heading": -180
     },
     {
      "count": "6",
@@ -993,7 +1000,7 @@
      "foot": "L",
      "x": 0,
      "y": 0,
-     "heading": 0
+     "heading": 360
     }
    ],
    "hands": [
@@ -1009,7 +1016,254 @@
       "LL-FR"
      ]
     }
-   ]
+   ],
+   "winding": true
+  },
+  {
+   "name": "side to side",
+   "start_state": "side",
+   "end_state": "reversed_side",
+   "beats": 4,
+   "leader_free_start": "L",
+   "hands": [],
+   "steps": [
+    {
+     "count": "1",
+     "dancer": "L",
+     "foot": "L",
+     "x": 0,
+     "y": -16,
+     "heading": -25
+    },
+    {
+     "count": "1",
+     "dancer": "F",
+     "foot": "R",
+     "x": 54,
+     "y": -16,
+     "heading": 25
+    },
+    {
+     "count": "2",
+     "dancer": "L",
+     "foot": "R",
+     "x": 20,
+     "y": 0,
+     "heading": 0
+    },
+    {
+     "count": "2",
+     "dancer": "F",
+     "foot": "L",
+     "x": 34,
+     "y": 0,
+     "heading": 0
+    },
+    {
+     "count": "3",
+     "dancer": "L",
+     "foot": "L",
+     "x": 9,
+     "y": 43,
+     "heading": 80
+    },
+    {
+     "count": "3",
+     "dancer": "F",
+     "foot": "R",
+     "x": 45,
+     "y": 43,
+     "heading": -80
+    },
+    {
+     "count": "3&",
+     "dancer": "L",
+     "foot": "R",
+     "x": 10,
+     "y": 27,
+     "heading": 90
+    },
+    {
+     "count": "3&",
+     "dancer": "F",
+     "foot": "L",
+     "x": 44,
+     "y": 27,
+     "heading": -90
+    },
+    {
+     "count": "4",
+     "dancer": "L",
+     "foot": "L",
+     "x": 15,
+     "y": 47,
+     "heading": 160
+    },
+    {
+     "count": "4",
+     "dancer": "F",
+     "foot": "R",
+     "x": 39,
+     "y": 47,
+     "heading": -160
+    }
+   ],
+   "winding": true
+  },
+  {
+   "name": "Circle",
+   "start_state": "side",
+   "end_state": "side",
+   "beats": 7,
+   "leader_free_start": "L",
+   "hands": [],
+   "steps": [
+    {
+     "count": "1",
+     "dancer": "L",
+     "foot": "L",
+     "x": 0,
+     "y": -30,
+     "heading": 0
+    },
+    {
+     "count": "1",
+     "dancer": "F",
+     "foot": "R",
+     "x": 54,
+     "y": -30,
+     "heading": 0
+    },
+    {
+     "count": "2",
+     "dancer": "L",
+     "foot": "R",
+     "x": 21,
+     "y": -31,
+     "heading": 0
+    },
+    {
+     "count": "2",
+     "dancer": "F",
+     "foot": "L",
+     "x": 35,
+     "y": -29,
+     "heading": 0
+    },
+    {
+     "count": "3",
+     "dancer": "L",
+     "foot": "L",
+     "x": 52,
+     "y": 19,
+     "heading": 80
+    },
+    {
+     "count": "3",
+     "dancer": "F",
+     "foot": "R",
+     "x": 54,
+     "y": -30,
+     "heading": 5
+    },
+    {
+     "count": "3&",
+     "dancer": "L",
+     "foot": "R",
+     "x": 38,
+     "y": 1,
+     "heading": 155
+    },
+    {
+     "count": "3&",
+     "dancer": "F",
+     "foot": "L",
+     "x": 20,
+     "y": -23,
+     "heading": 20
+    },
+    {
+     "count": "4",
+     "dancer": "L",
+     "foot": "L",
+     "x": 66,
+     "y": 0,
+     "heading": 170
+    },
+    {
+     "count": "4",
+     "dancer": "F",
+     "foot": "R",
+     "x": 42,
+     "y": -29,
+     "heading": 20
+    },
+    {
+     "count": "5",
+     "dancer": "L",
+     "foot": "R",
+     "x": 48,
+     "y": 12,
+     "heading": 230
+    },
+    {
+     "count": "5",
+     "dancer": "F",
+     "foot": "L",
+     "x": 20,
+     "y": -23,
+     "heading": 20
+    },
+    {
+     "count": "6",
+     "dancer": "L",
+     "foot": "R",
+     "x": 38,
+     "y": 1,
+     "heading": 155
+    },
+    {
+     "count": "6",
+     "dancer": "F",
+     "foot": "L",
+     "x": 20,
+     "y": -23,
+     "heading": 20
+    },
+    {
+     "count": "6&",
+     "dancer": "L",
+     "foot": "R",
+     "x": 32,
+     "y": 23,
+     "heading": 180
+    },
+    {
+     "count": "6&",
+     "dancer": "F",
+     "foot": "L",
+     "x": 14,
+     "y": 12,
+     "heading": 125
+    },
+    {
+     "count": "7",
+     "dancer": "L",
+     "foot": "L",
+     "x": 50,
+     "y": 31,
+     "heading": 180
+    },
+    {
+     "count": "7",
+     "dancer": "F",
+     "foot": "R",
+     "x": -6,
+     "y": 29,
+     "heading": 180
+    }
+   ],
+   "winding": true
   }
  ]
 }
