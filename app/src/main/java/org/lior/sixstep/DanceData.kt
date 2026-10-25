@@ -275,15 +275,16 @@ object Composer {
     const val FILLER = "triple step"
 
     /** How an element joins the dance (the user's rule, 2026-10-26; model.couple_frame): its start position is turned and
-     *  moved so that it has the same middle (the average of all four feet) and the same direction from the leader to the
-     *  follower (the middle of his feet to the middle of hers) as where the dancers really are. Weighted feet do not move at
-     *  the join. With no direction (both on one spot) the fallback frame is kept. */
-    fun coupleFrame(start: Map<String, Placement>, real: Map<String, Placement>, fallback: Frame): Frame {
+     *  moved so that it has the same anchor point (the middle between his and her weight-bearing feet) and the same direction
+     *  from the leader to the follower (the middle of his feet to the middle of hers) as where the dancers really are.
+     *  Weighted feet do not move at the join. With no direction (both on one spot) the fallback frame is kept. */
+    fun coupleFrame(start: Map<String, Placement>, real: Map<String, Placement>, fallback: Frame, weighted: List<String>): Frame {
         val keys = listOf("L.L", "L.R", "F.L", "F.R")
         if (keys.any { start[it] == null || real[it] == null }) return fallback
         fun mid(m: Map<String, Placement>, d: Char) = Pair((m["$d.L"]!!.x + m["$d.R"]!!.x) / 2, (m["$d.L"]!!.y + m["$d.R"]!!.y) / 2)
-        val c0x = keys.sumOf { start[it]!!.x } / 4; val c0y = keys.sumOf { start[it]!!.y } / 4
-        val c1x = keys.sumOf { real[it]!!.x } / 4; val c1y = keys.sumOf { real[it]!!.y } / 4
+        val w = if (weighted.all { it in keys }) weighted else keys
+        val c0x = w.sumOf { start[it]!!.x } / w.size; val c0y = w.sumOf { start[it]!!.y } / w.size
+        val c1x = w.sumOf { real[it]!!.x } / w.size; val c1y = w.sumOf { real[it]!!.y } / w.size
         val l0 = mid(start, 'L'); val f0 = mid(start, 'F'); val l1 = mid(real, 'L'); val f1 = mid(real, 'F')
         if (hypot(f0.first - l0.first, f0.second - l0.second) <= 1.0 || hypot(f1.first - l1.first, f1.second - l1.second) <= 1.0) return fallback
         val h = Math.toDegrees(atan2(f1.first - l1.first, f1.second - l1.second)) - Math.toDegrees(atan2(f0.first - l0.first, f0.second - l0.second))
@@ -319,7 +320,9 @@ object Composer {
             val seen = HashSet<String>()
             // the element's headings assume its start state's: a foot that arrives wound by a full turn keeps it
             val stFeet = data.states[state]?.feet ?: state0.feet
-            frame = coupleFrame(stFeet, cur, frame)   // the join: the couple's middle and his-to-her direction stay as they are
+            // his and her weight-bearing foot: his is the one not free, hers is the one on his free foot's side (she is free on the other)
+            val weighted = listOf("L.${if (free == 'L') 'R' else 'L'}", "F.$free")
+            frame = coupleFrame(stFeet, cur, frame, weighted)   // the join: the middle of the weighted feet and his-to-her direction stay
             val wind = HashMap<String, Double>()
             for ((k, h) in lastH) {
                 val nominal = frame.h + (stFeet[k]?.h ?: 0.0)
