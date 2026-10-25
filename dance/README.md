@@ -126,7 +126,9 @@ button and no other version. The page warns when the server runs older code than
   (where it starts: state and free foot; where it ends; the steps: none, or a copy of any skeleton, moved rigidly to the new
   start and mirrored onto the other feet when the free foot differs). "edit…" changes the name and the states; "delete"
   deletes one starting condition (after a confirm that names the compositions that would stop composing). "add count"
-  inserts a count after the selection with each dancer's free foot in place; "remove steps" (or Delete) removes the
+  inserts a count after the selection with each dancer's free foot in place; "add triple" inserts a whole triple step (three
+  counts N, N&, N+1: the free foot, the other foot, the free foot again, in place); "½ after previous" turns the selected
+  count into a half count after the previous one and moves every later count by the same amount; "remove steps" (or Delete) removes the
   selection; double-click a count to change it (every selected step of that count), the who cell to switch the foot. Steps
   stay sorted by count and `beats` follows the counts. The server refuses to save a duplicate (name, state, free foot), an
   unknown state or a bad count label; an element with no steps for a dancer is kept but cannot be played or shipped

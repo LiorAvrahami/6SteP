@@ -114,6 +114,8 @@
         <button id="deleteElem" title="delete this starting condition of the element (ctrl-z brings it back)">delete</button>
         <span class="sep"></span>
         <button id="addCount" title="adds a count after the selection: each dancer's free foot, in place; then drag the feet">add count</button>
+        <button id="addTriple" title="adds a triple step after the selection: three counts (N, N&amp;, N+1), each dancer's free foot, the other foot, the first again, all in place; then drag the feet">add triple</button>
+        <button id="halfAfter" title="the selected count becomes a half count after the previous one (3 -> 2& after 2, 5 -> 4 after 3&), and every later count moves by the same amount">&frac12; after previous</button>
         <button id="removeSteps" title="removes the selected steps (Delete key; ctrl-z brings them back)">remove steps</button>
       </div>
       <div id="status"></div>
@@ -473,21 +475,55 @@
     setStatus(`deleted ${e.name}, ${variantLabel(e)}; ctrl-z brings it back`);
   }
   // steps: add a count, remove the selection, edit a count or a foot
-  function addCount() {
-    const e = data.elements[ei]; pushSnapshot();
-    const at = e.steps.length ? (() => { const [a, l] = groupAt(selLast()); return a + l; })() : 0;
-    const taken = new Set(e.steps.map(s => String(s.count)));
-    let label = null, where = at;
-    if (!e.steps.length) label = '1';
-    else { const p = String(e.steps[at - 1].count), k = parseInt(p, 10); label = (p.endsWith('&') ? [String(k + 1)] : [String(k + 1), k + '&']).find(c => !taken.has(c)) || null; }
-    if (!label) { label = String(Math.max(...e.steps.map(s => parseInt(s.count, 10))) + 1); where = e.steps.length; }
+  // where new counts go: after the selected count; each dancer's free foot there, where every foot stands, the count labels in use
+  function insertion() {
+    const e = data.elements[ei];
+    const where = e.steps.length ? (() => { const [a, l] = groupAt(selLast()); return a + l; })() : 0;
     const free = { L: e.leader_free_start || 'L' }; free.F = otherFoot(free.L);
     e.steps.slice(0, where).forEach(s => { free[s.dancer] = otherFoot(s.foot); });
-    const feet = feetBefore(where), added = ['L', 'F'].map(d => { const p = feet[d + '.' + free[d]];
-      return { count: label, dancer: d, foot: free[d], x: p[0], y: p[1], heading: p[2] }; });
+    const prev = where ? String(e.steps[where - 1].count) : null, next = prev === null ? 1 : parseInt(prev, 10) + 1;
+    return { e, where, free, feet: feetBefore(where), prev, next, taken: new Set(e.steps.map(s => String(s.count))), last: e.steps.length ? Math.max(...e.steps.map(s => parseInt(s.count, 10))) : 0 };
+  }
+  // steps in place (the foot where it stands) for both dancers; counts: [label, dancer -> foot]. The user drags them after.
+  function stepsInPlace(feet, counts) {
+    return counts.flatMap(([count, footOf]) => ['L', 'F'].map(d => { const f = footOf(d), p = feet[d + '.' + f]; return { count, dancer: d, foot: f, x: p[0], y: p[1], heading: p[2] }; }));
+  }
+  function addCount() {
+    const I = insertion(), e = I.e; pushSnapshot();
+    let label = I.prev === null ? '1' : (I.prev.endsWith('&') ? [String(I.next)] : [String(I.next), (I.next - 1) + '&']).find(c => !I.taken.has(c)) || null, where = I.where;
+    if (!label) { label = String(I.last + 1); where = e.steps.length; }
+    const added = stepsInPlace(I.feet, [[label, d => I.free[d]]]);
     e.steps.splice(where, 0, ...added);
     stepsChanged(e, added[0]);
     setStatus(`added count ${label}: each dancer's free foot, in place; drag the feet, double-click a count to change it`);
+  }
+  // counts as numbers of beats: "3" = 3, "3&" = 3.5; and back
+  const countValue = c => parseInt(c, 10) + (String(c).endsWith('&') ? 0.5 : 0);
+  const countLabel = v => String(Math.floor(v)) + (v % 1 ? '&' : '');
+  function halfAfterPrevious() {
+    // the selected count becomes half a count after the previous one; every later count moves by the same amount (user 2026-10-25)
+    const e = data.elements[ei]; if (!e.steps.length) return;
+    const [a] = groupAt(sel.start);
+    if (a === 0) { setStatus('the first count has no previous count'); return; }
+    const prev = countValue(e.steps[a - 1].count), cur = countValue(e.steps[a].count), delta = prev + 0.5 - cur;
+    if (!delta) { setStatus('it is already half a count after the previous one'); return; }
+    pushSnapshot();
+    const from = e.steps[a].count;
+    e.steps.slice(a).forEach(s => { s.count = countLabel(countValue(s.count) + delta); });
+    stepsChanged(e, e.steps[a]);
+    setStatus(`count ${from} is now ${e.steps[a].count}; every later count moved ${delta > 0 ? 'later' : 'earlier'} by ${Math.abs(delta)} beat${Math.abs(delta) === 1 ? '' : 's'}`);
+  }
+  function addTriple() {
+    // a triple step with one button (user 2026-10-25): the free foot, the other foot, the free foot again, on N, N& and N+1
+    const I = insertion(), e = I.e; pushSnapshot();
+    let n = I.next, where = I.where;
+    const labels = k => [String(k), k + '&', String(k + 1)];
+    if (labels(n).some(c => I.taken.has(c))) { n = I.last + 1; where = e.steps.length; }
+    const [c1, c2, c3] = labels(n);
+    const added = stepsInPlace(I.feet, [[c1, d => I.free[d]], [c2, d => otherFoot(I.free[d])], [c3, d => I.free[d]]]);
+    e.steps.splice(where, 0, ...added);
+    stepsChanged(e, added[0]);
+    setStatus(`added a triple step, counts ${c1}, ${c2}, ${c3}: each dancer's free foot, the other foot, the first again, all in place; drag the feet`);
   }
   function removeSteps() {
     const e = data.elements[ei]; if (!e.steps.length) return;
@@ -520,13 +556,15 @@
   $('editElem').addEventListener('click', () => { stopPlay(); openElementForm(true); });
   $('deleteElem').addEventListener('click', () => { stopPlay(); deleteElement(); });
   $('addCount').addEventListener('click', () => { stopPlay(); addCount(); });
+  $('addTriple').addEventListener('click', () => { stopPlay(); addTriple(); });
+  $('halfAfter').addEventListener('click', () => { stopPlay(); halfAfterPrevious(); });
   $('removeSteps').addEventListener('click', () => { stopPlay(); removeSteps(); });
 
   // ---------- the overlay: the element form, the checker's output, the help
   const HELP = [
     'Steps. A click on a row selects its count: the leader\'s and the follower\'s steps of that count together. Ctrl-click selects one foot alone; shift-click extends to the clicked count. Up/down move to the previous or next count (wrapping round); shift+up/down grow the selection by a count at that edge, ctrl+shift+up/down shrink it there. Double-click a count to change it (every selected step of that count changes with it); double-click the who cell to switch the foot.',
     'Floor. Left-drag moves a selected foot (1 cm); right-drag turns it about its heel (5°, hold alt for 1°). The wheel zooms, dragging the empty floor pans. Grey = where a moving foot was, with a dashed line to where it lands; light grey with a coloured outline = a foot that stays; a dark outline = the feet of the last selected count.',
-    'Elements. An element has one skeleton per starting condition (state and free foot): the dropdown picks it. "new element…" makes an element, or a new starting condition of one when you give its name: from no steps, or from a copy of any skeleton (mirrored onto the other feet when the free foot differs). "add count" adds a count after the selection with each dancer\'s free foot in place; "remove steps" (or Delete) removes the selection. Every change is saved to dance/skeletons.json at once; ctrl-z undoes it.',
+    'Elements. An element has one skeleton per starting condition (state and free foot): the dropdown picks it. "new element…" makes an element, or a new starting condition of one when you give its name: from no steps, or from a copy of any skeleton (mirrored onto the other feet when the free foot differs). "add count" adds a count after the selection with each dancer\'s free foot in place, "½ after previous" turns the selected count into a half count after the previous one and moves every later count with it, "add triple" a whole triple step (three counts N, N&, N+1: the free foot, the other foot, the free foot again, in place); "remove steps" (or Delete) removes the selection. Every change is saved to dance/skeletons.json at once; ctrl-z undoes it.',
     'Play and video. "play" (or space) loops the element or composition on the floor with the music: the music runs on and the dance continues from where the dancers are, padded with triple steps (marked as filler) when it would not loop on its own; an element that ends in another position restarts from its start. "render video" makes an mp4. "check" runs the rule checker.',
     'Compositions. Lists of entries: an element, a sub-composition (a named list of elements, e.g. RTT), or either "x N". Each entry\'s starting condition is dictated by the previous one, and the add list offers only what can follow.',
   ].join('\n\n');
