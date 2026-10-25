@@ -466,6 +466,31 @@ def expand_sequence(entries, subs, _depth=0, _inside=()):
                 out.append((name, None, end))
     return out
 
+def expand_annotations(entries, subs, _depth=0, _inside=()):
+    """For each element of expand_sequence(entries, subs), in the same order: what the phone shows and says when it starts
+    (the app's CompositionStore.expand and PlayerActivity): 'say', the "say:" texts written before its entry, and
+    'announce', at the start of an entry that is not quiet, the entry's label ("lead underarm pass, 10 times")."""
+    by_name = {s['name']: s for s in (subs or [])}
+    out, pending = [], None
+    for entry in entries:
+        t = str(entry).strip()
+        if t.lower().startswith('say:'):
+            pending = (pending + '. ' if pending else '') + t[4:].strip()
+            continue
+        name, times, _end, quiet = parse_entry_full(entry)
+        spoken = f'{name}, {times} times' if times > 1 else name
+        for rep in range(times):
+            if name in by_name and name not in _inside and _depth < 6:
+                inner = expand_annotations(by_name[name]['elements'], subs, _depth + 1, _inside + (name,))
+                for j in range(len(inner)):
+                    first = rep == 0 and j == 0
+                    out.append({'say': pending if first else None, 'announce': spoken if first and not quiet else None})
+            else:
+                out.append({'say': pending if rep == 0 else None, 'announce': spoken if rep == 0 and not quiet else None})
+            if rep == 0:
+                pending = None
+    return out
+
 def composition_sequence(comp, subs=None):
     """The flat element list of a composition: its entries (sub-compositions and 'x N' expanded) repeated 'repeat' times."""
     flat = expand_sequence(comp['elements'], subs if subs is not None else load_subs())

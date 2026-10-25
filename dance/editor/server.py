@@ -301,6 +301,12 @@ class H(BaseHTTPRequestHandler):
                         st['filler'] = chained['elements'][st['element']]['filler']
                     chained.update(loop_beats=comp['length'], closes=True, chained=n, start_free=comp['start_free'])
                     comp = chained
+            # what the phone shows and says when each element starts (the annotations), for the page's player
+            notes = model.expand_annotations(list(req.get('elements') or []), subs) * max(1, int(req.get('repeat', 1)))
+            loop = len(loop_names) if comp.get('chained', 1) > 1 else len(comp['elements'])
+            for k, e in enumerate(comp['elements']):
+                a = notes[k % loop] if (k % loop) < len(notes) and not e.get('filler') else {}
+                e['say'], e['announce'] = a.get('say'), a.get('announce')
             return self._json(comp)
         if p == '/api/compositions':
             try:

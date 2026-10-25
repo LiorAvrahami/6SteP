@@ -802,9 +802,10 @@
     // each entry expands to one or more composed elements: show the condition span of the whole entry
     const subNames = new Set(subs.map(x => x.name));
     const spans = []; let k = 0;
-    (c ? c.elements : []).forEach(entry => { const [nm, times] = parseEntry(entry); const sub = subNames.has(nm) ? subs.find(x => x.name === nm) : null;
+    (c ? c.elements : []).forEach(entry => { if (/^\s*say:/i.test(String(entry))) { spans.push([k, k - 1, false, true]); return; }   // an annotation: no steps
+      const [nm, times] = parseEntry(entry); const sub = subNames.has(nm) ? subs.find(x => x.name === nm) : null;
       const per = sub ? sub.elements.reduce((a, e2) => a + parseEntry(e2)[1], 0) : 1; const cnt = per * times; spans.push([k, k + cnt - 1, !!sub]); k += cnt; });
-    const condOf = i => { if (!compView || !compView.elements) return ''; const [a, b] = spans[i]; const ea = compView.elements[a], eb = compView.elements[b];
+    const condOf = i => { if (!compView || !compView.elements || spans[i][3]) return ''; const [a, b] = spans[i]; const ea = compView.elements[a], eb = compView.elements[b];
       if (!ea || !eb) return compView.errors && compView.errors.length ? '?' : '';
       return `${ea.start_state.replace('_', ' ')} (${ea.free}) → ${eb.end_state.replace('_', ' ')} (${eb.end_free}) · ${compView.elements.slice(a, b + 1).reduce((x, e2) => x + e2.beats, 0)} beats`; };
     (c ? c.elements : []).forEach((entry, i) => {
@@ -813,7 +814,7 @@
       const up = document.createElement('button'); up.textContent = '▲'; up.title = 'move up'; up.addEventListener('click', () => { if (i > 0) { [c.elements[i - 1], c.elements[i]] = [c.elements[i], c.elements[i - 1]]; compChanged(); } });
       const dn = document.createElement('button'); dn.textContent = '▼'; dn.title = 'move down'; dn.addEventListener('click', () => { if (i < c.elements.length - 1) { [c.elements[i + 1], c.elements[i]] = [c.elements[i], c.elements[i + 1]]; compChanged(); } });
       const rm = document.createElement('button'); rm.textContent = '✕'; rm.title = 'remove'; rm.addEventListener('click', () => { c.elements.splice(i, 1); compChanged(); });
-      if (!spans[i][2]) {
+      if (!spans[i][2] && !spans[i][3]) {
         // which version: "auto" (the composer picks the one that lets the rest continue) or a pinned ending among those that fit here
         const pe = parseEntryFull(entry), ce = compView && compView.elements ? compView.elements[spans[i][0]] : null;
         const opts = (ce && ce.end_options ? ce.end_options.slice() : []); if (pe.end && !opts.includes(pe.end)) opts.push(pe.end);
@@ -1029,7 +1030,7 @@
     if (composed || e.composition) {
       const cv_ = composed || compView; const src = composed ? composed.steps : e.steps;
       start = {}; for (const k in cv_.start) start[k] = cv_.start[k].slice();
-      elements = (cv_.elements || []).map(x => ({ name: x.name, start: x.start, beats: x.beats, filler: !!x.filler }));
+      elements = (cv_.elements || []).map(x => ({ name: x.name, start: x.start, beats: x.beats, filler: !!x.filler, say: x.say || null, announce: x.announce || null }));
       const bases = elements.map((x, k) => Math.min(...src.filter(s => s.element === k).map(s => countTime(s.count, 0))));
       steps = src.map(s => ({ t: elements[s.element].start + countTime(s.count, swing) - bases[s.element], dancer: s.dancer, foot: s.foot, x: s.x, y: s.y, heading: s.heading, hands: s.hands || [], count: s.count, element: s.element, noweight: !!s.noweight, via: s.via || [] }));
       startHands = cv_.start_hands || (data.states[(composed ? composed.start_state : e.start_state) || 'side'] || {}).hands || [];
@@ -1102,6 +1103,19 @@
     ctx.fillStyle = name.includes('filler') ? '#8a6d00' : '#222'; ctx.font = '22px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(name || '', 12, 10);
     ctx.fillStyle = '#222'; ctx.font = 'bold 44px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(count || '', cv.width - 14, 6);
     ctx.font = '12px sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#999'; ctx.fillText(player.info || '', 12, 38);
+    if (player.notes && b >= 0) drawNote(tl, b);
+  }
+  // the annotations of a composition (what the phone says: the "say:" texts and the name of an entry that is not quiet, as it
+  // starts), black on yellow at the bottom of the floor for 3 beats, out of the dancers' way (user 2026-10-26)
+  const NOTE_BEATS = 3;
+  function drawNote(tl, b) {
+    const e = tl.elements.find(x => b >= x.start && b < x.start + NOTE_BEATS && (x.say || x.announce)); if (!e) return;
+    const lines = [e.say, e.announce].filter(Boolean);
+    ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    const tw = Math.max(...lines.map(t => ctx.measureText(t).width)), lh = 26, pad = 10;
+    const bw = tw + pad * 3, bh = lines.length * lh + pad, x0 = cv.width / 2 - bw / 2, y0 = cv.height - 16 - bh;
+    ctx.fillStyle = '#ffd600'; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x0, y0, bw, bh, 8); else ctx.rect(x0, y0, bw, bh); ctx.fill();
+    ctx.fillStyle = '#000'; lines.forEach((t, i) => ctx.fillText(t, cv.width / 2, y0 + pad / 2 + lh * (i + 0.5)));
   }
 
   // ---------- the player: Web Audio loops the track segment sample-accurately; the animation follows the audio clock
@@ -1139,6 +1153,7 @@
     const barT = (grid.bars || []).find(t => t >= 3.0) || grid.beats[0];
     let k0 = 0; grid.beats.forEach((t, i) => { if (Math.abs(t - barT) < Math.abs(grid.beats[k0] - barT)) k0 = i; });
     const bar = grid.beat * 4;
+    player.notes = !!e.composition;   // the annotations belong to compositions
     player.tl = tl; player.k0 = k0; player.s0 = grid.beats[k0]; player.off = Math.max(0, player.s0 - bar);
     const closes = !!composed.closes; const loopBeats = composed.loop_beats || tl.length; const chained = composed.chained || 1;
     const fillersPerLoop = Math.round(tl.fillers / chained);
