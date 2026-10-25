@@ -8,6 +8,7 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+*.mp4
 
 # ---- the PC-side project (dance/, music/, tools/): generated, downloaded or not ours to publish
 __pycache__/

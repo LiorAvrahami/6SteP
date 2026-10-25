@@ -1,0 +1,2 @@
+this folder should be excluded from git
+this folder is not interesting for ai agents. you shouldn't look at it.
