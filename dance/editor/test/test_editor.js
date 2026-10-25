@@ -249,9 +249,22 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   $('feOk').dispatch('click', {});
   const MM = E.elem();
   assert(MM.name === 'my move' && MM.steps.length === 0 && MM.beats === 0 && E.overlayKind === null, 'a blank element has no steps yet');
-  $('addCount').dispatch('click', {}); $('addCount').dispatch('click', {});
+  const menu = () => $('ctxMenu').children, pick = txt => { const it = menu().find(c => c.textContent.startsWith(txt)); assert(!!it, 'the menu offers "' + txt + '"'); it.dispatch('click', {}); };
+  $('head').dispatch('contextmenu', { clientX: 10, clientY: 10 });
+  assert($('ctxMenu').style.display === 'block' && menu().length === 1, 'right-click on the column titles opens the menu');
+  pick('insert the first count');
+  $('rows').children[0].dispatch('contextmenu', { clientX: 10, clientY: 10 });
+  assert(menu().length === 4 && menu()[2].className === 'off', 'right-click on the first count: four choices, "half after previous" off');
+  pick('insert a count after 1');
   const lineup = () => E.elem().steps.map(x => x.count + x.dancer + x.foot).join(' ');
   assert(lineup() === '1LL 1FR 2LR 2FL' && E.elem().beats === 2, 'add count twice: each dancer\'s free foot in place, alternating: ' + lineup());
+  $('rows').children[0].dispatch('contextmenu', { clientX: 10, clientY: 10 }); pick('insert a count after 1');
+  assert(lineup() === '1LL 1FR 2LR 2FL 3LR 3FL', 'inserting after 1 makes the new 2 and moves the old 2 to 3: ' + lineup());
+  document.dispatchKey({ key: 'z', ctrlKey: true });
+  $('head').dispatch('contextmenu', { clientX: 10, clientY: 10 }); pick('insert a count before the first');
+  assert(lineup() === '1LL 1FR 2LL 2FR 3LR 3FL', 'inserting before the first makes a new 1 and moves the others a beat later: ' + lineup());
+  document.dispatchKey({ key: 'z', ctrlKey: true });
+  $('rows').children[2].dispatch('click', {});
   $('addTriple').dispatch('click', {});
   assert(lineup() === '1LL 1FR 2LR 2FL 3LL 3FR 3&LR 3&FL 4LL 4FR' && E.elem().beats === 4 && E.sel.start === 4 && E.sel.len === 2, 'add triple: counts 3, 3&, 4 with the feet alternating, the first count selected: ' + lineup());
   document.dispatchKey({ key: 'z', ctrlKey: true });
@@ -273,7 +286,7 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
     els['floor'].dispatch('mousedown', { button: 0, clientX: q0[0], clientY: q0[1] }); window.dispatch('mousemove', { clientX: q0[0] + 16 * k, clientY: q0[1] }); window.dispatch('mouseup', {}); }
   assert(at('F', '1').x === 70, 'her step moved out of place (70)');
   $('mirrorChk').checked = true; $('mirrorChk').dispatch('change', {});
-  assert(E.elem().mirror === true && at('F', '1').foot === 'R' && at('F', '1').x === 54 && at('F', '1').y === 0, 'ticking makes her the mirror of him: count 1 at (' + at('F', '1').x + ',' + at('F', '1').y + ')');
+  assert(E.elem().mirror === true && at('F', '1').x === 70, 'ticking changes nothing by itself: her step stays at ' + at('F', '1').x);
   $('rows').children[0].dispatch('click', {});
   let ls = at('L', '1'), q = E.px([ls.x, ls.y]); const sc2 = E.view.scale;
   els['floor'].dispatch('mousedown', { button: 0, clientX: q[0], clientY: q[1] });
