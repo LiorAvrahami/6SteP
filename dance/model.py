@@ -264,15 +264,17 @@ def candidates(data, name, start_state, leader_free):
     """Every version of an element that starts in this condition, in list order (since 2026-10-25 several may, ending apart)."""
     return [e for e in data['elements'] if e['name'] == name and e['start_state'] == start_state and e.get('leader_free_start', 'L') == leader_free]
 
-def couple_frame(start_feet, real_feet, fallback):
+def couple_frame(start_feet, real_feet, fallback, weighted=None):
     """How an element joins the dance (the user's rule, 2026-10-26): its start position is turned and moved so that it has
-    the same middle (the average of all four feet) and the same direction from the leader to the follower (from the middle
-    of his two feet to the middle of hers) as where the dancers really are. start_feet: the element's start state (local);
+    the same anchor point and the same direction from the leader to the follower (from the middle of his two feet to the
+    middle of hers) as where the dancers really are. The anchor point: the middle between the two weight-bearing feet, his
+    and hers (weighted: their two keys; the user's correction, the same day), or without them the middle of all four feet. start_feet: the element's start state (local);
     real_feet: the four feet in the world. Weighted feet do not move at the join: this only decides where the next steps land.
     When the two dancers stand on one spot (no direction), the fallback frame is used."""
     mid = lambda P, d: ((P[d + '.L'][0] + P[d + '.R'][0]) / 2, (P[d + '.L'][1] + P[d + '.R'][1]) / 2)
-    c0 = (sum(p[0] for p in start_feet.values()) / 4, sum(p[1] for p in start_feet.values()) / 4)
-    c1 = (sum(p[0] for p in real_feet.values()) / 4, sum(p[1] for p in real_feet.values()) / 4)
+    keys = list(weighted) if weighted else list(start_feet)
+    c0 = (sum(start_feet[k][0] for k in keys) / len(keys), sum(start_feet[k][1] for k in keys) / len(keys))
+    c1 = (sum(real_feet[k][0] for k in keys) / len(keys), sum(real_feet[k][1] for k in keys) / len(keys))
     l0, f0, l1, f1 = mid(start_feet, 'L'), mid(start_feet, 'F'), mid(real_feet, 'L'), mid(real_feet, 'F')
     if math.hypot(f0[0] - l0[0], f0[1] - l0[1]) <= 1 or math.hypot(f1[0] - l1[0], f1[1] - l1[1]) <= 1:
         return fallback
@@ -316,7 +318,8 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
         hand_changes = {str(hc['count']): hc['hands'] for hc in elem.get('hands', [])}
         seen = []
         st = state_feet(data, state)
-        frame = couple_frame(st, cur, frame)   # the join: the couple's middle and his-to-her direction stay as they are
+        weighted = ['L.' + ('R' if free['L'] == 'L' else 'L'), 'F.' + ('R' if free['F'] == 'L' else 'L')]   # his and her weight-bearing foot
+        frame = couple_frame(st, cur, frame, weighted)   # the join: the middle of the weighted feet and his-to-her direction stay
         # an element's headings assume its start state's headings: a foot that arrives wound by a full turn keeps it, instead of
         # spinning back on its first step
         wind = {k: 360.0 * round((last_h[k] - (frame.h + st[k][2])) / 360.0) for k in last_h}

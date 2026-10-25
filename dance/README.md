@@ -152,7 +152,8 @@ any save it refuses). The page warns when the server runs older code than the fi
   unknown state or a bad count label; an element with no steps for a dancer is kept but cannot be played or shipped
   (`model.element_problem`; `tools/make_assets.py` refuses it).
 - **How elements join** (the user's rule, since 2026-10-26; `model.couple_frame`, the app's `Composer.coupleFrame`): each
-  element's start position is turned and moved so that it keeps the middle of the four feet and the direction from the
+  element's start position is turned and moved so that it keeps the middle between the two weight-bearing feet (his and
+  hers; until the same day the middle of all four feet) and the direction from the
   leader's middle (between his feet) to the follower's (between hers) as they really are. No weighted foot moves at the
   join; this only decides where the next steps land. So an element that ends somewhere a little different from what its
   ending says shares the difference between both dancers, instead of one of them jumping. The editor, the videos and the
