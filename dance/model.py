@@ -201,16 +201,14 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
             errors.append(f"{name!r} from {state!r}: {problem} (element {idx + 1} of {len(sequence)}); stopping")
             break
         add(elem, name, False, groups[idx] if groups and idx < len(groups) else None)
-    if pad_to_loop and not errors and sequence:
+    # pad only an element that ends where it started (only then can fillers close the loop); one that ends elsewhere restarts
+    # from its start each time, unpadded (user 2026-10-25: "we dance side to side without filling")
+    if pad_to_loop and not errors and sequence and state == start_state:
         fillers = 0
         while free['L'] != start_free and fillers < 4:
             elem = find_element(data, filler, state, free['L'])
-            if elem is None:
-                errors.append(f"cannot fill the loop: no {filler!r} from {state!r} with the leader's {free['L']} foot free")
-                break
-            if element_problem(elem):
-                errors.append(f"cannot fill the loop: the {filler!r} from {state!r}: {element_problem(elem)}")
-                break
+            if elem is None or element_problem(elem):
+                break   # no filler for this condition: it plays unpadded (it restarts from its start), not an error
             add(elem, filler, True)
             fillers += 1
     steps.sort(key=lambda s: (s['t'], s['dancer']))
