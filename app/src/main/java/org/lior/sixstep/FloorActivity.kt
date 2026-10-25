@@ -72,7 +72,7 @@ class FloorActivity : AppCompatActivity() {
         val stateExtra = intent.getStringExtra("state"); val freeExtra = intent.getStringExtra("free")?.firstOrNull()
         var seq: List<SeqItem>? = null; var startState = "side"; var free: Char? = null
         when (kind) {
-            "element" -> { val v = data.variants(name).getOrNull(intent.getIntExtra("variant", 0)); if (v != null) { seq = listOf(SeqItem(name, null, null, 0, true, name)); startState = v.startState; free = v.leaderFreeStart } }
+            "element" -> { val v = data.variants(name).getOrNull(intent.getIntExtra("variant", 0)); if (v != null) { seq = listOf(SeqItem(name, null, null, 0, true, name, v.endState)); startState = v.startState; free = v.leaderFreeStart } }
             "sub" -> store.subs.firstOrNull { it.name == name }?.let { seq = store.sequence(it); startState = stateExtra ?: it.startState; free = freeExtra }
             else -> store.find(name)?.let { seq = store.sequence(it); startState = it.startState }
         }
@@ -126,7 +126,7 @@ class FloorActivity : AppCompatActivity() {
         val one = Composer.compose(data, seq, startState, 0.67, free, padToLoop = true)
         if (one.errors.isNotEmpty() || !one.closes) return null
         loopBeats = one.length
-        val names = one.elements.map { SeqItem(it.name, it.group, null, it.entryIndex, it.entryStart, it.entryLabel) }
+        val names = one.elements.map { SeqItem(it.name, it.group, null, it.entryIndex, it.entryStart, it.entryLabel, it.endState) }   // the versions the first loop chose
         val n = (400.0 / one.length).toInt().coerceIn(2, 64)
         val chain = ArrayList<SeqItem>(); repeat(n) { chain.addAll(names) }
         val c = Composer.compose(data, chain, startState, 0.67, free)

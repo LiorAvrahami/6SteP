@@ -58,6 +58,9 @@ class DanceData(val states: Map<String, DanceState>, val elements: List<Element>
     val names: List<String> = elements.map { it.name }.distinct()
     fun find(name: String, state: String, free: Char): Element? =
         elements.firstOrNull { it.name == name && it.startState == state && it.leaderFreeStart == free }
+    /** every version that starts in this condition, in list order (several may, ending apart: 2026-10-25) */
+    fun candidates(name: String, state: String, free: Char): List<Element> =
+        elements.filter { it.name == name && it.startState == state && it.leaderFreeStart == free }
     fun variants(name: String): List<Element> = elements.filter { it.name == name }
 
     companion object {
@@ -118,20 +121,25 @@ class DanceData(val states: Map<String, DanceState>, val elements: List<Element>
 /** An entry of a composition: an element name, a sub-composition name, either followed by " x N", or "say: text" (an annotation).
  *  An entry in parentheses is quiet: danced but never announced, and not a stop for the player's swipes (a bridge between
  *  two elements that do not fit together, or a warm-up). */
-data class Entry(val name: String, val times: Int, val say: String?, val quiet: Boolean = false) {
+data class Entry(val name: String, val times: Int, val say: String?, val quiet: Boolean = false, val end: String? = null) {
     companion object {
         private val RE = Regex("^(.*?)\\s*(?:[xX×]\\s*(\\d+))?\\s*$")
+        /** the pinned ending: "triple step x2 → facing" (since 2026-10-25; model.parse_entry_full, the editor's parseEntryFull) */
+        private val END = Regex("\\s*(?:→|->)\\s*([A-Za-z_]+)\\s*$")
         fun parse(entry: String): Entry {
             var t = entry.trim()
             if (t.lowercase().startsWith("say:")) return Entry("", 1, t.substring(4).trim())
             val quiet = t.length > 2 && t.startsWith("(") && t.endsWith(")")
             if (quiet) t = t.substring(1, t.length - 1).trim()
-            val m = RE.matchEntire(t) ?: return Entry(t, 1, null, quiet)
+            var end: String? = null
+            val em = END.find(t)
+            if (em != null) { end = em.groupValues[1]; t = t.substring(0, em.range.first).trim() }
+            val m = RE.matchEntire(t) ?: return Entry(t, 1, null, quiet, end)
             val times = m.groupValues[2].toIntOrNull() ?: 1
-            return Entry(m.groupValues[1].trim(), maxOf(1, times), null, quiet)
+            return Entry(m.groupValues[1].trim(), maxOf(1, times), null, quiet, end)
         }
     }
-    fun text(): String = if (say != null) "say: $say" else (if (times > 1) "$name x$times" else name).let { if (quiet) "($it)" else it }
+    fun text(): String = if (say != null) "say: $say" else ((if (times > 1) "$name x$times" else name) + (if (end != null) " → $end" else "")).let { if (quiet) "($it)" else it }
 }
 
 /** `revision` is bumped in the shipped file when a shipped composition is changed; `edited` marks a copy the user changed on
@@ -153,7 +161,8 @@ class Composition(
 }
 
 /** One element of a flat sequence, with where it came from. */
-data class SeqItem(val name: String, val group: String?, val annotation: String?, val entryIndex: Int, val entryStart: Boolean, val entryLabel: String)
+data class SeqItem(val name: String, val group: String?, val annotation: String?, val entryIndex: Int, val entryStart: Boolean, val entryLabel: String,
+                   val end: String? = null)   // the pinned ending, or null: the composer chooses
 
 /** Compositions and sub-compositions: shipped in the assets, edited copies kept in the app's files. */
 class CompositionStore(private val ctx: Context) {
@@ -220,10 +229,10 @@ class CompositionStore(private val ctx: Context) {
                     val inner = expand(sub.elements, depth + 1, group, inside + e.name)
                     inner.forEachIndexed { j, it ->
                         val first = rep == 0 && j == 0
-                        out.add(SeqItem(it.name, group, if (first) pendingSay else null, idx, first && announced, label))
+                        out.add(SeqItem(it.name, group, if (first) pendingSay else null, idx, first && announced, label, it.end))
                     }
                 } else {
-                    out.add(SeqItem(e.name, prefix, if (rep == 0) pendingSay else null, idx, rep == 0 && announced, label))
+                    out.add(SeqItem(e.name, prefix, if (rep == 0) pendingSay else null, idx, rep == 0 && announced, label, e.end))
                 }
                 if (rep == 0) pendingSay = null
             }
@@ -317,8 +326,27 @@ object Composer {
             t += elem.beats
         }
 
+        // which version of each element (several may start alike and end apart, 2026-10-25): from the back, the conditions
+        // from which the rest can still be danced; from the front, the first version that honours the pin and keeps the rest
+        // possible (model.compose does the same)
+        val conds = data.states.keys.flatMap { st -> listOf(Pair(st, 'L'), Pair(st, 'R')) }
+        val feas = arrayOfNulls<Set<Pair<String, Char>>>(sequence.size + 1)   // null: anything may follow
+        for (i in sequence.indices.reversed()) {
+            val ok = HashSet<Pair<String, Char>>()
+            for (cd in conds) {
+                val pin = sequence[i].end
+                val any = data.candidates(sequence[i].name, cd.first, cd.second).any { c ->
+                    (pin == null || c.endState == pin) && (feas[i + 1]?.contains(Pair(c.endState, c.endFree('L'))) ?: true)
+                }
+                if (any) ok.add(cd)
+            }
+            feas[i] = ok
+        }
         for ((i, item) in sequence.withIndex()) {
-            val elem = data.find(item.name, state, free)
+            val cs = data.candidates(item.name, state, free)
+            val csP = if (item.end != null) cs.filter { it.endState == item.end } else cs
+            if (cs.isNotEmpty() && csP.isEmpty()) { errors.add("no '${item.name}' from $state ending in ${item.end} (element ${i + 1} of ${sequence.size})"); break }
+            val elem = csP.firstOrNull { c -> feas[i + 1]?.contains(Pair(c.endState, c.endFree('L'))) ?: true } ?: csP.firstOrNull()
             if (elem == null) {
                 val other = data.find(item.name, state, if (free == 'L') 'R' else 'L')
                 val where = " (element ${i + 1} of ${sequence.size})"
@@ -333,7 +361,8 @@ object Composer {
             var fillers = 0
             // only until the leader's free foot is back (user 2026-10-19: a rock step played alone stays a rock step)
             while (free != startFree && fillers < 4) {
-                val elem = data.find(FILLER, state, free)
+                val cs = data.candidates(FILLER, state, free)
+                val elem = cs.firstOrNull { it.endState == state } ?: cs.firstOrNull()   // one that stays in this state, so the loop closes
                 if (elem == null) break   // no filler for this condition: it plays unpadded, not an error
                 add(elem, null, true)
                 fillers++

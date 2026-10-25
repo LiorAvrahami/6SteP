@@ -339,7 +339,7 @@ class PlayerActivity : AppCompatActivity() {
         val b = currentBeat()
         val idx = tl.elementIndexAt(b.coerceAtLeast(0.0)).let { if (it < 0) 0 else it }
         val el = tl.composed.elements.getOrNull(idx) ?: return
-        val vi = data.variants(el.name).indexOfFirst { it.startState == el.startState && it.leaderFreeStart == el.free }.coerceAtLeast(0)
+        val vi = data.variants(el.name).indexOfFirst { it.startState == el.startState && it.leaderFreeStart == el.free && it.endState == el.endState }.coerceAtLeast(0)
         val atBeat = (b - el.start).coerceIn(0.0, el.beats.toDouble())
         if (!paused) togglePause()
         hideBar()
