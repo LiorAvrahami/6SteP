@@ -1214,8 +1214,11 @@ it plays only as far as it composes: ${problem}` : ''));
   }
   let composeSeq = 0;
   async function loadComposition() {
+    // a composition is always composed afresh from the elements on disk (user 2026-10-25): an element edit that is not saved
+    // yet is saved first, so the composition already has it
     compView = null; const c = compList()[ci]; if (!c) { refresh(); return; }
     const seq = ++composeSeq; setStatus('composing ' + c.name + '…');
+    if (dirty) { clearTimeout(autosaveTimer); await save(); if (seq !== composeSeq) return; }
     const r = await fetch('/api/compose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ start_state: c.start_state, elements: c.elements, repeat: c.repeat || 1, sub_compositions: subs, stitch: $('stitch').value }) });
     const v = await r.json(); if (seq !== composeSeq) return;
     compView = v; selectCount(0); fit(); refresh(); renderCompEdit();
@@ -1233,7 +1236,8 @@ it plays only as far as it composes: ${problem}` : ''));
     if (dirty || player.on || drag || !fileVersion) return;
     try { const j = await (await fetch('/api/skeletons_version')).json();
       if (j && j.version && j.version !== fileVersion && !dirty) { const fr = await fetch('/api/skeletons'), doc = await fr.json();
-        if (!dirty) { adopt(doc, versionOf(fr), null); baseElems = snapshotElems(data); setStatus('the file changed on disk: the editor now shows it'); } } } catch (e) {}
+        if (!dirty) { adopt(doc, versionOf(fr), null); baseElems = snapshotElems(data); setStatus('the file changed on disk: the editor now shows it');
+          if (mode === 'compositions') loadComposition(); } } } catch (e) {}   // an open composition is composed again from the new elements
   }
   async function load() {
     const fr0 = await fetch('/api/skeletons');

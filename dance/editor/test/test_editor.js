@@ -459,4 +459,14 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   const pe2 = E.parseEntryFull(E.comps[NC2].elements[0]);
   assert(pe2.name === 'triple step' && pe2.times === 2 && pe2.end === 'facing' && pe2.quiet && E.makeEntry(pe2) === '(triple step x2 → facing)', 'a quiet repeated pinned entry reads and writes back the same');
   els['deleteComp'].dispatch('click', {}); await tick(80);
+  // ---- opening a composition composes it afresh, after saving an element edit that was still waiting
+  els['modeElements'].dispatch('click', {});
+  els['element'].dispatch('change', { target: { value: 'rock step' } });
+  $('rows').children[0].dispatch('click', {});
+  { const st = E.elem().steps[0], q = E.px([st.x, st.y]);
+    els['floor'].dispatch('mousedown', { button: 0, clientX: q[0], clientY: q[1] }); window.dispatch('mousemove', { clientX: q[0] + 3 * E.view.scale, clientY: q[1] }); window.dispatch('mouseup', {}); }
+  saved = null; const nCalls = composeCalls.length;
+  els['modeCompositions'].dispatch('click', {}); await tick(150);
+  assert(saved !== null && composeCalls.length > nCalls, 'switching to a composition saves the waiting element edit first, then composes');
+  document.dispatchKey({ key: 'z', ctrlKey: true });
 })();
