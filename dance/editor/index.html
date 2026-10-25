@@ -640,17 +640,40 @@
     }
     m.style.left = x + 'px'; m.style.top = y + 'px'; m.style.display = 'block';
   }
+  // ---------- the end position (user 2026-10-25): after the leader's last step, the element's end state fixes where the
+  // follower's weighted foot stands (what check.py checks); the last count's menu puts her last step there
+  const STANCE = 20;   // cm between a dancer's feet in natural stance (model.STANCE)
+  function endExpected(e) {
+    // the end state's four feet in the frame of the leader's last step (model.element_end_frame): his left foot in natural stance
+    const his = e.steps.filter(t => t.dancer === 'L'); if (!his.length) return null;
+    const last = his[his.length - 1], r0 = right(last.heading);
+    const fx = last.foot === 'L' ? last.x : last.x - r0[0] * STANCE, fy = last.foot === 'L' ? last.y : last.y - r0[1] * STANCE, fh = last.heading;
+    const F = fwd(fh), R = right(fh), st = data.states[e.end_state].feet, out = {};
+    for (const k in st) { const [x, y, h] = st[k]; out[k] = [fx + x * R[0] + y * F[0], fy + x * R[1] + y * F[1], h + fh]; }
+    return out;
+  }
+  function snapToEnd() {
+    const e = data.elements[ei], exp = endExpected(e), hers = e.steps.filter(t => t.dancer === 'F');
+    if (!exp || !hers.length) { setStatus('the end position needs a step of each dancer'); return; }
+    const t = hers[hers.length - 1], [x, y, h0] = exp['F.' + t.foot];
+    const h = h0 + 360 * Math.round((t.heading - h0) / 360);   // the same heading, keeping the winding of hers
+    const moved = Math.hypot(x - t.x, y - t.y), turned = h - t.heading;
+    pushSnapshot();
+    Object.assign(t, { x: Math.round(x * 10) / 10, y: Math.round(y * 10) / 10, heading: Math.round(h * 10) / 10 });
+    markDirty(); refresh();
+    setStatus(`her last step (count ${t.count}, ${t.foot === 'L' ? 'left' : 'right'} foot) is now where the ${e.end_state.replace('_', ' ')} end position expects it: moved ${moved.toFixed(0)} cm` + (Math.abs(turned) > 0.5 ? `, turned ${turned > 0 ? '+' : ''}${turned.toFixed(0)}°` : '') + ' (ctrl-z undoes)');
+  }
   function rowMenu(i, ev) {
     if (readOnly() || player.on) return;
     if (ev.preventDefault) ev.preventDefault();
     const [a] = groupAt(i); selectCount(i); refreshSelection();
-    const c = elem().steps[a].count;
+    const c = elem().steps[a].count, isLast = groupAt(elem().steps.length - 1)[0] === a;
     openMenu(ev.clientX, ev.clientY, [
       [`insert a count after ${c}`, addCount],
       [`insert a triple step after ${c}`, addTriple],
       [`make ${c} half a count after the previous one`, halfAfterPrevious, a === 0],
       [`remove count ${c}`, removeSteps],
-    ]);
+    ].concat(isLast ? [[`put her last step where the end position (${elem().end_state.replace('_', ' ')}) expects it`, snapToEnd]] : []));
   }
   $('head').addEventListener('contextmenu', ev => {
     if (readOnly() || player.on) return;
@@ -706,7 +729,7 @@
   const HELP = [
     'Steps. A click on a row selects its count: the leader\'s and the follower\'s steps of that count together. Ctrl-click selects one foot alone; shift-click extends to the clicked count. Up/down move to the previous or next count (wrapping round); shift+up/down grow the selection by a count at that edge, ctrl+shift+up/down shrink it there. Double-click a count to change it (every selected step of that count changes with it); double-click the who cell to switch the foot.',
     'Floor. Left-drag moves a selected foot (1 cm); right-drag turns it about its heel (5°, hold alt for 1°). The wheel zooms, dragging the empty floor pans. Grey = where a moving foot was, with a dashed line to where it lands; light grey with a coloured outline = a foot that stays; a dark outline = the feet of the last selected count.',
-    'Elements. An element has one skeleton per starting condition (state and free foot): the dropdown picks it. "new element…" makes an element, or a new starting condition of one when you give its name: from no steps, or from a copy of any skeleton (mirrored onto the other feet when the free foot differs). A turning step shows a curved arrow at the toe of the foot\'s previous place: clockwise or anticlockwise, with the degrees; click it to make the foot turn the other way round (the foot\'s later steps keep their turns). Right-click a count for a menu: insert a count after it (each dancer\'s free foot, in place; later counts move a beat later when needed), insert a triple after it, make it half a count after the previous one, remove it; right-click the column titles to insert a count before the first. "follower mirrors leader" (a checkbox): ticked, every change to a leader step also puts her matching foot in the reflected place, across the line halfway between them at the start (changes to her steps do not touch his); ticking and unticking change nothing by themselves. "½ after previous" turns the selected count into a half count after the previous one and moves every later count with it, "add triple" a whole triple step (three counts N, N&, N+1: the free foot, the other foot, the free foot again, in place); "remove steps" (or Delete) removes the selection. Every change is saved to dance/skeletons.json at once; ctrl-z undoes it.',
+    'Elements. An element has one skeleton per starting condition (state and free foot): the dropdown picks it. "new element…" makes an element, or a new starting condition of one when you give its name: from no steps, or from a copy of any skeleton (mirrored onto the other feet when the free foot differs). A turning step shows a curved arrow at the toe of the foot\'s previous place: clockwise or anticlockwise, with the degrees; click it to make the foot turn the other way round (the foot\'s later steps keep their turns). Right-click a count for a menu: insert a count after it (each dancer\'s free foot, in place; later counts move a beat later when needed), insert a triple after it, make it half a count after the previous one, remove it, and on the last count, put her last step where the end position expects it; right-click the column titles to insert a count before the first. "follower mirrors leader" (a checkbox): ticked, every change to a leader step also puts her matching foot in the reflected place, across the line halfway between them at the start (changes to her steps do not touch his); ticking and unticking change nothing by themselves. "½ after previous" turns the selected count into a half count after the previous one and moves every later count with it, "add triple" a whole triple step (three counts N, N&, N+1: the free foot, the other foot, the free foot again, in place); "remove steps" (or Delete) removes the selection. Every change is saved to dance/skeletons.json at once; ctrl-z undoes it.',
     'Play and video. "play" (or space) loops the element or composition on the floor with the music: the music runs on and the dance continues from where the dancers are, padded with triple steps (marked as filler) when it would not loop on its own; an element that ends in another position restarts from its start. "render video" makes an mp4. "check" runs the rule checker.',
     'Compositions. Lists of entries: an element, a sub-composition (a named list of elements, e.g. RTT), or either "x N". Each entry\'s starting condition is dictated by the previous one, and the add list offers only what can follow.',
   ].join('\n\n');

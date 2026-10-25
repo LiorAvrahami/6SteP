@@ -132,7 +132,9 @@ button and no other version. The page warns when the server runs older code than
   the server starts or the page loads, so that every foot still turns the short way as it did (`model.unwrap_element`, the
   `winding` mark on each element); the server refuses saves from a page older than that. Right-click
   a count for a menu: insert a count after it (one beat later, each dancer's free foot in place; later counts move later
-  just enough to stay a beat after it), insert a triple after it, make it half a count after the previous one, remove it;
+  just enough to stay a beat after it), insert a triple after it, make it half a count after the previous one, remove it; on the last
+  count also "put her last step where the end position expects it" (her weighted foot where the end state puts it in the frame
+  of the leader's last step, as check.py checks; her heading keeps its winding);
   right-click the column titles to insert a count before the first; "add triple" inserts a whole triple step (three
   counts N, N&, N+1: the free foot, the other foot, the free foot again, in place); "follower mirrors leader" (a checkbox, saved
   with the element as `mirror`): ticked, every change to a leader step also puts her matching foot in the reflected place,

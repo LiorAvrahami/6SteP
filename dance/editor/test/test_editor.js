@@ -254,7 +254,7 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   assert($('ctxMenu').style.display === 'block' && menu().length === 1, 'right-click on the column titles opens the menu');
   pick('insert the first count');
   $('rows').children[0].dispatch('contextmenu', { clientX: 10, clientY: 10 });
-  assert(menu().length === 4 && menu()[2].className === 'off', 'right-click on the first count: four choices, "half after previous" off');
+  assert(menu().length === 5 && menu()[2].className === 'off' && menu()[4].textContent.startsWith('put her last step'), 'right-click on the only count: five choices ("half after previous" off; it is also the last count)');
   pick('insert a count after 1');
   const lineup = () => E.elem().steps.map(x => x.count + x.dancer + x.foot).join(' ');
   assert(lineup() === '1LL 1FR 2LR 2FL' && E.elem().beats === 2, 'add count twice: each dancer\'s free foot in place, alternating: ' + lineup());
@@ -367,4 +367,17 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   document.dispatchKey({ key: 'z', ctrlKey: true });
   assert(cs2[J] === undefined || E.elem().steps[J].heading === h0, 'ctrl-z flips it back');
   assert(E.data.elements.every(x => x.winding), 'every element is marked as keeping its winding after the page loads');
+  // ---- the last count's menu: her last step where the end position expects it
+  els['element'].dispatch('change', { target: { value: 'rock back cutoff' } });
+  const ce = E.elem().steps, lastF = ce.filter(st => st.dancer === 'F').pop(), orig = [lastF.x, lastF.y, lastF.heading];
+  $('rows').children[2].dispatch('contextmenu', { clientX: 5, clientY: 5 });
+  assert(!$('ctxMenu').children.some(c => c.textContent.startsWith('put her last step')), 'only the last count offers the end position');
+  lastF.x += 30; lastF.y -= 12;
+  $('rows').children[ce.length - 1].dispatch('contextmenu', { clientX: 5, clientY: 5 });
+  const snapItem = $('ctxMenu').children.find(c => c.textContent.startsWith('put her last step'));
+  assert(!!snapItem, 'the last count offers the end position');
+  snapItem.dispatch('click', {});
+  assert(Math.hypot(lastF.x - orig[0], lastF.y - orig[1]) < 3 && Math.abs(lastF.heading - orig[2]) < 10, 'her last step is back at the end position (within check.py\'s 3 cm): (' + lastF.x + ',' + lastF.y + ')');
+  document.dispatchKey({ key: 'z', ctrlKey: true });
+  assert(E.elem().steps.filter(st => st.dancer === 'F').pop().x === orig[0] + 30, 'ctrl-z undoes it');
 })();
