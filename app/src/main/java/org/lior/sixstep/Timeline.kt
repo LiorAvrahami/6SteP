@@ -6,6 +6,43 @@ import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
 
+/** A foot's curved path through the anchors the user set in the editor: a Catmull-Rom spline through the points (start,
+ *  anchors, landing), the ends duplicated, walked by length so the foot moves evenly. The same algorithm as model.curve_at
+ *  (Python) and curveAt (the editor). */
+object Curve {
+    const val SEG = 16
+    fun samples(pts: List<Pair<Double, Double>>): List<Pair<Double, Double>> {
+        val n = pts.size
+        if (n <= 2) return pts
+        val out = ArrayList<Pair<Double, Double>>()
+        for (i in 0 until n - 1) {
+            val p0 = pts[maxOf(i - 1, 0)]; val p1 = pts[i]; val p2 = pts[i + 1]; val p3 = pts[minOf(i + 2, n - 1)]
+            for (k in (if (i == 0) 0 else 1)..SEG) {
+                val t = k.toDouble() / SEG
+                fun cr(a0: Double, a1: Double, a2: Double, a3: Double) = 0.5 * (2 * a1 + (-a0 + a2) * t + (2 * a0 - 5 * a1 + 4 * a2 - a3) * t * t + (-a0 + 3 * a1 - 3 * a2 + a3) * t * t * t)
+                out.add(Pair(cr(p0.first, p1.first, p2.first, p3.first), cr(p0.second, p1.second, p2.second, p3.second)))
+            }
+        }
+        return out
+    }
+    fun at(pts: List<Pair<Double, Double>>, f: Double): Pair<Double, Double> {
+        if (pts.size == 2) return Pair(pts[0].first + (pts[1].first - pts[0].first) * f, pts[0].second + (pts[1].second - pts[0].second) * f)
+        val s = samples(pts)
+        val seg = DoubleArray(s.size - 1) { k -> hypot(s[k + 1].first - s[k].first, s[k + 1].second - s[k].second) }
+        val total = seg.sum()
+        if (total <= 1e-9) return s.last()
+        val want = f.coerceIn(0.0, 1.0) * total; var run = 0.0
+        for (k in seg.indices) {
+            if (run + seg[k] >= want) {
+                val u = if (seg[k] > 1e-12) (want - run) / seg[k] else 0.0
+                return Pair(s[k].first + (s[k + 1].first - s[k].first) * u, s[k].second + (s[k + 1].second - s[k].second) * u)
+            }
+            run += seg[k]
+        }
+        return s.last()
+    }
+}
+
 /** Where every foot is and how much weight it carries at any beat: a foot lands on its count, its weight ramps up over
  *  the next 0.3 beat while the other foot's ramps down, and a foot travels only while its weight is zero.
  *  Before the first step a dancer stands in the neutral stance with the weight on both feet; the weight moves onto the foot
@@ -18,7 +55,7 @@ class Timeline(val composed: Composed, val swing: Double) {
         fun smoothstep(u0: Double): Double { val u = max(0.0, min(1.0, u0)); return u * u * (3 - 2 * u) }
     }
 
-    class Landing(val tLand: Double, val tRelease: Double, val p: Placement)
+    class Landing(val tLand: Double, val tRelease: Double, val p: Placement, val via: List<Pair<Double, Double>> = emptyList())
     class FootTrack(start: Placement) {
         val landings = ArrayList<Landing>().apply { add(Landing(-1e9, -1e9, start)) }
         private var cursor = 0
@@ -38,7 +75,10 @@ class Timeline(val composed: Composed, val swing: Double) {
                 if (t >= nx.tRelease && t < nx.tLand) {
                     val u = smoothstep((t - nx.tRelease) / max(1e-6, nx.tLand - nx.tRelease))
                     val dh = nx.p.h - cur.p.h   // the raw difference: the stored winding chooses the way round
-                    return Placement(cur.p.x + (nx.p.x - cur.p.x) * u, cur.p.y + (nx.p.y - cur.p.y) * u, cur.p.h + dh * u)
+                    if (nx.via.isEmpty()) return Placement(cur.p.x + (nx.p.x - cur.p.x) * u, cur.p.y + (nx.p.y - cur.p.y) * u, cur.p.h + dh * u)
+                    val pts = ArrayList<Pair<Double, Double>>(); pts.add(Pair(cur.p.x, cur.p.y)); pts.addAll(nx.via); pts.add(Pair(nx.p.x, nx.p.y))
+                    val q = Curve.at(pts, u)
+                    return Placement(q.first, q.second, cur.p.h + dh * u)
                 }
             }
             return cur.p
@@ -71,7 +111,7 @@ class Timeline(val composed: Composed, val swing: Double) {
                 val track = tr[s.foot]!!
                 val prev = track.landings.last().p
                 if (hypot(prev.x - s.x, prev.y - s.y) < 0.5 && abs(prev.h - s.heading) < 0.5) release = s.t
-                track.landings.add(Landing(s.t, min(release, s.t), Placement(s.x, s.y, s.heading)))
+                track.landings.add(Landing(s.t, min(release, s.t), Placement(s.x, s.y, s.heading), s.via))
             }
             val first = ds.firstOrNull()
             val w0 = if (first == null) (if (d == 'L') 'R' else 'L') else if (first.foot == 'L') 'R' else 'L'

@@ -13,7 +13,8 @@ data class Placement(val x: Double, val y: Double, val h: Double)
 
 data class Step(
     val count: String, val dancer: Char, val foot: Char, val code: String,
-    val x: Double, val y: Double, val heading: Double, val exempt: Boolean, val note: String, val src: String
+    val x: Double, val y: Double, val heading: Double, val exempt: Boolean, val note: String, val src: String,
+    val via: List<Pair<Double, Double>> = emptyList()   // the anchors of the foot's curved path from its previous place (the user's)
 )
 
 data class Element(
@@ -85,8 +86,11 @@ class DanceData(val states: Map<String, DanceState>, val elements: List<Element>
                 val stj = e.getJSONArray("steps")
                 for (k in 0 until stj.length()) {
                     val s = stj.getJSONObject(k)
+                    val via = ArrayList<Pair<Double, Double>>()
+                    val vj = s.optJSONArray("via")
+                    if (vj != null) for (q in 0 until vj.length()) { val a = vj.getJSONArray(q); via.add(Pair(a.getDouble(0), a.getDouble(1))) }
                     steps.add(Step(s.getString("count"), s.getString("dancer")[0], s.getString("foot")[0], s.optString("code", ""),
-                        s.getDouble("x"), s.getDouble("y"), s.getDouble("heading"), s.optBoolean("exempt", false), s.optString("note", ""), s.optString("src", "")))
+                        s.getDouble("x"), s.getDouble("y"), s.getDouble("heading"), s.optBoolean("exempt", false), s.optString("note", ""), s.optString("src", ""), via))
                 }
                 val hands = ArrayList<Pair<String, List<String>>>()
                 val hj = e.optJSONArray("hands")
@@ -238,7 +242,8 @@ class CompositionStore(private val ctx: Context) {
 
 data class CStep(
     val t: Double, val count: String, val dancer: Char, val foot: Char,
-    val x: Double, val y: Double, val heading: Double, val element: Int, val hands: List<String>, val filler: Boolean
+    val x: Double, val y: Double, val heading: Double, val element: Int, val hands: List<String>, val filler: Boolean,
+    val via: List<Pair<Double, Double>> = emptyList()
 )
 
 data class CElement(
@@ -295,7 +300,8 @@ object Composer {
                 val key = "${s.dancer}.${s.foot}"
                 val wh = w.h + (wind[key] ?: 0.0)
                 lastH[key] = wh
-                steps.add(CStep(t + countTime(s.count, swing) - base, s.count, s.dancer, s.foot, w.x, w.y, wh, idx, hands, filler))
+                val via = s.via.map { v -> val q = frame.apply(v.first, v.second, 0.0); Pair(q.x, q.y) }
+                steps.add(CStep(t + countTime(s.count, swing) - base, s.count, s.dancer, s.foot, w.x, w.y, wh, idx, hands, filler, via))
             }
             // the end frame: where the leader's left foot stands in natural stance after his last weighted step
             val last = elem.steps.last { it.dancer == 'L' }
