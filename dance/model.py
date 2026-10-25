@@ -113,6 +113,27 @@ def element_free_feet_end(elem):
         out[d] = 'R' if last['foot'] == 'L' else 'L'
     return out
 
+def unwrap_element(data, e):
+    """Headings keep their winding since 2026-10-25 (a foot turns from one heading to the next by the raw difference, so the
+    user chooses clockwise or anticlockwise, and 370 is not 10). An element made before that is converted once: each step's
+    heading becomes the shortest turn from that foot's previous heading, which is how it was danced until then; then it is
+    marked 'winding'. Returns True when it was converted."""
+    if e.get('winding'):
+        return False
+    feet = {k: v[2] for k, v in state_feet(data, e['start_state']).items()}
+    for s in e['steps']:
+        k = f"{s['dancer']}.{s['foot']}"
+        h = feet[k] + norm_angle(s['heading'] - feet[k])
+        h = round(h, 6)
+        s['heading'] = int(h) if h == int(h) else h
+        feet[k] = s['heading']
+    e['winding'] = True
+    return True
+
+def unwrap_all(data):
+    """Converts every element that is not marked 'winding' yet (see unwrap_element); the names of those converted."""
+    return [f"{e['name']} [{e['start_state']}, {e.get('leader_free_start', 'L')}]" for e in data['elements'] if unwrap_element(data, e)]
+
 def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free=None, pad_to_loop=False, filler='triple step', groups=None):
     """Turn a list of element names into a world timeline.
 
@@ -128,6 +149,7 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
     """
     errors = []
     feet = {k: v for k, v in state_feet(data, start_state).items()}
+    last_h = {k: v[2] for k, v in feet.items()}   # each foot's last world heading, winding included
     frame = Frame(0, 0, 0)
     state = start_state
     free = {'L': leader_free or data['states'][start_state].get('leader_free', 'L')}
@@ -144,11 +166,17 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
         base = element_base_count(elem)
         hand_changes = {str(hc['count']): hc['hands'] for hc in elem.get('hands', [])}
         seen = []
+        # an element's headings assume its start state's headings: a foot that arrives wound by a full turn keeps it, instead of
+        # spinning back on its first step
+        st = state_feet(data, state)
+        wind = {k: 360.0 * round((last_h[k] - (frame.h + st[k][2])) / 360.0) for k in last_h}
         for s in elem['steps']:
             c = str(s['count'])
             if c in hand_changes and c not in seen:
                 hands = list(hand_changes[c]); seen.append(c)
             wx, wy, wh = frame.apply((s['x'], s['y'], s['heading']))
+            wh += wind[f"{s['dancer']}.{s['foot']}"]
+            last_h[f"{s['dancer']}.{s['foot']}"] = wh
             steps.append({'t': t + count_time(c, swing) - base, 'count': c, 'dancer': s['dancer'], 'foot': s['foot'],
                           'x': wx, 'y': wy, 'heading': wh, 'element': len(elements) - 1,
                           'exempt': bool(s.get('exempt')), 'hands': list(hands), 'filler': is_filler, 'noweight': bool(s.get('noweight'))})

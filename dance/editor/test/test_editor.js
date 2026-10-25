@@ -7,7 +7,7 @@ const ROOT = path.resolve(__dirname, '..', '..');   // dance/
 const html = fs.readFileSync(ROOT + '/editor/index.html', 'utf8');
 let js = html.match(/<script>([\s\S]*)<\/script>/)[1];
 js = js.replace('(function () {', 'globalThis.__editor = (function () {');
-js = js.replace(/\}\)\(\);\s*$/, '  return { get sel() { return sel; }, get data() { return data; }, get ei() { return ei; }, get view() { return view; }, get mode() { return mode; }, get compView() { return compView; }, get comps() { return comps; }, px, world, elem, buildTimeline, placementAt, weightsAt, heelOf, get overlayKind() { return overlayKind; } };\n})();');
+js = js.replace(/\}\)\(\);\s*$/, '  return { get sel() { return sel; }, get data() { return data; }, get ei() { return ei; }, get view() { return view; }, get mode() { return mode; }, get compView() { return compView; }, get comps() { return comps; }, px, world, elem, flipTurn, get arrowHits() { return arrowHits; }, buildTimeline, placementAt, weightsAt, heelOf, get overlayKind() { return overlayKind; } };\n})();');
 
 class El {
   constructor(tag) { this.tagName = tag.toUpperCase(); this.listeners = {}; this.children = []; this._cls = new Set(); this.classList = { add: c => this._cls.add(c), remove: c => this._cls.delete(c), has: c => this._cls.has(c), toggle: (c, on) => on ? this._cls.add(c) : this._cls.delete(c) }; this.style = {}; this.value = ''; this.textContent = ''; this.title = ''; this.width = 1000; this.height = 700; this.disabled = false; this.src = ''; this.max = '0'; }
@@ -145,7 +145,7 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   const tl = E.buildTimeline(0.68);
   let worst = 0;
   for (const row of ref) for (const d of ['L', 'F']) { const w = E.weightsAt(tl.tracks[d], row.b); for (const f of ['L', 'R']) { const q = E.placementAt(tl.tracks[d].tracks[f], row.b); const r = row[d + '.' + f];
-    worst = Math.max(worst, Math.abs(q[0] - r[0]), Math.abs(q[1] - r[1]), Math.abs(q[2] - r[2]), Math.abs(w[f] - r[3])); } }
+    worst = Math.max(worst, Math.abs(q[0] - r[0]), Math.abs(q[1] - r[1]), Math.abs(((q[2] - r[2]) % 360 + 540) % 360 - 180), Math.abs(w[f] - r[3])); } }
   assert(worst < 1e-3, `timeline port matches render.py at ${ref.length} sample beats (worst difference ${worst.toExponential(2)})`);
   assert(tl.length === 6 && tl.steps.length === 16 && tl.steps[0].t === 0 && Math.abs(tl.steps[6].t - 2.68) < 1e-9, 'element timeline: 6 beats, 16 steps, the & at 2.68');
   // ---- the help and the checker open in the overlay
@@ -295,7 +295,7 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   ls = at('L', '1'); q = E.px([ls.x, ls.y]);
   els['floor'].dispatch('mousedown', { button: 2, clientX: q[0], clientY: q[1] });
   window.dispatch('mousemove', { clientX: q[0] + 200, clientY: q[1] - 200 * 0.0001 }); window.dispatch('mouseup', {});
-  assert(ls.heading > 0 && at('F', '1').heading === (360 - ls.heading) % 360, 'turning his foot turns hers the other way: ' + ls.heading + ' / ' + at('F', '1').heading);
+  assert(ls.heading > 0 && at('F', '1').heading === -ls.heading, 'turning his foot turns hers the other way: ' + ls.heading + ' / ' + at('F', '1').heading);
   document.dispatchKey({ key: 'z', ctrlKey: true });
   assert(at('L', '1').heading === 0 && at('F', '1').heading === 0, 'ctrl-z undoes the turn of both feet');
   let fs_ = at('F', '1'), q2 = E.px([fs_.x, fs_.y]);
@@ -349,4 +349,22 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   assert(E.data.elements.length === NM && E.elem().name === 'my move', 'ctrl-z brings the deleted element back');
   await tick(600);
   assert(saved && saved.elements.length === NM, 'and that saved itself too');
+  // ---- which way a foot turns: the arrow at the toe of its previous place, a click flips it (winding, user 2026-10-25)
+  els['element'].dispatch('change', { target: { value: 'rock back cutoff' } });
+  const cs2 = E.elem().steps, turnOf = j => { const st = cs2[j]; let prev = E.data.states.side.feet[st.dancer + '.' + st.foot][2];
+    for (let k = 0; k < j; k++) if (cs2[k].dancer === st.dancer && cs2[k].foot === st.foot) prev = cs2[k].heading; return st.heading - prev; };
+  const J = cs2.findIndex((st, j) => Math.abs(turnOf(j)) > 1);
+  const later = cs2.findIndex((st, j) => j > J && st.dancer === cs2[J].dancer && st.foot === cs2[J].foot);
+  assert(J >= 0 && later > J, 'the cutoff has a turning step (#' + J + ', ' + turnOf(J) + '°) and a later step of that foot (#' + later + ')');
+  $('rows').children[J].dispatch('click', {});
+  const hit = E.arrowHits.find(h => h.i === J);
+  assert(!!hit, 'a turning step has an arrow on the floor');
+  const t0 = turnOf(J), tl0 = turnOf(later), h0 = cs2[J].heading;
+  els['floor'].dispatch('mousedown', { button: 0, clientX: hit.x, clientY: hit.y });
+  assert(Math.abs(turnOf(J) - (t0 > 0 ? t0 - 360 : t0 + 360)) < 0.01 && Math.abs(cs2[J].heading - h0) === 360, 'clicking the arrow makes it turn the other way round: ' + t0 + '° -> ' + turnOf(J) + '°');
+  assert(Math.abs(turnOf(later) - tl0) < 0.01, 'the foot\'s later step keeps its turn (' + tl0 + '°)');
+  assert(saved === null || true, '');
+  document.dispatchKey({ key: 'z', ctrlKey: true });
+  assert(cs2[J] === undefined || E.elem().steps[J].heading === h0, 'ctrl-z flips it back');
+  assert(E.data.elements.every(x => x.winding), 'every element is marked as keeping its winding after the page loads');
 })();

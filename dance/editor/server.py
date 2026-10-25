@@ -54,6 +54,8 @@ def invalid_skeletons(data):
             return f'an element misses one of {ELEMENT_KEYS}'
         if not isinstance(e['name'], str) or not e['name'].strip():
             return 'an element has no name'
+        if not e.get('winding'):
+            return f'{e["name"]!r} has no winding mark: this page is older than the server; reload it (your last change was not saved)'
         k = (e['name'], e['start_state'], e.get('leader_free_start', 'L'))
         if k in seen:
             return f'two skeletons of {k[0]!r} from {k[1]} with the leader\'s {k[2]} foot free'
@@ -348,6 +350,11 @@ def main():
     ap.add_argument('--port', type=int, default=8771)
     a = ap.parse_args()
     end_old_servers(a.port)
+    data = model.load(model.SKELETONS)
+    converted = model.unwrap_all(data)   # once per element: headings keep their winding from now on
+    if converted:
+        model.save(data, model.SKELETONS)
+        print('headings converted to keep their winding (each foot still turns the same way):', ', '.join(converted), flush=True)
     for attempt in range(50):   # an ended process can take a moment to let go of the port
         try:
             srv = Server(('127.0.0.1', a.port), H)

@@ -125,7 +125,12 @@ button and no other version. The page warns when the server runs older code than
   **Writing elements**: "new element…" makes an element, or a new starting condition of an existing one when given its name
   (where it starts: state and free foot; where it ends; the steps: none, or a copy of any skeleton, moved rigidly to the new
   start and mirrored onto the other feet when the free foot differs). "edit…" changes the name and the states; "delete"
-  deletes one starting condition (after a confirm that names the compositions that would stop composing). Right-click
+  deletes one starting condition (after a confirm that names the compositions that would stop composing). A turning step shows a curved arrow at the toe of the foot's previous place (clockwise or anticlockwise, with
+  the degrees); a click on it makes the foot turn the other way round to the same landing. Headings keep their winding
+  (since 2026-10-25 a heading of 370 is not 10: a foot turns by the raw difference, in the editor, the videos and the app;
+  the composer carries a foot's full turns across element boundaries). Elements made before that are converted once, when
+  the server starts or the page loads, so that every foot still turns the short way as it did (`model.unwrap_element`, the
+  `winding` mark on each element); the server refuses saves from a page older than that. Right-click
   a count for a menu: insert a count after it (one beat later, each dancer's free foot in place; later counts move later
   just enough to stay a beat after it), insert a triple after it, make it half a count after the previous one, remove it;
   right-click the column titles to insert a count before the first; "add triple" inserts a whole triple step (three

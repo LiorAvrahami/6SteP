@@ -69,7 +69,7 @@ class FootTrack:
             ntl, ntr, npl = self.landings[i + 1]
             if t >= ntr and t < ntl:
                 u = smoothstep((t - ntr) / max(1e-6, ntl - ntr))
-                dh = norm_angle(npl[2] - p[2])
+                dh = npl[2] - p[2]   # the raw difference: the stored winding chooses the way round
                 return (p[0] + (npl[0] - p[0]) * u, p[1] + (npl[1] - p[1]) * u, p[2] + dh * u)
         return p
 
@@ -94,7 +94,7 @@ def build_tracks(comp, swing):
                 release = ramps[i - 1][0] + ramps[i - 1][1]
             tr = tracks[s['foot']]
             prev = tr.landings[-1][2]
-            if dist(prev, (s['x'], s['y'])) < 0.5 and abs(norm_angle(prev[2] - s['heading'])) < 0.5:
+            if dist(prev, (s['x'], s['y'])) < 0.5 and abs(prev[2] - s['heading']) < 0.5:
                 release = s['t']  # replace: no travel
             tr.landings.append((s['t'], min(release, s['t']), (s['x'], s['y'], s['heading'])))
         # before the first step: the neutral stance, weight on both feet; it moves onto the foot that stays (the other one
