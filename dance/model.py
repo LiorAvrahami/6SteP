@@ -368,9 +368,11 @@ def load_subs(path=COMPOSITIONS):
     with open(path, encoding='utf-8') as f:
         return json.load(f).get('sub_compositions', [])
 
-def expand_sequence(entries, subs, _depth=0):
+def expand_sequence(entries, subs, _depth=0, _inside=()):
     """Expand sub-composition names and 'x N' repeats into a flat list of (element name, group label or None).
-    A group label names the sub-composition an element came from, e.g. 'RTT #3'."""
+    A group label names the sub-composition an element came from, e.g. 'RTT #3'. Inside a sub-composition its own name (or
+    that of one it is inside) means the element of that name: a sub-composition "side to side" made of the element "side to
+    side" twice is that element twice, not itself again and again (2026-10-25)."""
     by_name = {s['name']: s for s in (subs or [])}
     out = []
     counters = {}
@@ -379,10 +381,10 @@ def expand_sequence(entries, subs, _depth=0):
             continue  # an annotation (shown and read aloud by the phone app), no steps
         name, times = parse_entry(entry)
         for _ in range(times):
-            if name in by_name and _depth < 6:
+            if name in by_name and name not in _inside and _depth < 6:
                 counters[name] = counters.get(name, 0) + 1
                 label = f"{name} #{counters[name]}"
-                for el, _g in expand_sequence(by_name[name]['elements'], subs, _depth + 1):
+                for el, _g in expand_sequence(by_name[name]['elements'], subs, _depth + 1, _inside + (name,)):
                     out.append((el, label))
             else:
                 out.append((name, None))

@@ -1088,7 +1088,7 @@
   function beatAt(grid, s) { const beats = grid.beats; let j = 0; while (j + 1 < beats.length - 1 && beats[j + 1] <= s) j++; return j + (s - beats[j]) / (beats[j + 1] - beats[j]); }
   async function startPlay() {
     const key = $('track').value;
-    if (mode === 'compositions' && (!compView || (compView.errors && compView.errors.length))) { setStatus('this composition does not compose; fix it first'); return; }
+    if (mode === 'compositions' && !compView) { setStatus('the composition is still loading'); return; }
     if (!elem().steps.length) { setStatus('nothing to play'); return; }
     if (!window.AudioContext && !window.webkitAudioContext) { setStatus('no Web Audio in this browser'); return; }
     setStatus('loading ' + key + '…');
@@ -1106,11 +1106,13 @@
     const chainBeats = Math.max(8, grid.beats.length - k00 + 16);
     const cc = compList()[ci];
     const req = e.composition ? { start_state: cc.start_state, elements: cc.elements, repeat: cc.repeat || 1, pad: true, chain_beats: chainBeats, sub_compositions: subs }
-                              : { start_state: e.start_state, leader_free: e.leader_free_start || 'L', elements: [e.name], repeat: 1, pad: true, chain_beats: chainBeats };
+                              : { start_state: e.start_state, leader_free: e.leader_free_start || 'L', elements: [e.name], repeat: 1, pad: true, chain_beats: chainBeats, sub_compositions: [] };   // the element itself, never a sub-composition of the same name
     let composed;
     try { composed = await (await fetch('/api/compose', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(req) })).json(); }
     catch (err) { setStatus('could not compose the loop: ' + err); return; }
-    if (composed.errors && composed.errors.length) { setStatus('cannot play: ' + composed.errors.join('; ')); return; }
+    // play always works (user 2026-10-25): a composition with a problem plays as far as it composes, and the status says why it stops
+    const problem = composed.errors && composed.errors.length ? composed.errors.join('; ') : '';
+    if (!(composed.steps && composed.steps.length)) { setStatus('nothing to play' + (problem ? ': ' + problem : '')); return; }
     composed.start_state = req.start_state;
     const tl = buildTimeline(swing, composed); if (!(tl.length > 0)) { setStatus('nothing to play'); return; }
     const barT = (grid.bars || []).find(t => t >= 3.0) || grid.beats[0];
@@ -1132,7 +1134,8 @@
     const src = player.ctx.createBufferSource(); src.buffer = player.buffers[key]; src.loop = true; src.loopStart = 0; src.loopEnd = src.buffer.duration; src.connect(player.ctx.destination);
     src.start(0, player.off); player.src = src; player.t0 = player.ctx.currentTime; player.on = true;
     $('play').classList.add('on'); $('play').textContent = 'stop';
-    setStatus(`playing ${e.name}: ${player.info}`);
+    setStatus(`playing ${e.name}: ${player.info}` + (problem ? `
+it plays only as far as it composes: ${problem}` : ''));
     const dur = src.buffer.duration;
     const frame = () => { if (!player.on) return; const now = player.ctx.currentTime; const pos = (player.off + (now - player.t0)) % dur; const b = beatAt(grid, pos) - k0;
       let bb;
