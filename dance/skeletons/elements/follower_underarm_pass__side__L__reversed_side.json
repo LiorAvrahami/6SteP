@@ -1,0 +1,160 @@
+{
+ "name": "follower underarm pass",
+ "start_state": "side",
+ "end_state": "reversed_side",
+ "beats": 6,
+ "leader_free_start": "L",
+ "hands": [
+  {
+   "count": "1",
+   "hands": [
+    "LL-FR",
+    "LR-back"
+   ]
+  },
+  {
+   "count": "3",
+   "hands": [
+    "LL-FR^F"
+   ]
+  },
+  {
+   "count": "5",
+   "hands": [
+    "LL-FR"
+   ]
+  }
+ ],
+ "steps": [
+  {
+   "count": "1",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": -30,
+   "heading": 0
+  },
+  {
+   "count": "1",
+   "dancer": "F",
+   "foot": "R",
+   "x": 54,
+   "y": -30,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "F",
+   "foot": "L",
+   "x": 34,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "3",
+   "dancer": "L",
+   "foot": "L",
+   "x": -4,
+   "y": 18,
+   "heading": 90
+  },
+  {
+   "count": "3",
+   "dancer": "F",
+   "foot": "R",
+   "x": 54,
+   "y": 18,
+   "heading": 0
+  },
+  {
+   "count": "3&",
+   "dancer": "L",
+   "foot": "R",
+   "x": -4,
+   "y": -2,
+   "heading": 90
+  },
+  {
+   "count": "3&",
+   "dancer": "F",
+   "foot": "L",
+   "x": 39,
+   "y": 27,
+   "heading": 0
+  },
+  {
+   "count": "4",
+   "dancer": "L",
+   "foot": "L",
+   "x": -4,
+   "y": 18,
+   "heading": 90
+  },
+  {
+   "count": "4",
+   "dancer": "F",
+   "foot": "R",
+   "x": 51,
+   "y": 41,
+   "heading": -5
+  },
+  {
+   "count": "5",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 10,
+   "heading": 180
+  },
+  {
+   "count": "5",
+   "dancer": "F",
+   "foot": "L",
+   "x": 34,
+   "y": 60,
+   "heading": 65
+  },
+  {
+   "count": "5&",
+   "dancer": "L",
+   "foot": "L",
+   "x": 38,
+   "y": 14,
+   "heading": 180
+  },
+  {
+   "count": "5&",
+   "dancer": "F",
+   "foot": "R",
+   "x": 1,
+   "y": 36,
+   "heading": 180
+  },
+  {
+   "count": "6",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 10,
+   "heading": 180
+  },
+  {
+   "count": "6",
+   "dancer": "F",
+   "foot": "L",
+   "x": 20,
+   "y": 31,
+   "heading": 180
+  }
+ ],
+ "winding": true,
+ "order": 16
+}
