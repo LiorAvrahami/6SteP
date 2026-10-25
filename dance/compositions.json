@@ -6,19 +6,19 @@
    "start_state": "side",
    "repeat": 1,
    "elements": [
-    "(RTT x5)",
-    "follower underarm pass x15",
-    "lead underarm pass x15",
+    "(RTT x7)",
+    "side to side x10",
+    "follower pass & back x5",
+    "(follower underarm pass)",
+    "lead underarm pass x10",
+    "follower underarm pass x10",
     "(recapture underarm pass)",
     "rock back cutoff x10",
-    "follower pass & back x12",
-    "(follower underarm pass)",
-    "lead underarm pass x15",
-    "(recapture underarm pass)",
-    "rock back cutoff x10"
+    "Circle x10",
+    "follower underarm to arrow x10"
    ],
-   "notes": "Daily exercise (user 2026-10-19): no circle, RTT only as a warm-up and never announced. The quiet entries bridge the states the chain needs: the cutoff starts side by side, so a recapture precedes each cutoff block; the lead underarm pass starts face to face, so one follower underarm pass precedes the second block of lead passes. 582 beats: 4:03 on Hot Swing (144), 4:35 on Sunday Reflection (127), 4:44 on Slow Your Roll (123).",
-   "revision": 3
+   "notes": "The daily routine, remade 2026-10-26: every kind once. RTT and the bridges are quiet (in parentheses): the recapture is danced as \"follower pass & back\", and quiet bridges join face to face and side by side.",
+   "revision": 4
   }
  ],
  "sub_compositions": [
@@ -53,6 +53,16 @@
     "rock step",
     "triple step",
     "rock step"
+   ],
+   "notes": ""
+  },
+  {
+   "name": "follower underarm to arrow",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "follower underarm pass → reversed_side",
+    "arrow"
    ],
    "notes": ""
   }
