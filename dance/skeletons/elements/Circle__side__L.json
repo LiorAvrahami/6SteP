@@ -98,9 +98,9 @@
    "count": "5",
    "dancer": "F",
    "foot": "L",
-   "x": 32,
-   "y": 42,
-   "heading": 15
+   "x": 54,
+   "y": 31,
+   "heading": 75
   },
   {
    "count": "6",
@@ -114,9 +114,9 @@
    "count": "6",
    "dancer": "F",
    "foot": "R",
-   "x": 28,
-   "y": 6,
-   "heading": 145
+   "x": 59,
+   "y": 23,
+   "heading": 265
   },
   {
    "count": "7",
@@ -132,7 +132,7 @@
    "foot": "L",
    "x": 20,
    "y": -23,
-   "heading": 20
+   "heading": 380
   },
   {
    "count": "7&",
@@ -148,7 +148,7 @@
    "foot": "R",
    "x": 14,
    "y": 12,
-   "heading": 125
+   "heading": 485
   },
   {
    "count": "8",
@@ -164,7 +164,7 @@
    "foot": "L",
    "x": -6,
    "y": 29,
-   "heading": 180
+   "heading": 540
   }
  ],
  "winding": true,
