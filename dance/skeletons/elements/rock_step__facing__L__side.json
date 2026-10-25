@@ -3,42 +3,42 @@
  "start_state": "facing",
  "end_state": "side",
  "beats": 2,
- "leader_free_start": "R",
+ "leader_free_start": "L",
  "hands": [],
  "steps": [
   {
    "count": "1",
    "dancer": "L",
-   "foot": "R",
-   "x": -19,
+   "foot": "L",
+   "x": 39,
    "y": -26,
-   "heading": 90
+   "heading": -90
   },
   {
    "count": "1",
    "dancer": "F",
-   "foot": "L",
-   "x": -19,
+   "foot": "R",
+   "x": 39,
    "y": 55,
-   "heading": 90
+   "heading": 270
   },
   {
    "count": "2",
    "dancer": "L",
-   "foot": "L",
-   "x": 0,
+   "foot": "R",
+   "x": 20,
    "y": 0,
    "heading": 0
   },
   {
    "count": "2",
    "dancer": "F",
-   "foot": "R",
-   "x": 0,
+   "foot": "L",
+   "x": 20,
    "y": 31,
    "heading": 180
   }
  ],
  "winding": true,
- "order": 13
+ "order": 15
 }
