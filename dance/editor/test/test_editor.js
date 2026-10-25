@@ -266,6 +266,44 @@ function assert(c, msg) { if (!c) { console.error('FAIL:', msg); process.exitCod
   assert(lineup() === '1LL 1FR 1&LR 1&FL 2LL 2FR 2&LR 2&FL 3LL 3FR', 'a count after 1& becomes 2 and the later counts move back with it: ' + lineup());
   document.dispatchKey({ key: 'z', ctrlKey: true }); document.dispatchKey({ key: 'z', ctrlKey: true }); document.dispatchKey({ key: 'z', ctrlKey: true });
   assert(lineup() === '1LL 1FR 2LR 2FL', 'ctrl-z undoes them: ' + lineup());
+  // ---- follower mirrors leader (side by side: the mirror line is halfway between his right foot and her left, x = 27)
+  const at = (d, c) => E.elem().steps.find(st => st.dancer === d && st.count === c);
+  $('rows').children[0].dispatch('click', {});
+  { const f0 = at('F', '1'), q0 = E.px([f0.x, f0.y]), k = E.view.scale;   // her step out of place first, to see the mirror put it back
+    els['floor'].dispatch('mousedown', { button: 0, clientX: q0[0], clientY: q0[1] }); window.dispatch('mousemove', { clientX: q0[0] + 16 * k, clientY: q0[1] }); window.dispatch('mouseup', {}); }
+  assert(at('F', '1').x === 70, 'her step moved out of place (70)');
+  $('mirrorChk').checked = true; $('mirrorChk').dispatch('change', {});
+  assert(E.elem().mirror === true && at('F', '1').foot === 'R' && at('F', '1').x === 54 && at('F', '1').y === 0, 'ticking makes her the mirror of him: count 1 at (' + at('F', '1').x + ',' + at('F', '1').y + ')');
+  $('rows').children[0].dispatch('click', {});
+  let ls = at('L', '1'), q = E.px([ls.x, ls.y]); const sc2 = E.view.scale;
+  els['floor'].dispatch('mousedown', { button: 0, clientX: q[0], clientY: q[1] });
+  window.dispatch('mousemove', { clientX: q[0] + 10 * sc2, clientY: q[1] + 10 * sc2 }); window.dispatch('mouseup', {});
+  assert(ls.x === 10 && ls.y === -10 && at('F', '1').x === 44 && at('F', '1').y === -10 && at('F', '1').heading === 0, 'dragging his foot moves hers to the reflected place: (' + at('F', '1').x + ',' + at('F', '1').y + ')');
+  ls = at('L', '1'); q = E.px([ls.x, ls.y]);
+  els['floor'].dispatch('mousedown', { button: 2, clientX: q[0], clientY: q[1] });
+  window.dispatch('mousemove', { clientX: q[0] + 200, clientY: q[1] - 200 * 0.0001 }); window.dispatch('mouseup', {});
+  assert(ls.heading > 0 && at('F', '1').heading === (360 - ls.heading) % 360, 'turning his foot turns hers the other way: ' + ls.heading + ' / ' + at('F', '1').heading);
+  document.dispatchKey({ key: 'z', ctrlKey: true });
+  assert(at('L', '1').heading === 0 && at('F', '1').heading === 0, 'ctrl-z undoes the turn of both feet');
+  let fs_ = at('F', '1'), q2 = E.px([fs_.x, fs_.y]);
+  els['floor'].dispatch('mousedown', { button: 0, clientX: q2[0], clientY: q2[1] });
+  window.dispatch('mousemove', { clientX: q2[0] + 6 * sc2, clientY: q2[1] }); window.dispatch('mouseup', {});
+  assert(at('F', '1').x === 50 && at('L', '1').x === 10 && at('L', '1').y === -10, 'dragging her foot does not touch his');
+  $('rows').children[2].dispatch('click', {}); $('addTriple').dispatch('click', {});
+  assert(['3', '3&', '4'].every(c => at('F', c).foot !== at('L', c).foot && at('F', c).x === 54 - at('L', c).x && at('F', c).y === at('L', c).y), 'add triple: her new steps are the mirror of his');
+  $('rows').children[0].dispatch('click', { ctrlKey: true }); $('removeSteps').dispatch('click', {});
+  assert(!at('L', '1') && !at('F', '1'), 'removing his step removes her step on that count');
+  document.dispatchKey({ key: 'z', ctrlKey: true });
+  $('mirrorChk').checked = false; $('mirrorChk').dispatch('change', {});
+  const before3 = JSON.stringify(E.elem().steps);
+  assert(!E.elem().mirror && before3 === JSON.stringify(E.elem().steps), 'unticking changes nothing');
+  $('rows').children[0].dispatch('click', {}); ls = at('L', '1'); q = E.px([ls.x, ls.y]);
+  els['floor'].dispatch('mousedown', { button: 0, clientX: q[0], clientY: q[1] });
+  window.dispatch('mousemove', { clientX: q[0] + 4 * sc2, clientY: q[1] }); window.dispatch('mouseup', {});
+  assert(at('L', '1').x === 14 && at('F', '1').x === 50, 'unticked: dragging his foot leaves hers');
+  for (let k = 0; k < 7; k++) document.dispatchKey({ key: 'z', ctrlKey: true });
+  assert(lineup() === '1LL 1FR 2LR 2FL' && at('F', '1').x === 54 && at('L', '1').x === 0 && !E.elem().mirror, 'ctrl-z takes it all back: ' + lineup());
+  $('rows').children[2].dispatch('click', {});
   assert(near(E.elem().steps[0].x, 0) && near(E.elem().steps[1].x, 54) && E.sel.start === 2 && E.sel.len === 2, 'the new feet stand where the free feet are; the new count is selected');
   let row = $('rows').children[2]; row.children[1].dispatch('dblclick', {});
   let inp = row.children[1].children[0]; inp.value = '3'; inp.dispatch('keydown', { key: 'Enter' });

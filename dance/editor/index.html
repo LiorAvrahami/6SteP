@@ -29,6 +29,7 @@
   .mapBox .grp { color: #7a4b00; font-size: 11px; display: block; }
   #buttons, #elemEdit { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; align-items: center; }
   #elemEdit { margin-top: 6px; }
+  #elemEdit .mirrorChk { display: inline-flex; gap: 4px; align-items: center; font-size: 13px; white-space: nowrap; cursor: pointer; }
   #elemEdit .sep { width: 1px; height: 22px; background: #ddd; margin: 0 2px; }
   button { font: inherit; padding: 5px 10px; border: 1px solid #bbb; background: #fff; border-radius: 4px; cursor: pointer; }
   button:hover { background: #f0f0f0; }
@@ -117,6 +118,8 @@
         <button id="addTriple" title="adds a triple step after the selection: three counts (N, N&amp;, N+1), each dancer's free foot, the other foot, the first again, all in place; then drag the feet">add triple</button>
         <button id="halfAfter" title="the selected count becomes a half count after the previous one (3 -> 2& after 2, 5 -> 4 after 3&), and every later count moves by the same amount">&frac12; after previous</button>
         <button id="removeSteps" title="removes the selected steps (Delete key; ctrl-z brings them back)">remove steps</button>
+        <span class="sep"></span>
+        <label class="mirrorChk" title="ticked: the follower becomes the mirror of the leader (his left foot is her right, reflected across the line halfway between them at the start), and every change to a leader step also puts her matching foot in the reflected place; changes to her steps do not touch his. Unticking changes nothing."><input type="checkbox" id="mirrorChk"> follower mirrors leader</label>
       </div>
       <div id="status"></div>
     </header>
@@ -494,6 +497,7 @@
     if (!label) { label = String(I.last + 1); where = e.steps.length; }
     const added = stepsInPlace(I.feet, [[label, d => I.free[d]]]);
     e.steps.splice(where, 0, ...added);
+    if (mirrorOn(e)) added.filter(t => t.dancer === 'L').forEach(t => mirrorInto(e, t));
     stepsChanged(e, added[0]);
     setStatus(`added count ${label}: each dancer's free foot, in place; drag the feet, double-click a count to change it`);
   }
@@ -522,21 +526,63 @@
     const [c1, c2, c3] = labels(n);
     const added = stepsInPlace(I.feet, [[c1, d => I.free[d]], [c2, d => otherFoot(I.free[d])], [c3, d => I.free[d]]]);
     e.steps.splice(where, 0, ...added);
+    if (mirrorOn(e)) added.filter(t => t.dancer === 'L').forEach(t => mirrorInto(e, t));
     stepsChanged(e, added[0]);
     setStatus(`added a triple step, counts ${c1}, ${c2}, ${c3}: each dancer's free foot, the other foot, the first again, all in place; drag the feet`);
   }
+  // ---------- "follower mirrors leader" (user 2026-10-25): the follower is the leader reflected across the line halfway between
+  // them at the start (his left foot on her right foot, his right on her left, as the start state places them). While the box
+  // is ticked (element.mirror), a change to a leader step also puts her matching step in the reflected place; a change to her
+  // steps does not touch his; unticking changes nothing.
+  function mirrorFn(e) {
+    const st = data.states[e.start_state].feet, A = st['L.L'], B = st['F.R'];
+    const len = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1, nx = (B[0] - A[0]) / len, ny = (B[1] - A[1]) / len, mx = (A[0] + B[0]) / 2, my = (A[1] + B[1]) / 2;
+    const r1 = v => Math.round(v * 10) / 10;
+    return ([x, y, h]) => {
+      const d = (x - mx) * nx + (y - my) * ny, f = fwd(h), fd = f[0] * nx + f[1] * ny, vx = f[0] - 2 * fd * nx, vy = f[1] - 2 * fd * ny;
+      return [r1(x - 2 * d * nx), r1(y - 2 * d * ny), r1(((Math.atan2(vx, vy) * 180 / Math.PI) % 360 + 360) % 360)];
+    };
+  }
+  const mirrorOn = e => !!(e && e.mirror) && mode === 'elements';
+  function partnerOf(e, ls) { return e.steps.find(t => t.dancer === 'F' && String(t.count) === String(ls.count)); }
+  /** her step on the count of his step ls, put in the reflected place (made when she has none on that count) */
+  function mirrorInto(e, ls) {
+    let t = partnerOf(e, ls); const created = !t;
+    if (created) { t = { count: String(ls.count), dancer: 'F' }; e.steps.push(t); }
+    const [x, y, h] = mirrorFn(e)([ls.x, ls.y, ls.heading]);
+    Object.assign(t, { foot: otherFoot(ls.foot), x, y, heading: h });
+    return created;
+  }
+  function mirrorAll(e) {
+    // the follower becomes the mirror of the leader: one reflected step of hers for every step of his, and no others
+    const his = e.steps.filter(t => t.dancer === 'L'), m = mirrorFn(e);
+    e.steps = his.flatMap(ls => { const [x, y, h] = m([ls.x, ls.y, ls.heading]); return [ls, { count: String(ls.count), dancer: 'F', foot: otherFoot(ls.foot), x, y, heading: h }]; });
+  }
+  $('mirrorChk').addEventListener('change', () => {
+    const e = data.elements[ei], on = !!$('mirrorChk').checked; stopPlay(); pushSnapshot();
+    if (on) { e.mirror = true; mirrorAll(e); stepsChanged(e, null); setStatus('the follower now mirrors the leader; every change to his steps also moves her matching foot (ctrl-z undoes)'); }
+    else { delete e.mirror; markDirty(); refresh(); setStatus('the follower no longer mirrors the leader; the element stays as it is'); }
+  });
+
   function removeSteps() {
     const e = data.elements[ei]; if (!e.steps.length) return;
     pushSnapshot(); const gone = new Set(selIndices());
+    if (mirrorOn(e)) [...gone].forEach(i => { const ls = e.steps[i]; if (ls.dancer === 'L') { const t = partnerOf(e, ls); if (t) gone.add(e.steps.indexOf(t)); } });
     e.steps = e.steps.filter((s, i) => !gone.has(i)); sel.start = Math.min(sel.start, Math.max(0, e.steps.length - 1));
     stepsChanged(e, null); setStatus(`removed ${gone.size} step${gone.size > 1 ? 's' : ''}; ctrl-z brings them back`);
   }
   function setCount(i, v) {
     if (!COUNT_OK.test(v)) { setStatus(`"${v}" is not a count: use 1, 2, 3 … or 3& for the half beat after 3`); refresh(); return; }
     const e = data.elements[ei], s = e.steps[i], targets = selIndices().includes(i) ? selIndices().map(j => e.steps[j]) : [s];
-    pushSnapshot(); targets.forEach(t => { t.count = v; }); stepsChanged(e, s);
+    // mirrored: her step on the count of each of his steps changes count with it
+    const partners = mirrorOn(e) ? targets.filter(t => t.dancer === 'L').map(t => partnerOf(e, t)).filter(t => t && !targets.includes(t)) : [];
+    pushSnapshot(); targets.concat(partners).forEach(t => { t.count = v; });
+    if (mirrorOn(e)) targets.filter(t => t.dancer === 'L').forEach(t => mirrorInto(e, t));
+    stepsChanged(e, s);
   }
-  function switchFoot(i) { const e = data.elements[ei]; pushSnapshot(); e.steps[i].foot = otherFoot(e.steps[i].foot); markDirty(); refresh(); }
+  function switchFoot(i) { const e = data.elements[ei]; pushSnapshot(); const st = e.steps[i]; st.foot = otherFoot(st.foot);
+    if (mirrorOn(e) && st.dancer === 'L' && mirrorInto(e, st)) { stepsChanged(e, st); return; }
+    markDirty(); refresh(); }
   function editCell(td, value, apply) {
     const inp = document.createElement('input'); inp.value = value; inp.className = 'cellEdit';
     td.textContent = ''; td.appendChild(inp); if (inp.focus) inp.focus(); if (inp.select) inp.select();
@@ -550,6 +596,7 @@
     const box = $('elemEdit'); if (mode !== 'elements') { box.style.display = 'none'; return; }
     box.style.display = 'flex';
     $('removeSteps').disabled = !(data && data.elements[ei] && data.elements[ei].steps.length);
+    $('mirrorChk').checked = !!(data && data.elements[ei] && data.elements[ei].mirror);
     $('deleteElem').disabled = !(data && data.elements.length > 1);
   }
   $('newElem').addEventListener('click', () => { stopPlay(); openElementForm(false); });
@@ -564,7 +611,7 @@
   const HELP = [
     'Steps. A click on a row selects its count: the leader\'s and the follower\'s steps of that count together. Ctrl-click selects one foot alone; shift-click extends to the clicked count. Up/down move to the previous or next count (wrapping round); shift+up/down grow the selection by a count at that edge, ctrl+shift+up/down shrink it there. Double-click a count to change it (every selected step of that count changes with it); double-click the who cell to switch the foot.',
     'Floor. Left-drag moves a selected foot (1 cm); right-drag turns it about its heel (5°, hold alt for 1°). The wheel zooms, dragging the empty floor pans. Grey = where a moving foot was, with a dashed line to where it lands; light grey with a coloured outline = a foot that stays; a dark outline = the feet of the last selected count.',
-    'Elements. An element has one skeleton per starting condition (state and free foot): the dropdown picks it. "new element…" makes an element, or a new starting condition of one when you give its name: from no steps, or from a copy of any skeleton (mirrored onto the other feet when the free foot differs). "add count" adds a count after the selection with each dancer\'s free foot in place, "½ after previous" turns the selected count into a half count after the previous one and moves every later count with it, "add triple" a whole triple step (three counts N, N&, N+1: the free foot, the other foot, the free foot again, in place); "remove steps" (or Delete) removes the selection. Every change is saved to dance/skeletons.json at once; ctrl-z undoes it.',
+    'Elements. An element has one skeleton per starting condition (state and free foot): the dropdown picks it. "new element…" makes an element, or a new starting condition of one when you give its name: from no steps, or from a copy of any skeleton (mirrored onto the other feet when the free foot differs). "add count" adds a count after the selection with each dancer\'s free foot in place, "follower mirrors leader" (a checkbox): ticked, the follower becomes the mirror of the leader across the line halfway between them at the start, and every change to a leader step also puts her matching foot in the reflected place (changes to her steps do not touch his); unticking changes nothing. "½ after previous" turns the selected count into a half count after the previous one and moves every later count with it, "add triple" a whole triple step (three counts N, N&, N+1: the free foot, the other foot, the free foot again, in place); "remove steps" (or Delete) removes the selection. Every change is saved to dance/skeletons.json at once; ctrl-z undoes it.',
     'Play and video. "play" (or space) loops the element or composition on the floor with the music: the music runs on and the dance continues from where the dancers are, padded with triple steps (marked as filler) when it would not loop on its own; an element that ends in another position restarts from its start. "render video" makes an mp4. "check" runs the rule checker.',
     'Compositions. Lists of entries: an element, a sub-composition (a named list of elements, e.g. RTT), or either "x N". Each entry\'s starting condition is dictated by the previous one, and the add list offers only what can follow.',
   ].join('\n\n');
@@ -651,9 +698,10 @@
     const r = cv.getBoundingClientRect(); const [wx, wy] = world(ev.clientX - r.left, ev.clientY - r.top);
     const i = (readOnly() || player.on) ? null : hitStep(wx, wy);
     if (i === null) { if (ev.button === 0) { drag = { pan: true, sx: ev.clientX, sy: ev.clientY, cx: view.cx, cy: view.cy }; } return; }
-    const s = elem().steps[i]; pushUndo(i);
-    if (ev.button === 0) drag = { i, mode: 'move', ox: wx - s.x, oy: wy - s.y };
-    else if (ev.button === 2) { const [hx, hy] = heelOf(s.x, s.y, s.heading); drag = { i, mode: 'rotate', hx, hy }; }   // the heel stays put
+    const s = elem().steps[i], mirrored = mirrorOn(elem()) && s.dancer === 'L';
+    if (mirrored) pushSnapshot(); else pushUndo(i);
+    if (ev.button === 0) drag = { i, mode: 'move', ox: wx - s.x, oy: wy - s.y, mirrored };
+    else if (ev.button === 2) { const [hx, hy] = heelOf(s.x, s.y, s.heading); drag = { i, mode: 'rotate', hx, hy, mirrored }; }   // the heel stays put
     ev.preventDefault();
   });
   window.addEventListener('mousemove', ev => {
@@ -666,9 +714,10 @@
       s.heading = ((Math.round(ang / q) * q) % 360 + 360) % 360;
       const f = fwd(s.heading); s.x = Math.round((drag.hx + f[0] * HEEL_AXIS) * 10) / 10; s.y = Math.round((drag.hy + f[1] * HEEL_AXIS) * 10) / 10;
     }
+    if (drag.mirrored) { const e = elem(); if (mirrorInto(e, s)) { sortSteps(e); drag.i = e.steps.indexOf(s); } }
     markDirty(); refresh();
   });
-  window.addEventListener('mouseup', () => { if (drag && !drag.pan) { const u = undo[undo.length - 1]; const s = elem().steps[u.i]; if (u.x === s.x && u.y === s.y && u.heading === s.heading) undo.pop(); } drag = null; });
+  window.addEventListener('mouseup', () => { if (drag && !drag.pan && !drag.mirrored) { const u = undo[undo.length - 1]; const s = elem().steps[u.i]; if (u.x === s.x && u.y === s.y && u.heading === s.heading) undo.pop(); } drag = null; });
   cv.addEventListener('wheel', ev => { ev.preventDefault(); const r = cv.getBoundingClientRect(); const [wx, wy] = world(ev.clientX - r.left, ev.clientY - r.top);
     const k = ev.deltaY < 0 ? 1.1 : 1 / 1.1; view.scale = Math.max(0.6, Math.min(12, view.scale * k));
     const [nx, ny] = world(ev.clientX - r.left, ev.clientY - r.top); view.cx += wx - nx; view.cy += wy - ny; draw(); }, { passive: false });
