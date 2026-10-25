@@ -673,6 +673,10 @@
       m.appendChild(d);
     }
     m.style.left = x + 'px'; m.style.top = y + 'px'; m.style.display = 'block';
+    // near the bottom (or the right edge) of the window the menu opens upwards (leftwards), so all of it shows
+    const H = window.innerHeight, W = window.innerWidth, h = m.offsetHeight, w = m.offsetWidth;
+    if (H && h && y + h > H - 4) m.style.top = Math.max(4, y - h) + 'px';
+    if (W && w && x + w > W - 4) m.style.left = Math.max(4, x - w) + 'px';
   }
   // ---------- the end position (user 2026-10-25): after the leader's last step, the element's end state fixes where the
   // follower's weighted foot stands (what check.py checks); the last count's menu puts her last step there
