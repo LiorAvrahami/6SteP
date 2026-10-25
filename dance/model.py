@@ -264,7 +264,23 @@ def candidates(data, name, start_state, leader_free):
     """Every version of an element that starts in this condition, in list order (since 2026-10-25 several may, ending apart)."""
     return [e for e in data['elements'] if e['name'] == name and e['start_state'] == start_state and e.get('leader_free_start', 'L') == leader_free]
 
-def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free=None, pad_to_loop=False, filler='triple step', groups=None, ends=None, snap=True, stitch=None):
+def couple_frame(start_feet, real_feet, fallback):
+    """How an element joins the dance (the user's rule, 2026-10-26): its start position is turned and moved so that it has
+    the same middle (the average of all four feet) and the same direction from the leader to the follower (from the middle
+    of his two feet to the middle of hers) as where the dancers really are. start_feet: the element's start state (local);
+    real_feet: the four feet in the world. Weighted feet do not move at the join: this only decides where the next steps land.
+    When the two dancers stand on one spot (no direction), the fallback frame is used."""
+    mid = lambda P, d: ((P[d + '.L'][0] + P[d + '.R'][0]) / 2, (P[d + '.L'][1] + P[d + '.R'][1]) / 2)
+    c0 = (sum(p[0] for p in start_feet.values()) / 4, sum(p[1] for p in start_feet.values()) / 4)
+    c1 = (sum(p[0] for p in real_feet.values()) / 4, sum(p[1] for p in real_feet.values()) / 4)
+    l0, f0, l1, f1 = mid(start_feet, 'L'), mid(start_feet, 'F'), mid(real_feet, 'L'), mid(real_feet, 'F')
+    if math.hypot(f0[0] - l0[0], f0[1] - l0[1]) <= 1 or math.hypot(f1[0] - l1[0], f1[1] - l1[1]) <= 1:
+        return fallback
+    h = math.degrees(math.atan2(f1[0] - l1[0], f1[1] - l1[1])) - math.degrees(math.atan2(f0[0] - l0[0], f0[1] - l0[1]))
+    rc = Frame(0, 0, h).apply((c0[0], c0[1], 0.0))
+    return Frame(c1[0] - rc[0], c1[1] - rc[1], h)
+
+def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free=None, pad_to_loop=False, filler='triple step', groups=None, ends=None):
     """Turn a list of element names into a world timeline.
 
     leader_free: which of the leader's feet is free at the start (default: the state's, i.e. the left).
@@ -272,26 +288,15 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
     free foot is back where it started, so the sequence can be danced again straight after itself; filler elements are
     flagged 'filler'. A six-count, or a rock step alone, already closes on its own and gets none (user 2026-10-19: a rock
     step played alone must not turn into rock, triple, triple; the earlier rule also padded to at least a bar).
+    Each element joins the previous one by the couple: see couple_frame (the only rule since 2026-10-26).
 
     Returns dict with 'steps' (t beats, dancer, foot, x, y, heading, element index, count, code, exempt, hands),
     'elements' (name, start beat, beats, states, free feet, filler flag), 'start' (feet at t=0), 'start_hands', 'end_state',
     'end_free', 'length', 'errors' (list of str).
-
-    stitch (experiment, 2026-10-25), how two elements join; every element is placed in the frame of the leader's weighted
-    foot at the transition (the same place and orientation as at the end of the previous element), and then:
-      'leader' (as before; snap=True): the follower's steps too, so they land where the element's start state says she
-               stands, even when the previous element left her elsewhere (her feet jump);
-      'first'  (the user's idea): her first step of the element is placed from her own weighted foot (where she really
-               stands, the same orientation), her later steps from the leader's frame again;
-      'none'   (snap=False): all her steps from her own weighted foot.
-      'centre' (the user's second idea): the element is turned and moved so that its start position has the same middle
-               (the average of all four feet) and the same direction from the leader to the follower (from the middle of his
-               feet to the middle of hers) as where the dancers really are; all its steps, both dancers', are placed so.
     """
-    stitch = stitch or ('leader' if snap else 'none')
     errors = []
     feet = {k: v for k, v in state_feet(data, start_state).items()}
-    cur = {k: list(v) for k, v in feet.items()}   # where every foot is in the world (for snap=False)
+    cur = {k: list(v) for k, v in feet.items()}   # where every foot is in the world
     last_h = {k: v[2] for k, v in feet.items()}   # each foot's last world heading, winding included
     frame = Frame(0, 0, 0)
     state = start_state
@@ -310,61 +315,25 @@ def compose(data, sequence, start_state='side', swing=DEFAULT_SWING, leader_free
         base = element_base_count(elem)
         hand_changes = {str(hc['count']): hc['hands'] for hc in elem.get('hands', [])}
         seen = []
+        st = state_feet(data, state)
+        frame = couple_frame(st, cur, frame)   # the join: the couple's middle and his-to-her direction stay as they are
         # an element's headings assume its start state's headings: a foot that arrives wound by a full turn keeps it, instead of
         # spinning back on its first step
-        st = state_feet(data, state)
-        if stitch == 'centre':
-            # the element's start position, moved onto where the dancers are: the same middle of the four feet and the same
-            # direction from his middle to hers (weighted feet do not move: only where the next steps land)
-            mid = lambda P, d: ((P[d + '.L'][0] + P[d + '.R'][0]) / 2, (P[d + '.L'][1] + P[d + '.R'][1]) / 2)
-            c0 = (sum(p[0] for p in st.values()) / 4, sum(p[1] for p in st.values()) / 4)
-            c1 = (sum(p[0] for p in cur.values()) / 4, sum(p[1] for p in cur.values()) / 4)
-            l0, f0, l1, f1 = mid(st, 'L'), mid(st, 'F'), mid(cur, 'L'), mid(cur, 'F')
-            if math.hypot(f0[0] - l0[0], f0[1] - l0[1]) > 1 and math.hypot(f1[0] - l1[0], f1[1] - l1[1]) > 1:
-                d0 = math.degrees(math.atan2(f0[0] - l0[0], f0[1] - l0[1])); d1 = math.degrees(math.atan2(f1[0] - l1[0], f1[1] - l1[1]))
-                h = d1 - d0
-                rc = Frame(0, 0, h).apply((c0[0], c0[1], 0.0))
-                frame = Frame(c1[0] - rc[0], c1[1] - rc[1], h)
-        # snap=False: the follower's steps are moved rigidly from where the start state puts her weighted foot to where it is
-        corr = None
-        if stitch in ('first', 'none'):
-            w = 'R' if free['F'] == 'L' else 'L'
-            nw, a = frame.apply(st['F.' + w]), cur['F.' + w]
-            corr = (nw[0], nw[1], a[0], a[1], a[2] - nw[2])
-        her_first = [True]   # 'first': only her first step of this element is placed from her own foot
-        def applies(d):
-            return corr is not None and d == 'F' and (stitch == 'none' or her_first[0])
-        def place(d, x, y, on=None):
-            if not (applies(d) if on is None else on):
-                return x, y
-            nx, ny, ax, ay, dl = corr; r = math.radians(dl); dx, dy = x - nx, y - ny
-            return ax + dx * math.cos(r) + dy * math.sin(r), ay - dx * math.sin(r) + dy * math.cos(r)
-        turn = lambda k: corr[4] if (corr and k[0] == 'F' and stitch == 'none') else 0.0
-        wind = {k: 360.0 * round((last_h[k] - (frame.h + st[k][2] + turn(k))) / 360.0) for k in last_h}
-        if stitch == 'first' and corr:   # her first stepping foot turns with her weighted foot
-            k0 = 'F.' + free['F']
-            wind_first = 360.0 * round((last_h[k0] - (frame.h + st[k0][2] + corr[4])) / 360.0)
+        wind = {k: 360.0 * round((last_h[k] - (frame.h + st[k][2])) / 360.0) for k in last_h}
         for s in elem['steps']:
             c = str(s['count'])
             if c in hand_changes and c not in seen:
                 hands = list(hand_changes[c]); seen.append(c)
             wx, wy, wh = frame.apply((s['x'], s['y'], s['heading']))
             k_ = f"{s['dancer']}.{s['foot']}"
-            on = applies(s['dancer'])
-            wx, wy = place(s['dancer'], wx, wy, on)
-            if on and stitch == 'first':
-                wh += corr[4] + wind_first
-            else:
-                wh += turn(k_) + wind[k_]
-            via = [list(place(s['dancer'], *frame.apply((v[0], v[1], 0.0))[:2], on)) for v in (s.get('via') or [])]   # the path's anchors, in the world
-            if s['dancer'] == 'F':
-                her_first[0] = False
+            wh += wind[k_]
+            via = [list(frame.apply((v[0], v[1], 0.0))[:2]) for v in (s.get('via') or [])]   # the path's anchors, in the world
             last_h[k_] = wh; cur[k_] = [wx, wy, wh]
             steps.append({'t': t + count_time(c, swing) - base, 'count': c, 'dancer': s['dancer'], 'foot': s['foot'],
                           'x': wx, 'y': wy, 'heading': wh, 'element': len(elements) - 1,
                           'exempt': bool(s.get('exempt')), 'hands': list(hands), 'filler': is_filler, 'noweight': bool(s.get('noweight')), 'via': via})
         ef = element_end_frame(elem)
-        frame = Frame(*frame.apply((ef.x, ef.y, ef.h)))
+        frame = Frame(*frame.apply((ef.x, ef.y, ef.h)))   # only a fallback for the next join (see couple_frame)
         free = element_free_feet_end(elem)
         state = elem['end_state']
         t += elem['beats']

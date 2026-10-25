@@ -151,6 +151,12 @@ any save it refuses). The page warns when the server runs older code than the fi
   stay sorted by count and `beats` follows the counts. The server refuses to save a duplicate (name, state, free foot), an
   unknown state or a bad count label; an element with no steps for a dancer is kept but cannot be played or shipped
   (`model.element_problem`; `tools/make_assets.py` refuses it).
+- **How elements join** (the user's rule, since 2026-10-26; `model.couple_frame`, the app's `Composer.coupleFrame`): each
+  element's start position is turned and moved so that it keeps the middle of the four feet and the direction from the
+  leader's middle (between his feet) to the follower's (between hers) as they really are. No weighted foot moves at the
+  join; this only decides where the next steps land. So an element that ends somewhere a little different from what its
+  ending says shares the difference between both dancers, instead of one of them jumping. The editor, the videos and the
+  app all join this way (until then each element was placed from the leader's weighted foot).
 - **Versions that start alike** (since 2026-10-25): an element may have several versions with the same start (state and free
   foot) and different endings; a version is name + start + free foot + end. In a composition, each element entry has an
   "ends:" dropdown: "auto" (the default: the composer picks the first version that lets the rest of the sequence continue,
