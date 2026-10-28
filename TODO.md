@@ -33,7 +33,8 @@ down without doing it. When one is finished, move it to "Done" with the date and
 - **Added:** 2026-10-19, by the user ("the hands is a whole research project that I don't want to get into now").
 - **What:** which hands are held, where, and when, for every element, and drawing the arms again.
 - **Context:** the hand data and the reach check (now a warning) are still in the skeletons; nothing draws them
-  (`SHOW_HANDS` / `showHands` in `dance/draw.py`, `FloorView.kt` and the editor).
+  (`SHOW_HANDS` / `showHands` in `dance/draw.py` and the editor; the app's arm drawing, off since v17, was removed in
+  the 2026-10-28 redesign, while its hand data, `Timeline.handsAt` and the composer's hand changes are kept).
 
 ### New elements: side to side, pass to arrow, arrow to side, mess around
 - **Added:** 2026-10-22, by the user.
@@ -62,7 +63,10 @@ down without doing it. When one is finished, move it to "Done" with the date and
 - Exercises graded by the sections of Slow Your Roll where the beat moves (harder) or does not (easier).
 - A licence agreement with Laughing Manny before any public release; more real-band saxophone swing tracks.
 - On-device tempo stretching (`PlaybackParams`) as the small-APK alternative to the shipped tempo variants.
-- The exploration floor's play honouring the snare and hi-hat toggles.
 - Elements not built yet: Charleston, anything from `reversed_side`, the lead underarm pass from side by side.
 
 ## Done
+
+- **2026-10-28 (the redesign):** "the exploration floor's play honouring the snare and hi-hat toggles" (first
+  maintainer's backlog) no longer applies: there is one dance floor, it plays on the music, the settings page chooses
+  the drums and the mute button silences everything.

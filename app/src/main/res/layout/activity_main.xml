@@ -1,65 +1,221 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- The launcher (the user's draft, 2026-10-28): left, the title, the little floor (or, in help mode, the two
+     explanations) and the heart, settings and help buttons; right, the daily exercise and explore. The boxes' colours
+     and outlines are set in MainActivity (Ui.box). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:layout_height="match_parent">
+
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/app_name"
-            android:textSize="32sp"
-            android:textStyle="bold"
-            android:textColor="@color/ink" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/startDaily"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:paddingTop="18dp"
-            android:paddingBottom="18dp"
-            android:textSize="20sp"
-            android:text="@string/start_daily" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/explore"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:textSize="18sp"
-            android:text="@string/explore" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/other_compositions"
-            android:textColor="@color/muted" />
+        android:layout_height="match_parent"
+        android:orientation="horizontal"
+        android:padding="16dp">
 
         <LinearLayout
-            android:id="@+id/compositionList"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="38"
+            android:orientation="vertical">
 
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/metronomeOverMusic"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/metronome_over_music" />
+            <TextView
+                android:id="@+id/logo"
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:gravity="center"
+                android:text="@string/logo"
+                android:textColor="#000000"
+                android:textSize="40sp"
+                android:fontFamily="@font/inter_extrabold"
+                android:includeFontPadding="false" />
 
-        <com.google.android.material.materialswitch.MaterialSwitch
-            android:id="@+id/speakAnnotations"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/speak_annotations" />
+            <FrameLayout
+                android:id="@+id/snippetBox"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="12dp"
+                android:padding="3dp">
+
+                <org.lior.sixstep.FloorView
+                    android:id="@+id/snippet"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
+
+                <LinearLayout
+                    android:id="@+id/helpPanel"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="4dp"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/helpDaily"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:text="@string/help_daily"
+                        android:textColor="#000000"
+                        android:fontFamily="@font/inter_semibold"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="9sp"
+                        android:autoSizeMaxTextSize="17sp" />
+
+                    <TextView
+                        android:id="@+id/helpExplore"
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:layout_marginTop="8dp"
+                        android:gravity="center"
+                        android:paddingStart="12dp"
+                        android:paddingEnd="12dp"
+                        android:text="@string/help_explore"
+                        android:textColor="#000000"
+                        android:fontFamily="@font/inter_semibold"
+                        android:autoSizeTextType="uniform"
+                        android:autoSizeMinTextSize="9sp"
+                        android:autoSizeMaxTextSize="17sp" />
+                </LinearLayout>
+            </FrameLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="64dp"
+                android:layout_marginTop="12dp"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:id="@+id/heart"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_heart"
+                    android:contentDescription="@string/heart" />
+
+                <ImageButton
+                    android:id="@+id/gear"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_settings"
+                    android:contentDescription="@string/settings" />
+
+                <ImageButton
+                    android:id="@+id/help"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_help"
+                    android:contentDescription="@string/help" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="62"
+            android:layout_marginStart="16dp"
+            android:orientation="vertical">
+
+            <FrameLayout
+                android:id="@+id/daily"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/daily_exercise">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/daily_exercise"
+                        android:textColor="#000000"
+                        android:textSize="28sp"
+                        android:fontFamily="@font/inter_bold" />
+
+                    <ImageView
+                        android:id="@+id/dailyIcon"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:layout_marginTop="6dp"
+                        android:src="@drawable/ic_dumbbell"
+                        android:importantForAccessibility="no" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/dailyTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="10dp"
+                    android:textColor="#000000"
+                    android:textSize="15sp"
+                    android:fontFamily="@font/inter_extrabold" />
+            </FrameLayout>
+
+            <FrameLayout
+                android:id="@+id/explore"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:layout_marginTop="12dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="@string/explore">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center_horizontal"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/explore"
+                        android:textColor="#000000"
+                        android:textSize="28sp"
+                        android:fontFamily="@font/inter_bold" />
+
+                    <ImageView
+                        android:id="@+id/exploreIcon"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:layout_marginTop="6dp"
+                        android:src="@drawable/ic_telescope"
+                        android:importantForAccessibility="no" />
+                </LinearLayout>
+            </FrameLayout>
+        </LinearLayout>
     </LinearLayout>
-</ScrollView>
+
+    <!-- help mode: arrows from the explanations to their buttons, over everything, never taking a touch -->
+    <org.lior.sixstep.HelpArrows
+        android:id="@+id/arrows"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+</FrameLayout>

@@ -167,35 +167,59 @@ commit (there is no diff step any more: the editor's file is the only version). 
   number). Signed with the committed PKCS12 keystore `app/keystore/sixstep.p12` (alias and password `sixstep`), so
   each APK installs over the last; the repository is public, which the user accepted. AGP 8.5.2, Kotlin, Material3
   DayNight theme without an action bar.
+- **The redesign (2026-10-28).** The user drew the app in Lunacy: `design/app_layout.free` (a zip of JSON; each page has a
+  hidden text layer "Description of page" saying how it works) and PNGs of its pages in `design/app_layout_design_screenshots/`.
+  Pages: Launcher, Launcher tutorial (help mode), Dancefloor, Explore, Heart, Settings (left empty). Icons are Lucide
+  (ISC): `design/make_ui_icons.py` turns the SVGs in `design/lucide/` into `res/drawable/ic_*.xml`. The font is Inter
+  (SIL OFL) in `res/font/`. Colours are the draft's (`Ui.kt`). Licences in `assets/licenses/`.
 - **Files** (`app/src/main/java/org/lior/sixstep/`): `DanceData.kt` (skeletons, states, elements with starting
   conditions, compositions with sub-compositions, "x N" and "say:" entries, `CompositionStore` merging the asset file
-  with the user's own file on the phone, `Composer`), `Timeline.kt` (foot tracks, weights, travel, `elementIndexAt`,
-  the camera smoother), `FloorView.kt` (top view, feet as shoe soles, dynamic camera that keeps the couple's feet about half the
-  screen, dashed arrows in strategic view, both dancers' arrows at once), `Audio.kt` (`BeatGrid` with `beatAt`/`beatSeconds`
-  interpolating the non-uniform beats and `scaled(tempo)`, `Track` and `TrackVariant`, the clocks, `Metronome`,
-  `Speaker`, `MusicPlayer`), `MainActivity` (start daily exercise, explore, other compositions, two switches: snare and
-  hi-hat over the music, speak annotations), `PlayerActivity`, `ExploreActivity` (folding rows per starting condition,
-  long-press pencil, edit dialog that saves by the original name), `FloorActivity` (swipe through beats, strategic or
-  flow view with BPM-paced transitions, options bar with play on the snare and hi-hat, BPM slider, element map;
-  accepts `kind`, `name`, `variant`, `state`, `free`, `atBeat` extras).
-- **Clocks.** `TempoClock` (a fixed tempo, used in the gap between tracks and in exploration), `MusicClock` (the
+  with the user's own file on the phone, `Composer`), `Timeline.kt` (foot tracks, weights, travel, `elementIndexAt`),
+  `FloorView.kt` (`FeetPainter`, the one drawing of the dancers: shoe soles, dashed arrows, grid, through any camera;
+  `FloorView`, the top view with the camera that keeps the couple's feet about half the screen and stays between the
+  dance floor's bars, the title, the count and the annotation banner), `StepStrip.kt` (a sideways strip of step
+  pictures with a scroll bar and annotation callouts: the dance floor's bottom bar and the explore rows), `Piece.kt`
+  (`Piece`: an element version, a building block or a composition; the stops; `Rarity`, how unusual a pose is),
+  `Audio.kt` (`BeatGrid` with `beatAt`/`beatSeconds` interpolating the non-uniform beats and `scaled(tempo)`, `Track`
+  and `TrackVariant`, the clocks, `Metronome`, `Speaker`, `MusicPlayer`), `Playback.kt` (the music engine of the old
+  `PlayerActivity`, now used by the one floor: track order, count-in, hand-overs, tempo switches, drums in the gaps,
+  mute, audio focus, the voice), `Ui.kt` (the draft's colours, outlined boxes), and the activities: `MainActivity`
+  (the launcher; keep the class name, home-screen shortcuts point at it), `DanceFloorActivity` (extras `kind`
+  element|block|composition, `name`, `variant`, `stop`, `autoplay`), `ExploreActivity`, `HeartActivity` (the email, the
+  website and the beer links: `WEBSITE` and `PAY_URL` are still empty, the user has to give them), `SettingsActivity`.
+  `tools/check_app.py` checks resources, ids, string arguments and leftovers before a push.
+- **Clocks.** `TempoClock` (a fixed tempo: muted play, and the gap between tracks), `MusicClock` (the
   MediaPlayer position read a few times a second, extrapolated on the phone clock, small drifts absorbed, mapped through
   the beat grid), `SlewClock` (a hand-over: another clock plus an offset that fades out over 1.2 s). A new track starts
-  at the next annotation block at least 2 beats ahead; its clock takes over 220 ms after the start, slewed. The daily
-  session shuffles the three tracks and plays them one after another; when a track runs out the snare and hi-hat keep the
+  at the next element start at least 2 beats ahead; its clock takes over 220 ms after the start, slewed. Tracks play one
+  after another (the chosen song first, the others shuffled); when a track runs out the snare and hi-hat keep the
   beat until the next one. Since v10: the drums take over 250 ms before the file ends (`armTrackEnd`), so the beat does not
   stall while the completion callback is on its way; the next track's file is opened when its start is planned, not on
-  its beat; a tempo change in the gap re-paces the drums at once; a tempo change too close to the end of a file is shown
-  in the status line ("… BPM from the next track") instead of being dropped silently.
-- **Player gestures.** Tap: pause and continue. Swipe left: next annotation block. Swipe right: replay this block, or the
-  previous one when this block began less than 2 s ago (`BACK_REPLAY_THRESHOLD_SECONDS`, from the user's Workout
-  Instructinator app). Swipe down: the options bar (added 2026-10-19): chips for the track to play next (switches at the
-  next block boundary with a crossfade), snare and hi-hat toggles (preferences `snare_on`, `hihat_on`; switching one on
-  while the music plays also turns the "over the music" overlay on, both off turns it off), the tempo offset −40..+20
-  (preference `bpm_offset`, kept for the whole session; a change while the music plays cues the variant file to the next
-  whole beat, crossfades over 120 ms and hands the clock over; between tracks the next track takes it; while paused it
-  is applied at the resume), and "explore", which pauses and opens the element being danced in the exploration floor at
-  the same beat (back returns to the paused workout).
+  its beat; a tempo change in the gap re-paces the drums at once. The clock never wraps: the floor maps a looping piece
+  onto its timeline (`playBeat`, `pieceBeat`, `clockBeat` in `DanceFloorActivity`) and tells `Playback` where elements
+  start (`boundaryAfter`). Play from a stop seeks the track when it covers that beat; otherwise a track starts with a
+  4-beat count-in, its first bar on the even beat at or before the stop, and the dancers wait at the stop meanwhile.
+- **The dance floor** (one for everything since 2026-10-28; the old `PlayerActivity` and `FloorActivity` are gone).
+  Swipe left or right: the next or previous stop (the start position one beat before count 1, then every instant a foot
+  lands; it wraps round), flow (the feet travel, at twice the beat length, trapezoid easing) or schema (dashed arrows,
+  both dancers at once). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap or a
+  double tap while playing pauses; a swipe while playing jumps to the next part or back (the old player's 2 s rule,
+  `BACK_REPLAY_SECONDS`): a composition's entries, any other piece's elements. Top bar: play/pause, tempo (the 7 offsets
+  of the song's variants, the same offset for every song), song (shuffle or one first), mute (music, drums and voice:
+  `Playback.setMuted`), flow/schema (manual stepping only; play always flows), edit (a "not implemented yet" note).
+  Bottom bar: every stop, the current one framed and followed while playing, the annotations (a composition's "say:"
+  texts and entry names; a building block's element names) as khaki callouts; tap a stop to go there. Compositions play
+  once and end on "Done!"; elements and building blocks loop: chained to about 1200 beats when they close on themselves
+  (`chainedLoop`), otherwise from the start position again after 2 beats (an even period keeps the music's bars). The
+  daily exercise opens playing; everything else opens paused with the bars shown. The system bars are hidden on the floor.
+- **Launcher.** The daily exercise's tile shows how long it takes (its beats plus a 4-beat count-in at the chosen song's
+  tempo and offset, or the songs' average for shuffle); the little floor dances it at 1.5 times that tempo; help swaps
+  the little floor for the draft's two explanations and draws arrows to the tiles (`HelpArrows`).
+- **Explore.** Groups Elements (one row per version, subtitled with its start and end when there are several),
+  Compositions, Building Blocks (folded by default; `explore_open_*` preferences). Each row's three pictures start
+  centred on the step that stands out most: `Rarity` describes a pose relative to the couple (the feet around their
+  middle, his-to-her direction along x, headings as short vectors) and takes the step with the lowest Gaussian density
+  among the poses of every element. Dragging one row puts the others back.
 - **Metronome.** Snare on the odd counts, closed hi-hat on the swung "&" and the even counts; scheduled on its own thread
   at exact uptimes from the clock. Both sounds are synthesised by `make_assets.py`.
 - **Speech.** Annotations are fetched once from Google Translate's TTS endpoint and cached per phrase (`cacheDir/tts_<md5>.mp3`),
@@ -205,12 +229,13 @@ commit (there is no diff step any more: the editor's file is the only version). 
   and ignores "may duck" requests, so the system never dims the whole app; a real loss (a call) pauses the workout.
   This was the fix for "the music and the annotations both go dim sometimes" (2026-10-19); the diagnosis also named the
   phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
-- **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on`, `bpm_offset`; the
-  exploration floor's `strategic` and `bpm`. The main screen's switches re-read them on resume, since the player's options
-  bar (snare, hi-hat and, since v9, voice) writes the same ones.
+- **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on` (the settings page);
+  `bpm_offset`, `song` (a track key or `shuffle`), `muted`, `strategic` (schema mode) (the dance floor's top bar);
+  `explore_open_elements`, `explore_open_compositions`, `explore_open_blocks`. Gone with the redesign: the exploration
+  floor's free `bpm` slider (the tempo is the song's), the main screen's switches and the player's options bar.
 - **Shipped compositions and the phone's copy.** `CompositionStore` reads the phone's own file when there is one and only
   adds shipped compositions it does not know. Since v9 a shipped composition carries a `revision`; a higher one replaces the
-  phone's copy unless that copy is marked `edited` (set by the edit dialog). Bump the revision whenever you change a shipped
+  phone's copy unless that copy is marked `edited` (set by the phone's edit dialog, which the 2026-10-28 redesign removed). Bump the revision whenever you change a shipped
   composition, or the phone keeps its old copy.
 
 ## 7. State at the handover (2026-10-19)

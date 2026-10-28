@@ -30,8 +30,6 @@ data class Element(
         return if (last.foot == 'L') 'R' else 'L'
     }
     fun baseCount(): Double = steps.minOf { countTime(it.count, 0.0) }
-    fun conditionLabel(): String =
-        "from ${startState.replace('_', ' ')}, ${if (leaderFreeStart == 'L') "left" else "right"} foot free → ${endState.replace('_', ' ')}"
 }
 
 data class DanceState(val name: String, val feet: Map<String, Placement>, val leaderFree: Char, val hands: List<String>, val desc: String)
@@ -45,7 +43,6 @@ fun countTime(count: String, swing: Double): Double {
 
 fun fwd(h: Double): Pair<Double, Double> { val r = Math.toRadians(h); return Pair(sin(r), cos(r)) }
 fun right(h: Double): Pair<Double, Double> { val r = Math.toRadians(h); return Pair(cos(r), -sin(r)) }
-fun normAngle(a: Double): Double = ((a + 180.0) % 360.0 + 360.0) % 360.0 - 180.0
 
 /** A rigid transform: local skeleton coordinates -> world, defined by the leader's left foot in natural stance. */
 class Frame(val x: Double, val y: Double, val h: Double) {
@@ -153,7 +150,6 @@ class Composition(
 ) {
     fun toJson(): JSONObject = JSONObject().put("name", name).put("start_state", startState).put("repeat", repeat)
         .put("elements", JSONArray(elements)).put("notes", notes).put("revision", revision).put("edited", edited)
-    fun copy(): Composition = Composition(name, startState, repeat, elements.toMutableList(), notes, isSub, revision, edited)
     companion object {
         fun fromJson(o: JSONObject, isSub: Boolean): Composition = Composition(
             o.getString("name"), o.optString("start_state", "side"), maxOf(1, o.optInt("repeat", 1)),

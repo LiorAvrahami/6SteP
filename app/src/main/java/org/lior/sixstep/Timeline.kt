@@ -1,7 +1,6 @@
 package org.lior.sixstep
 
 import kotlin.math.abs
-import kotlin.math.exp
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
@@ -185,25 +184,4 @@ class Timeline(val composed: Composed, val swing: Double) {
         for (d in listOf('L', 'F')) for (f in listOf('L', 'R')) m["$d.$f"] = placement(d, f, t)
         return m
     }
-
-    /** Body centre and heading from two feet. */
-    fun body(a: Placement, b: Placement): Placement {
-        val cx = (a.x + b.x) / 2; val cy = (a.y + b.y) / 2
-        val sx = Math.sin(Math.toRadians(a.h)) + Math.sin(Math.toRadians(b.h))
-        val sy = Math.cos(Math.toRadians(a.h)) + Math.cos(Math.toRadians(b.h))
-        return Placement(cx, cy, Math.toDegrees(Math.atan2(sx, sy)))
-    }
-}
-
-/** A smoothing helper for a following camera. */
-class Smoother(private val tau: Double) {
-    private var x = Double.NaN; private var y = Double.NaN; private var last = 0L
-    fun update(nx: Double, ny: Double, nowMs: Long): Pair<Double, Double> {
-        if (x.isNaN()) { x = nx; y = ny; last = nowMs; return Pair(x, y) }
-        val dt = (nowMs - last) / 1000.0; last = nowMs
-        val k = 1 - exp(-dt / tau)
-        x += (nx - x) * k; y += (ny - y) * k
-        return Pair(x, y)
-    }
-    fun reset() { x = Double.NaN; y = Double.NaN }
 }

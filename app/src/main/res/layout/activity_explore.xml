@@ -1,39 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<!-- Explore (the user's draft, 2026-10-28): the groups and their rows are added by ExploreActivity. The scroll bar on the
+     right is always shown, as the draft has it. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:fadeScrollbars="false"
+    android:scrollbarSize="6dp"
+    android:scrollbarStyle="outsideInset"
+    android:scrollbarThumbVertical="@drawable/scroll_thumb"
+    android:scrollbars="vertical">
 
     <LinearLayout
+        android:id="@+id/list"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:padding="12dp">
-        <TextView
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="@string/explore"
-            android:textSize="24sp"
-            android:textStyle="bold"
-            android:textColor="@color/ink" />
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/newComposition"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/new_composition" />
-    </LinearLayout>
-
-    <ScrollView
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1">
-        <LinearLayout
-            android:id="@+id/list"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:paddingBottom="24dp" />
-    </ScrollView>
-</LinearLayout>
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="24dp" />
+</ScrollView>

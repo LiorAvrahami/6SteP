@@ -1,28 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">6SteP</string>
-    <string name="start_daily">Start daily exercise</string>
+
+    <!-- the launcher -->
+    <string name="logo">6SteP!</string>
+    <string name="daily_exercise">Daily Exercise</string>
     <string name="explore">Explore</string>
-    <string name="other_compositions">Other compositions</string>
-    <string name="metronome_over_music">Snare and hi-hat over the music</string>
-    <string name="snare">snare</string>
-    <string name="hi_hat">hi-hat</string>
-    <string name="voice">voice</string>
-    <string name="quiet">quiet</string>
-    <string name="explore_here">Explore this element</string>
-    <string name="speak_annotations">Read annotations aloud</string>
+    <string name="minutes">%1$d:%2$02d min</string>
+    <string name="heart">Say thanks</string>
+    <string name="settings">Settings</string>
+    <string name="help">What is what</string>
+    <string name="help_daily">Click this to start a daily exercise! Five minutes a day is the optimal way to create muscle memory!</string>
+    <string name="help_explore">Click this if you need a refresher on a specific element that you are confused about.</string>
+
+    <!-- explore -->
     <string name="elements">Elements</string>
-    <string name="sub_compositions">Sub-compositions</string>
     <string name="compositions">Compositions</string>
-    <string name="new_composition">New composition</string>
-    <string name="edit">Edit</string>
-    <string name="save">Save</string>
-    <string name="cancel">Cancel</string>
-    <string name="delete">Delete</string>
-    <string name="strategic_view">Strategic view</string>
-    <string name="flow_view">Flow view</string>
+    <string name="building_blocks">Building Blocks</string>
+    <string name="left_free">left foot free</string>
+    <string name="right_free">right foot free</string>
+
+    <!-- the dance floor -->
     <string name="play">Play</string>
     <string name="pause">Pause</string>
-    <string name="bpm">BPM</string>
-    <string name="element_map">Element map</string>
+    <string name="tempo">Tempo</string>
+    <string name="bpm">%1$d BPM</string>
+    <string name="bpm_original">%1$d BPM · original</string>
+    <string name="song">Song</string>
+    <string name="shuffle_all">Shuffle all songs</string>
+    <string name="shuffle_now">Shuffle · %1$s</string>
+    <string name="mute">Mute the music and the voice</string>
+    <string name="unmute">Turn the music and the voice back on</string>
+    <string name="flow_view">Flow: the feet travel from step to step</string>
+    <string name="schema_view">Schema: dashed lines show where each foot came from</string>
+    <string name="edit">Edit</string>
+    <string name="editor_not_ready">Choreography editor for phone not implemented yet.</string>
+    <string name="start">start</string>
+    <string name="start_position">start position</string>
+    <string name="ready">ready</string>
+    <string name="filler_suffix"> — triple step filler</string>
+    <string name="done">Done!</string>
+    <string name="nothing_to_show">nothing to show</string>
+    <string name="audio_busy">The sound is busy (a call?). Press play again.</string>
+    <string name="tempo_next_track">%1$d BPM from the next song</string>
+
+    <!-- the heart page (the user's own words, 2026-10-28, with the spelling put right) -->
+    <string name="heart_note">Nothing would make me happier than getting a genuine, thoughtful email about how someone used and appreciates this app that I made for the community.\n\nPlease describe with complete genuineness and honesty what about this app you liked, and if it made you feel a connection with me, its creator.</string>
+    <string name="heart_beer">Also, putting apps in the Play Store costs me money. If you feel generous, you can buy me a beer (IRL or via the app).</string>
+    <string name="email_me">Email me</string>
+    <string name="my_website">My website</string>
+    <string name="buy_beer">Buy me a beer</string>
+    <string name="link_not_set">This link is not set up yet</string>
+    <string name="no_app">No app on this phone can open this</string>
+
+    <!-- settings -->
+    <string name="set_overlay">Snare and hi-hat over the music</string>
+    <string name="set_snare">Snare (between songs, and over the music when that is on)</string>
+    <string name="set_hihat">Hi-hat (between songs, and over the music when that is on)</string>
+    <string name="set_voice">Read the annotations aloud</string>
+    <string name="set_mute_note">The mute button on the dance floor silences everything at once: the music, the drums and the voice.</string>
+    <string name="about">6SteP %1$s · font: Inter (SIL Open Font License) · icons: Lucide (ISC License)</string>
 </resources>

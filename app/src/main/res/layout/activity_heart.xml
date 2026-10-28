@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The heart page (the user's draft, 2026-10-28, drawn upright there; side by side here, for the phone held sideways):
+     the note, the three links, the beer. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/note"
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="11"
+        android:gravity="center"
+        android:padding="20dp"
+        android:text="@string/heart_note"
+        android:textColor="#000000"
+        android:fontFamily="@font/inter_regular"
+        android:autoSizeTextType="uniform"
+        android:autoSizeMinTextSize="11sp"
+        android:autoSizeMaxTextSize="22sp" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="9"
+        android:layout_marginStart="12dp"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ImageButton
+                android:id="@+id/mail"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:padding="12dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_at"
+                android:contentDescription="@string/email_me" />
+
+            <ImageButton
+                android:id="@+id/web"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginStart="12dp"
+                android:padding="12dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_globe"
+                android:contentDescription="@string/my_website" />
+
+            <ImageButton
+                android:id="@+id/money"
+                android:layout_width="80dp"
+                android:layout_height="80dp"
+                android:layout_marginStart="12dp"
+                android:padding="12dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_dollar"
+                android:contentDescription="@string/buy_beer" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/beer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="16dp"
+            android:gravity="center"
+            android:padding="16dp"
+            android:text="@string/heart_beer"
+            android:textColor="#000000"
+            android:fontFamily="@font/inter_regular"
+            android:autoSizeTextType="uniform"
+            android:autoSizeMinTextSize="11sp"
+            android:autoSizeMaxTextSize="22sp" />
+    </LinearLayout>
+</LinearLayout>

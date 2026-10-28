@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Settings (the draft leaves this page empty): the sound choices that used to be on the old main screen and in the old
+     player's bar. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingStart="24dp"
+        android:paddingTop="16dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/settings"
+            android:textColor="#000000"
+            android:textSize="30sp"
+            android:fontFamily="@font/inter_extrabold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/setOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:minHeight="56dp"
+            android:text="@string/set_overlay"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:fontFamily="@font/inter_semibold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/setSnare"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:minHeight="56dp"
+            android:text="@string/set_snare"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:fontFamily="@font/inter_semibold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/setHihat"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:minHeight="56dp"
+            android:text="@string/set_hihat"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:fontFamily="@font/inter_semibold" />
+
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/setVoice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:minHeight="56dp"
+            android:text="@string/set_voice"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:fontFamily="@font/inter_semibold" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="14dp"
+            android:text="@string/set_mute_note"
+            android:textColor="#444444"
+            android:textSize="14sp"
+            android:fontFamily="@font/inter_regular" />
+
+        <TextView
+            android:id="@+id/about"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:textColor="#777777"
+            android:textSize="12sp"
+            android:fontFamily="@font/inter_regular" />
+    </LinearLayout>
+</ScrollView>

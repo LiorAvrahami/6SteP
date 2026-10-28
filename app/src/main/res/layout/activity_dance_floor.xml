@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The one dance floor (the user's draft, 2026-10-28). The bars slide in over the floor when it is swiped down; their
+     look is set in DanceFloorActivity (Ui.box). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <org.lior.sixstep.FloorView
+        android:id="@+id/floor"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- the bottom bar: every step of the piece. The strip draws the grey bar, the pictures and the scroll bar, and in the
+         transparent band above the bar the annotations (touches in that band go to the floor). -->
+    <org.lior.sixstep.StepStrip
+        android:id="@+id/strip"
+        android:layout_width="match_parent"
+        android:layout_height="132dp"
+        android:layout_gravity="bottom"
+        android:translationY="132dp" />
+
+    <LinearLayout
+        android:id="@+id/topBar"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_gravity="top"
+        android:translationY="-64dp"
+        android:clickable="true"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
+
+        <ImageButton
+            android:id="@+id/play"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_play"
+            android:contentDescription="@string/play" />
+
+        <TextView
+            android:id="@+id/rate"
+            android:layout_width="58dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:gravity="center"
+            android:includeFontPadding="false"
+            android:lineSpacingMultiplier="0.9"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:fontFamily="@font/inter_extrabold"
+            android:contentDescription="@string/tempo" />
+
+        <TextView
+            android:id="@+id/song"
+            android:layout_width="240dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:drawableEnd="@drawable/ic_chevron_down"
+            android:drawablePadding="6dp"
+            android:ellipsize="end"
+            android:gravity="center_vertical"
+            android:paddingStart="14dp"
+            android:paddingEnd="10dp"
+            android:singleLine="true"
+            android:textColor="#000000"
+            android:textSize="15sp"
+            android:fontFamily="@font/inter_extrabold"
+            android:contentDescription="@string/song" />
+
+        <ImageButton
+            android:id="@+id/mute"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_volume"
+            android:contentDescription="@string/mute" />
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageButton
+            android:id="@+id/mode"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_schema"
+            android:contentDescription="@string/schema_view" />
+
+        <ImageButton
+            android:id="@+id/edit"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_pencil"
+            android:contentDescription="@string/edit" />
+    </LinearLayout>
+</FrameLayout>

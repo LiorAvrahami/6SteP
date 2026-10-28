@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="40dp" android:height="40dp" android:viewportWidth="40" android:viewportHeight="40">
-    <!-- a grid of small floors: the element map -->
-    <path android:fillColor="#F8F6F0" android:pathData="M6,6 h11 v11 h-11 z M23,6 h11 v11 h-11 z M6,23 h11 v11 h-11 z M23,23 h11 v11 h-11 z" />
-    <path android:fillColor="#2E6EE6" android:pathData="M9,9 h2 v5 h-2 z M26,9 h2 v5 h-2 z M9,26 h2 v5 h-2 z M26,26 h2 v5 h-2 z" />
-    <path android:fillColor="#EB50A0" android:pathData="M12,9 h2 v5 h-2 z M29,9 h2 v5 h-2 z M12,26 h2 v5 h-2 z M29,26 h2 v5 h-2 z" />
-</vector>

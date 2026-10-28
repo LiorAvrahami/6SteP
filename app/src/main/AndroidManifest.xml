@@ -21,8 +21,9 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".PlayerActivity" android:exported="false" android:screenOrientation="landscape" />
+        <activity android:name=".DanceFloorActivity" android:exported="false" android:screenOrientation="landscape" />
         <activity android:name=".ExploreActivity" android:exported="false" android:screenOrientation="landscape" />
-        <activity android:name=".FloorActivity" android:exported="false" android:screenOrientation="landscape" />
+        <activity android:name=".HeartActivity" android:exported="false" android:screenOrientation="landscape" />
+        <activity android:name=".SettingsActivity" android:exported="false" android:screenOrientation="landscape" />
     </application>
 </manifest>

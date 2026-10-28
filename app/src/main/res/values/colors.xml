@@ -1,13 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="ic_launcher_background">#F8F6F0</color>
-    <color name="floor">#F8F6F0</color>
-    <color name="floor_grid">#E2DFD6</color>   <!-- 20 % more contrast with the floor than #E6E3DA (user 2026-10-19) -->
+    <!-- the floor is white, as in the user's draft (2026-10-28); the grid keeps the contrast the user tuned on the old
+         cream floor (#E2DFD6 on #F8F6F0, user 2026-10-19), about 1.24 to 1 -->
+    <color name="floor">#FFFFFF</color>
+    <color name="floor_grid">#E7E7E7</color>
     <color name="leader">#2E6EE6</color>
     <color name="follower">#EB50A0</color>
-    <color name="ink">#222222</color>
-    <color name="muted">#777777</color>
     <color name="accent">#F0B432</color>
-    <color name="panel">#E6111118</color>
     <color name="filler">#8A6D00</color>
 </resources>
