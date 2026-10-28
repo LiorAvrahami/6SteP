@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Buy me a Beer" (user 2026-10-29), opened by the heart page's $ button: the title, the beer's words, the amounts.
+     The heart page's look: a square box with a black outline; the amounts raised like the app's other buttons. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/beerBox"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingStart="20dp"
+    android:paddingTop="8dp"
+    android:paddingEnd="20dp"
+    android:paddingBottom="24dp">
+
+    <ImageButton
+        android:id="@+id/beerClose"
+        android:layout_width="44dp"
+        android:layout_height="44dp"
+        android:layout_gravity="end"
+        android:layout_marginEnd="-10dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:padding="10dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_close"
+        android:contentDescription="@string/close" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="@string/buy_beer"
+        android:textColor="#000000"
+        android:textSize="28sp"
+        android:fontFamily="@font/inter_extrabold" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:gravity="center"
+        android:lineSpacingMultiplier="1.1"
+        android:text="@string/heart_beer"
+        android:textColor="#000000"
+        android:textSize="17sp"
+        android:fontFamily="@font/inter_regular" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:id="@+id/beer5"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:paddingEnd="3dp"
+            android:paddingBottom="3dp"
+            android:textColor="#000000"
+            android:textSize="22sp"
+            android:fontFamily="@font/inter_extrabold" />
+
+        <TextView
+            android:id="@+id/beer15"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:gravity="center"
+            android:paddingEnd="3dp"
+            android:paddingBottom="3dp"
+            android:textColor="#000000"
+            android:textSize="22sp"
+            android:fontFamily="@font/inter_extrabold" />
+
+        <TextView
+            android:id="@+id/beer30"
+            android:layout_width="0dp"
+            android:layout_height="64dp"
+            android:layout_weight="1"
+            android:layout_marginStart="14dp"
+            android:gravity="center"
+            android:paddingEnd="3dp"
+            android:paddingBottom="3dp"
+            android:textColor="#000000"
+            android:textSize="22sp"
+            android:fontFamily="@font/inter_extrabold" />
+    </LinearLayout>
+</LinearLayout>

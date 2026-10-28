@@ -21,7 +21,7 @@ RES = os.path.join(ROOT, 'res')
 ANDROID = '{http://schemas.android.com/apk/res/android}'
 GONE = ['PlayerActivity', 'FloorActivity', 'optionsBar', 'trackPicker', 'bpmPicker', 'snareToggle', 'hatToggle',
         'voiceToggle', 'exploreHere', 'closeBar', 'mapOverlay', 'mapGrid', 'viewToggle', 'compositionList',
-        'startDaily', 'metronomeOverMusic', 'speakAnnotations', 'newComposition', 'ic_strategic', 'ic_map', 'ic_close',
+        'startDaily', 'metronomeOverMusic', 'speakAnnotations', 'newComposition', 'ic_strategic', 'ic_map',
         'ic_edit', 'bg_chip', 'Smoother', 'normAngle', 'conditionLabel', 'showHands', 'showBodies', 'R.color.panel',
         'R.color.ink', 'R.color.muted', '@color/panel', '@color/ink', '@color/muted']
 
