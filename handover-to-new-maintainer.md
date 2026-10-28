@@ -280,6 +280,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   two old errors are gone: `check.py` reports 0 errors in 14 skeletons. Not drawn any more, anywhere (app, editor,
   storyboards, videos): the body circle with its heading line and the arms. The editor draws the shoes. The camera
   follows twice as fast (`FloorView.CAMERA_TAU` 0.225 s).
+  v18 (2026-10-26): the elements' versions by ending, curved foot paths, winding, the couple join, the remade 5 minutes
+  exercise, annotations at the top. **v19 (2026-10-28): the redesign** to the user's layout draft (section 6): one dance
+  floor for everything, the new launcher, explore, heart and settings pages. Built first time; not yet run on a phone.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

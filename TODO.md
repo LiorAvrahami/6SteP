@@ -67,6 +67,6 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
-- **2026-10-28 (the redesign):** "the exploration floor's play honouring the snare and hi-hat toggles" (first
+- **2026-10-28, v19 (the redesign):** "the exploration floor's play honouring the snare and hi-hat toggles" (first
   maintainer's backlog) no longer applies: there is one dance floor, it plays on the music, the settings page chooses
   the drums and the mute button silences everything.
