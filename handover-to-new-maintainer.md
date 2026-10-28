@@ -292,7 +292,11 @@ commit (there is no diff step any more: the editor's file is the only version). 
   follows twice as fast (`FloorView.CAMERA_TAU` 0.225 s).
   v18 (2026-10-26): the elements' versions by ending, curved foot paths, winding, the couple join, the remade 5 minutes
   exercise, annotations at the top. **v19 (2026-10-28): the redesign** to the user's layout draft (section 6): one dance
-  floor for everything, the new launcher, explore, heart and settings pages. Built first time; not yet run on a phone.
+  floor for everything, the new launcher, explore, heart and settings pages. Built first time.
+  v20: play made from scratch at every start (the music plan; the user saw a jitter on play after a pause and a few
+  steps), mute/unmute keeps the place in the song, jumps keep the volume, schema arrows over the shoes and outlined,
+  explore rows pink with every row's facings, explore opens the floor on the first step. v21: the floor's back button
+  (Lucide undo-2), the launcher's "quick recap". v22: the heart page upright, as the user drew it.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
