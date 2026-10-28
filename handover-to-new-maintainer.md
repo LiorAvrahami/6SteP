@@ -302,7 +302,10 @@ commit (there is no diff step any more: the editor's file is the only version). 
   steps), mute/unmute keeps the place in the song, jumps keep the volume, schema arrows over the shoes and outlined,
   explore rows pink with every row's facings, explore opens the floor on the first step. v21: the floor's back button
   (Lucide undo-2), the launcher's "quick recap". v22: the heart page upright, as the user drew it. v23: explore has one row
-  per element, its versions in the dropdown box the user drew at the right of the name.
+  per element, its versions in the dropdown box the user drew at the right of the name. v24: explore regrouped to the
+  user's list, the quick recap among the compositions, versions as pills or a raised button with a list (the user's
+  choice of mock-ups), "rock triple triple" and "follower underarm and back". v25: dragging a row puts the others back
+  at once.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
