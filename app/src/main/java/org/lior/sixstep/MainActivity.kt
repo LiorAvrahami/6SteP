@@ -18,8 +18,8 @@ import kotlin.math.hypot
 import kotlin.math.roundToInt
 
 /** The launcher (the user's layout draft, 2026-10-28): the daily exercise with how long it takes, explore, and in the
- *  left column the title, a little floor dancing the daily exercise at 1.5 times its speed, and the heart, settings and
- *  help buttons. Help puts two explanations with arrows to their buttons where the little floor is. */
+ *  left column the title, a little floor dancing the "quick recap" at 1.5 times the exercise's tempo, and the heart,
+ *  settings and help buttons. Help puts two explanations with arrows to their buttons where the little floor is. */
 class MainActivity : AppCompatActivity() {
     companion object { const val SNIPPET_SPEED = 1.5 }
 
@@ -27,8 +27,10 @@ class MainActivity : AppCompatActivity() {
     private lateinit var helpPanel: View
     private lateinit var arrows: HelpArrows
     private lateinit var time: TextView
+    private lateinit var recapLabel: View
     private var dailyName: String? = null
-    private var tl: Timeline? = null
+    private var dailyBeats = 0.0
+    private var tl: Timeline? = null              // the quick recap
     private var bpm = 120.0
     private var t0 = 0L
     private var running = false
@@ -62,7 +64,7 @@ class MainActivity : AppCompatActivity() {
         val helpDaily = findViewById<View>(R.id.helpDaily); helpDaily.setBackgroundColor(Ui.DAILY)
         val helpExplore = findViewById<View>(R.id.helpExplore); helpExplore.setBackgroundColor(Ui.EXPLORE)
         for (b in listOf(heart, gear, help)) TooltipCompat.setTooltipText(b, b.contentDescription)
-        snippet = findViewById(R.id.snippet); snippet.showLabels = false
+        snippet = findViewById(R.id.snippet); snippet.showLabels = false; recapLabel = findViewById(R.id.recapLabel)
         helpPanel = findViewById(R.id.helpPanel); arrows = findViewById(R.id.arrows); time = findViewById(R.id.dailyTime)
         arrows.pairs = listOf(Pair(helpDaily, findViewById<View>(R.id.dailyIcon)), Pair(helpExplore, findViewById<View>(R.id.exploreIcon)))
 
@@ -76,13 +78,19 @@ class MainActivity : AppCompatActivity() {
         gear.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
         help.setOnClickListener { setHelp(!helpOn) }
 
-        // the daily exercise once: the compositions are not edited on the phone any more
+        // composed once: the compositions are not edited on the phone any more
         val store = CompositionStore(this)
         val d = store.daily()
         dailyName = d?.name
         if (d != null) {
-            val c = Composer.compose(DanceData.load(this), store.sequence(d), d.startState, Piece.SWING)
-            if (c.errors.isEmpty()) tl = Timeline(c, Piece.SWING)
+            val data = DanceData.load(this)
+            val whole = Composer.compose(data, store.sequence(d), d.startState, Piece.SWING)
+            if (whole.errors.isEmpty()) dailyBeats = whole.length
+            // the quick recap (user 2026-10-28): every part of the daily exercise once, in its order: no "x N", the quiet
+            // bridges kept (they join the parts), no annotations (the little floor is silent)
+            val once = d.elements.filter { !it.trim().lowercase().startsWith("say:") }.map { Entry.parse(it).copy(times = 1).text() }
+            val recap = Composer.compose(data, store.expand(once), d.startState, Piece.SWING)
+            if (recap.errors.isEmpty()) tl = Timeline(recap, Piece.SWING)
         }
     }
 
@@ -90,7 +98,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         // the dance floor may have changed the song or the tempo
         bpm = tempo()
-        time.text = tl?.let { t -> val s = ((t.length + 4) * 60.0 / bpm).roundToInt(); getString(R.string.minutes, s / 60, s % 60) } ?: ""
+        time.text = if (dailyBeats <= 0) "" else ((dailyBeats + 4) * 60.0 / bpm).roundToInt().let { s -> getString(R.string.minutes, s / 60, s % 60) }
         if (!helpOn) startSnippet()
     }
 
@@ -106,6 +114,7 @@ class MainActivity : AppCompatActivity() {
         helpOn = on
         helpPanel.visibility = if (on) View.VISIBLE else View.GONE
         snippet.visibility = if (on) View.INVISIBLE else View.VISIBLE
+        recapLabel.visibility = snippet.visibility
         arrows.visibility = if (on) View.VISIBLE else View.GONE
         if (on) { running = false; arrows.post { arrows.invalidate() } } else startSnippet()
     }

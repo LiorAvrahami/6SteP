@@ -220,7 +220,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   (`chainedLoop`), otherwise from the start position again after 2 beats (an even period keeps the music's bars). The
   daily exercise opens playing; everything else opens paused with the bars shown. The system bars are hidden on the floor.
 - **Launcher.** The daily exercise's tile shows how long it takes (its beats plus a 4-beat count-in at the chosen song's
-  tempo and offset, or the songs' average for shuffle); the little floor dances it at 1.5 times that tempo; help swaps
+  tempo and offset, or the songs' average for shuffle); the little floor dances the "quick recap" at 1.5 times that
+  tempo (user 2026-10-28: "all the elements that we learned one after the other without repetitions": made in the app
+  from the daily exercise, every entry once, the quiet bridges kept, so it follows the exercise when that changes); help swaps
   the little floor for the draft's two explanations and draws arrows to the tiles (`HelpArrows`).
 - **Explore.** Groups Elements (one row per version), every row subtitled with how it starts and ends (user
   2026-10-28; a version that starts and ends like another adds its free foot, a building block its elements),

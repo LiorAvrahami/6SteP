@@ -15,7 +15,7 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
 ## The screens (the user's layout draft, `design/app_layout.free`, 2026-10-28)
 
 - **Launcher**: the daily exercise (with how long it takes at the chosen song and tempo), explore, and a little floor that
-  dances the daily exercise at 1.5 times its speed; the heart (thanks and links), settings, and help (two explanations
+  dances the "quick recap" (every part of the daily exercise once, in its order) at 1.5 times its speed; the heart (thanks and links), settings, and help (two explanations
   with arrows where the little floor is).
 - **Explore**: three groups that fold (Elements, Compositions, Building Blocks). Every row shows three pictures of
   consecutive steps, centred on the step of the piece that stands out most (the pose least like the poses of all the
