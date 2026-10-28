@@ -47,7 +47,7 @@
     <string name="tempo_next_track">%1$d BPM from the next song</string>
 
     <!-- the heart page (the user's own words, 2026-10-28, with the spelling put right) -->
-    <string name="heart_note">Nothing would make me happier than getting a genuine, thoughtful email about how someone used and appreciates this app that I made for the community.\n\nPlease describe with complete genuineness and honesty what about this app you liked, and if it made you feel a connection with me, its creator.</string>
+    <string name="heart_note">Hi, I\'m Lior. I made this app for the community, with the intent to help. Nothing would make me happier than getting a genuine, thoughtful email about how someone used and appreciates this app.\n\nPlease describe with complete genuineness and honesty what about this app you liked, and if it made you feel a connection with me, its creator.</string>
     <string name="heart_beer">Also, putting apps in the Play Store costs me money. If you feel generous, you can buy me a beer (IRL or via the app).</string>
     <string name="email_me">Email me</string>
     <string name="my_website">My website</string>

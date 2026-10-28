@@ -12,8 +12,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.TooltipCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
-/** The heart page (the user's layout draft, 2026-10-28): a note from the user, and three links: an email to them, their
- *  website, and a beer (5, 15 or 30 dollars). */
+/** The heart page (the user's layout draft, revised 2026-10-28): a note from the user, and three links: an email to
+ *  them, their website, and a beer (5, 15 or 30 dollars). Upright, as the user drew it (the rest of the app is sideways). */
 class HeartActivity : AppCompatActivity() {
     companion object {
         const val EMAIL = "lior.2pi@gmail.com"
@@ -28,12 +28,13 @@ class HeartActivity : AppCompatActivity() {
         setContentView(R.layout.activity_heart)
         Ui.bars(this, Ui.PAGE_BG)
         findViewById<View>(R.id.root).setBackgroundColor(Ui.PAGE_BG)
-        findViewById<View>(R.id.note).background = Ui.box(this, Ui.HEART_BOX, ripple = false)
-        findViewById<View>(R.id.beer).background = Ui.box(this, Ui.HEART_BOX, ripple = false)
+        // square boxes and black outlines, as the user drew this page
+        findViewById<View>(R.id.note).background = Ui.box(this, Ui.HEART_BOX, 2.5f, 0f, ripple = false)
+        findViewById<View>(R.id.beer).background = Ui.box(this, Ui.HEART_BOX, 2.5f, 0f, ripple = false)
         val mail = findViewById<ImageButton>(R.id.mail)
         val web = findViewById<ImageButton>(R.id.web)
         val money = findViewById<ImageButton>(R.id.money)
-        for (b in listOf(mail, web, money)) { b.background = Ui.box(this, Color.TRANSPARENT); TooltipCompat.setTooltipText(b, b.contentDescription) }
+        for (b in listOf(mail, web, money)) { b.background = Ui.box(this, Color.TRANSPARENT, 3f, 0f); TooltipCompat.setTooltipText(b, b.contentDescription) }
         mail.setOnClickListener {
             open(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$EMAIL")).putExtra(Intent.EXTRA_SUBJECT, getString(R.string.app_name)))
         }
