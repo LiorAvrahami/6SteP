@@ -224,8 +224,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   tempo (user 2026-10-28: "all the elements that we learned one after the other without repetitions": made in the app
   from the daily exercise, every entry once, the quiet bridges kept, so it follows the exercise when that changes); help swaps
   the little floor for the draft's two explanations and draws arrows to the tiles (`HelpArrows`).
-- **Explore.** Groups Elements (one row per version), every row subtitled with how it starts and ends (user
-  2026-10-28; a version that starts and ends like another adds its free foot, a building block its elements),
+- **Explore.** Groups Elements (one row per element: its versions, the starting conditions, are in a dropdown box at
+  the right of the name, which shows start -> end and the leader's free foot; user 2026-10-28, the box drawn in the
+  revised draft; the choice is kept in `explore_version_*` preferences; compositions and blocks show the same box),
   Compositions, Building Blocks (folded by default; `explore_open_*` preferences). Each row's three pictures start
   centred on the step that stands out most: `Rarity` describes a pose relative to the couple (the feet around their
   middle, his-to-her direction along x, headings as short vectors) and takes the step with the lowest Gaussian density
@@ -241,7 +242,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
 - **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on` (the settings page);
   `bpm_offset`, `song` (a track key or `shuffle`), `muted`, `strategic` (schema mode) (the dance floor's top bar);
-  `explore_open_elements`, `explore_open_compositions`, `explore_open_blocks`. Gone with the redesign: the exploration
+  `explore_open_elements`, `explore_open_compositions`, `explore_open_blocks`, `explore_version_<kind>_<name>`. Gone with the redesign: the exploration
   floor's free `bpm` slider (the tempo is the song's), the main screen's switches and the player's options bar.
 - **Shipped compositions and the phone's copy.** `CompositionStore` reads the phone's own file when there is one and only
   adds shipped compositions it does not know. Since v9 a shipped composition carries a `revision`; a higher one replaces the

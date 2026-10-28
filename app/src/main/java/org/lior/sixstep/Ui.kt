@@ -24,16 +24,19 @@ object Ui {
     val BAR = Color.rgb(0xD3, 0xD3, 0xD3)          // the dance floor's bars
     val ROW = Color.rgb(0xF7, 0xC1, 0xC7)          // the explore rows' names (the draft, revised 2026-10-28)...
     val ROW_EDGE = Color.argb(0x75, 0x61, 0x56, 0x56)   // ...and their thin outline
+    val VERSION = Color.rgb(0xE6, 0xAE, 0xB5)      // an explore row's version box (where it starts and ends)
     val NOTE = Color.rgb(0xBA, 0xB1, 0x86)         // the annotations in the dance floor's bottom bar
     val HEART_BOX = Color.rgb(0xF8, 0xBE, 0xC2)
 
     fun dp(ctx: Context, v: Float): Float = v * ctx.resources.displayMetrics.density
 
-    /** a box: a fill, a black outline, slightly rounded corners; with a ripple when it is something to press */
-    fun box(ctx: Context, fill: Int, strokeDp: Float = 2.5f, radiusDp: Float = 6f, stroke: Int = Color.BLACK, ripple: Boolean = true): Drawable {
+    /** a box: a fill, a black outline, slightly rounded corners (or each its own: top left, top right, bottom right,
+     *  bottom left); with a ripple when it is something to press */
+    fun box(ctx: Context, fill: Int, strokeDp: Float = 2.5f, radiusDp: Float = 6f, stroke: Int = Color.BLACK, ripple: Boolean = true,
+            radiiDp: FloatArray? = null): Drawable {
         val g = GradientDrawable()
         g.setColor(fill)
-        g.cornerRadius = dp(ctx, radiusDp)
+        if (radiiDp != null) g.cornerRadii = FloatArray(8) { dp(ctx, radiiDp[it / 2]) } else g.cornerRadius = dp(ctx, radiusDp)
         if (strokeDp > 0f) g.setStroke(dp(ctx, strokeDp).toInt().coerceAtLeast(1), stroke)
         return if (ripple) RippleDrawable(ColorStateList.valueOf(0x33000000), g, null) else g
     }

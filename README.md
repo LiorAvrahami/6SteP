@@ -19,8 +19,9 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   with arrows where the little floor is).
 - **Explore**: three groups that fold (Elements, Compositions, Building Blocks). Every row shows three pictures of
   consecutive steps, centred on the step of the piece that stands out most (the pose least like the poses of all the
-  elements); drag a row sideways to move through its steps. Under every name: how the piece starts and ends. A tap
-  opens the dance floor on the piece's first step.
+  elements); drag a row sideways to move through its steps. One row per element; at the right of every name a box
+  says where it starts and ends and which foot the leader has free, and for an element with several versions it is a
+  dropdown that chooses the version the row shows. A tap opens the dance floor on the first step of that version.
 - **The dance floor**, one for everything (the daily exercise included). Swipe left or right: the next or previous step,
   in flow mode (the feet travel there) or schema mode (dashed lines from where each foot came). Swipe down: the bars; a
   tap on the floor closes them. Double tap or play: play (the bars close); a tap while playing pauses; a swipe while

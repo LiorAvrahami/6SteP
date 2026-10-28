@@ -8,15 +8,20 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 
-/** Explore (the user's layout draft, 2026-10-28): three groups that fold (Elements, Compositions, Building Blocks), a
- *  row for each piece: its name, and three pictures of consecutive steps, centred on the step of the piece that stands
- *  out most (Rarity), and under its name how it starts and ends. Drag a row sideways to move through its steps;
- *  dragging one puts the others back where they began. A tap opens the dance floor on the piece's first step. */
+/** Explore (the user's layout draft, 2026-10-28): three groups that fold (Elements, Compositions, Building Blocks), one
+ *  row for each piece: its name, its version box at the right of the name (where it starts and ends, and the leader's
+ *  free foot; for an element with several versions a dropdown that chooses which one the row shows, remembered), and
+ *  three pictures of consecutive steps, centred on the step that stands out most (Rarity). Drag a row sideways to move
+ *  through its steps; dragging one puts the others back where they began. A tap opens the dance floor on the first step
+ *  of the version shown. */
 class ExploreActivity : AppCompatActivity() {
-    private class Item(val piece: Piece, val title: String, val subtitle: String?, val cells: List<StepStrip.Cell>)
-    private class Row(val strip: StepStrip, val centre: Int)
+    /** one way to dance a row's piece: an element from one starting condition, or the one way of a composition */
+    private class Version(val piece: Piece, val label: String, val cells: List<StepStrip.Cell>)
+    private class Row(val strip: StepStrip, var centre: Int)
     private val rows = ArrayList<Row>()
+    private var corpus: List<DoubleArray> = emptyList()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,44 +32,39 @@ class ExploreActivity : AppCompatActivity() {
         val data = DanceData.load(this); val store = CompositionStore(this)
         val start = getString(R.string.start)
 
-        // every row says how the piece starts and ends (user 2026-10-28), and after that what else tells it apart
-        fun item(p: Piece, more: String?): Item? {
+        fun version(p: Piece): Version? {
             val c = p.compose(data, Piece.SWING)
             if (c.errors.isNotEmpty()) return null
             val t = Timeline(c, Piece.SWING)
-            val facing = c.startState.replace('_', ' ') + " → " + c.endState.replace('_', ' ')
-            return Item(p, titleCase(p.name), if (more == null) facing else facing + more, cellsOf(t, stopsOf(t), start))
+            val label = c.startState.replace('_', ' ') + " → " + c.endState.replace('_', ' ') + "\n" +
+                getString(if (c.startFree == 'L') R.string.left_free else R.string.right_free)
+            return Version(p, label, cellsOf(t, stopsOf(t), start))
         }
-        val elements = data.names.flatMap { name ->
-            data.variants(name).indices.mapNotNull { i -> Piece.find(data, store, Piece.ELEMENT, name, i)?.let { item(it, freeFoot(data, name, i)) } }
+        // one row per element, its versions in the row's dropdown (user 2026-10-28)
+        val elements = data.names.mapNotNull { name ->
+            val vs = data.variants(name).indices.mapNotNull { i -> Piece.find(data, store, Piece.ELEMENT, name, i)?.let { version(it) } }
+            if (vs.isEmpty()) null else Pair(name, vs)
         }
-        // the poses of every element: what usual looks like (the start positions aside)
-        val corpus = elements.flatMap { it.cells.drop(1).mapNotNull { c -> Rarity.descriptor(c.feet) } }
-        val compositions = store.compositions.mapNotNull { c -> Piece.find(data, store, Piece.COMPOSITION, c.name)?.let { item(it, null) } }
-        val blocks = store.subs.mapNotNull { c -> Piece.find(data, store, Piece.BLOCK, c.name)?.let { item(it, " · " + c.elements.joinToString(", ")) } }
-        group(list, R.string.elements, "elements", true, elements, corpus)
-        group(list, R.string.compositions, "compositions", true, compositions, corpus)
-        group(list, R.string.building_blocks, "blocks", false, blocks, corpus)
+        // the poses of every version of every element: what usual looks like (the start positions aside)
+        corpus = elements.flatMap { (_, vs) -> vs.flatMap { v -> v.cells.drop(1).mapNotNull { Rarity.descriptor(it.feet) } } }
+        val compositions = store.compositions.mapNotNull { c -> Piece.find(data, store, Piece.COMPOSITION, c.name)?.let { version(it) }?.let { Pair(c.name, listOf(it)) } }
+        val blocks = store.subs.mapNotNull { c -> Piece.find(data, store, Piece.BLOCK, c.name)?.let { version(it) }?.let { Pair(c.name, listOf(it)) } }
+        group(list, R.string.elements, "elements", true, elements)
+        group(list, R.string.compositions, "compositions", true, compositions)
+        group(list, R.string.building_blocks, "blocks", false, blocks)
     }
 
     private fun titleCase(s: String): String = s.split(' ').joinToString(" ") { w -> w.replaceFirstChar { it.uppercaseChar() } }
 
-    /** which foot is free, for a version of an element that starts and ends like another one */
-    private fun freeFoot(data: DanceData, name: String, i: Int): String? {
-        val vs = data.variants(name); val v = vs[i]
-        val twin = vs.count { it.startState == v.startState && it.endState == v.endState } > 1
-        return if (!twin) null else ", " + getString(if (v.leaderFreeStart == 'L') R.string.left_free else R.string.right_free)
-    }
-
     /** a heading with its triangle (pointing at the heading when folded, down when open) and its rows */
-    private fun group(list: LinearLayout, title: Int, key: String, openByDefault: Boolean, items: List<Item>, corpus: List<DoubleArray>) {
+    private fun group(list: LinearLayout, title: Int, key: String, openByDefault: Boolean, items: List<Pair<String, List<Version>>>) {
         val prefs = getSharedPreferences("6step", MODE_PRIVATE)
         val header = layoutInflater.inflate(R.layout.explore_header, list, false)
         header.findViewById<TextView>(R.id.headerTitle).setText(title)
         val triangle = header.findViewById<ImageView>(R.id.headerTriangle)
         val box = LinearLayout(this)
         box.orientation = LinearLayout.VERTICAL
-        for (it in items) box.addView(rowView(box, it, corpus))
+        for ((name, versions) in items) box.addView(rowView(box, name, versions))
         var open = prefs.getBoolean("explore_open_$key", openByDefault)
         fun refresh() { box.visibility = if (open) View.VISIBLE else View.GONE; triangle.rotation = if (open) 0f else 90f }
         refresh()
@@ -72,22 +72,39 @@ class ExploreActivity : AppCompatActivity() {
         list.addView(header); list.addView(box)
     }
 
-    private fun rowView(parent: ViewGroup, item: Item, corpus: List<DoubleArray>): View {
+    private fun rowView(parent: ViewGroup, name: String, versions: List<Version>): View {
+        val prefs = getSharedPreferences("6step", MODE_PRIVATE)
         val v = layoutInflater.inflate(R.layout.explore_row, parent, false)
-        val name = v.findViewById<View>(R.id.rowName)
-        name.background = Ui.box(this, Ui.ROW, 1f, 0f, Ui.ROW_EDGE)
-        v.findViewById<TextView>(R.id.rowTitle).text = item.title
-        val sub = v.findViewById<TextView>(R.id.rowSubtitle)
-        if (item.subtitle == null) sub.visibility = View.GONE else sub.text = item.subtitle
+        val nameBox = v.findViewById<View>(R.id.rowName)
+        nameBox.background = Ui.box(this, Ui.ROW, 1f, 0f, Ui.ROW_EDGE, radiiDp = floatArrayOf(10f, 0f, 0f, 10f))
+        v.findViewById<TextView>(R.id.rowTitle).text = titleCase(name)
+        val versionBox = v.findViewById<TextView>(R.id.rowVersion)
+        versionBox.background = Ui.box(this, Ui.VERSION, 1f, 0f, ripple = versions.size > 1)
         val strip = v.findViewById<StepStrip>(R.id.rowStrip)
         strip.cellsAcross = 3f; strip.separators = true
-        strip.cells = item.cells
-        val row = Row(strip, Rarity.centre(item.cells, corpus))
+        val row = Row(strip, 0)
         rows.add(row)
-        strip.scrollToCell(row.centre, false)
+        val key = "explore_version_" + versions[0].piece.kind + "_" + name
+        var chosen = prefs.getInt(key, 0).coerceIn(0, versions.size - 1)
+        fun show(i: Int) {
+            chosen = i
+            versionBox.text = versions[i].label
+            strip.cells = versions[i].cells
+            row.centre = Rarity.centre(versions[i].cells, corpus)
+            strip.scrollToCell(row.centre, false)
+        }
+        show(chosen)
+        if (versions.size > 1) versionBox.setOnClickListener {
+            val m = PopupMenu(this, versionBox)
+            for ((i, ver) in versions.withIndex()) m.menu.add(0, i, i, ver.label.replace("\n", ", ")).isCheckable = true
+            m.menu.setGroupCheckable(0, true, true)
+            m.menu.findItem(chosen)?.isChecked = true
+            m.setOnMenuItemClickListener { item -> prefs.edit().putInt(key, item.itemId).apply(); show(item.itemId); true }
+            m.show()
+        }
         strip.onDragStart = { for (r in rows) if (r !== row) r.strip.scrollToCell(r.centre, true) }
-        strip.onTap = { open(item.piece) }
-        name.setOnClickListener { open(item.piece) }
+        strip.onTap = { open(versions[chosen].piece) }
+        nameBox.setOnClickListener { open(versions[chosen].piece) }
         return v
     }
 
