@@ -54,7 +54,8 @@
     <string name="heart_beer">Also, putting apps in the Play Store costs me money. If you feel generous, you can buy me a beer (IRL or via the app).</string>
     <string name="email_me">Email me</string>
     <string name="my_website">My website</string>
-    <string name="buy_beer">Buy me a beer</string>
+    <string name="buy_beer">Buy me a Beer</string>
+    <string name="close">Close</string>
     <string name="link_not_set">This link is not set up yet</string>
     <string name="no_app">No app on this phone can open this</string>
 

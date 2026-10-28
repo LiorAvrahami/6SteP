@@ -36,6 +36,7 @@ ICONS = {
     'ic_pencil': ('pencil', 2.5, {}),
     'ic_back': ('undo-2', 2.5, {}),          # the dance floor's back button (user 2026-10-28)
     'ic_check': ('check', 3.0, {}),          # the selected version pill in explore (tinted white there)
+    'ic_close': ('x', 2.5, {}),              # closes the heart page's beer window
     'ic_chevron_down': ('chevron-down', 2.5, {}),
 }
 

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The heart page, as the user drew it (design/app_layout.free, revised 2026-10-28): upright, the note on top, the three
-     links in a row, the beer at the bottom; square boxes with black outlines (set in HeartActivity). -->
+<!-- The heart page, as the user drew it (design/app_layout.free, revised 2026-10-28): upright, the note on top and the
+     three links in a row under it; square boxes with black outlines (set in HeartActivity). The beer's words open with
+     the $ button (user 2026-10-29), in dialog_beer. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -12,9 +13,9 @@
         android:id="@+id/note"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="32"
+        android:layout_weight="1"
         android:gravity="center"
-        android:padding="16dp"
+        android:padding="18dp"
         android:text="@string/heart_note"
         android:textColor="#000000"
         android:fontFamily="@font/inter_regular"
@@ -25,8 +26,8 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
-        android:layout_marginBottom="20dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="8dp"
         android:gravity="center"
         android:orientation="horizontal">
 
@@ -67,18 +68,4 @@
             android:src="@drawable/ic_dollar"
             android:contentDescription="@string/buy_beer" />
     </LinearLayout>
-
-    <TextView
-        android:id="@+id/beer"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="10"
-        android:gravity="center"
-        android:padding="14dp"
-        android:text="@string/heart_beer"
-        android:textColor="#000000"
-        android:fontFamily="@font/inter_regular"
-        android:autoSizeTextType="uniform"
-        android:autoSizeMinTextSize="11sp"
-        android:autoSizeMaxTextSize="22sp" />
 </LinearLayout>
