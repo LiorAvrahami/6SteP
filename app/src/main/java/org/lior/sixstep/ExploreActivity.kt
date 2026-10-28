@@ -162,7 +162,7 @@ class ExploreActivity : AppCompatActivity() {
             })
         }
         show(chosen)
-        strip.onDragStart = { for (r in rows) if (r !== row) r.strip.scrollToCell(r.centre, true) }
+        strip.onDragStart = { for (r in rows) if (r !== row) r.strip.scrollToCell(r.centre, false) }   // at once, not gliding (user 2026-10-29)
         strip.onTap = { open(versions[chosen].piece) }
         nameBox.setOnClickListener { open(versions[chosen].piece) }
         return v
