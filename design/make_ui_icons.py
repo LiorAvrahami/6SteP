@@ -34,6 +34,7 @@ ICONS = {
     'ic_schema': ('drafting-compass', 2.5, {}),
     'ic_flow': ('arrow-big-right-dash', 2.5, {}),
     'ic_pencil': ('pencil', 2.5, {}),
+    'ic_back': ('undo-2', 2.5, {}),          # the dance floor's back button (user 2026-10-28)
     'ic_chevron_down': ('chevron-down', 2.5, {}),
 }
 

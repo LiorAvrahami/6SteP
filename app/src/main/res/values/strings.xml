@@ -34,6 +34,7 @@
     <string name="flow_view">Flow: the feet travel from step to step</string>
     <string name="schema_view">Schema: dashed lines show where each foot came from</string>
     <string name="edit">Edit</string>
+    <string name="back">Back</string>
     <string name="editor_not_ready">Choreography editor for phone not implemented yet.</string>
     <string name="start">start</string>
     <string name="start_position">start position</string>

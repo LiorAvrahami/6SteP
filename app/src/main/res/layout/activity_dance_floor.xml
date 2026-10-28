@@ -103,5 +103,15 @@
             android:scaleType="fitCenter"
             android:src="@drawable/ic_pencil"
             android:contentDescription="@string/edit" />
+
+        <ImageButton
+            android:id="@+id/back"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="10dp"
+            android:padding="10dp"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_back"
+            android:contentDescription="@string/back" />
     </LinearLayout>
 </FrameLayout>

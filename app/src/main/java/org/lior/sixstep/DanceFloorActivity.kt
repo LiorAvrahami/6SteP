@@ -31,7 +31,7 @@ import kotlin.math.roundToInt
  *  dashed lines show where each foot came from; both dancers at once). Swipe down: the top and bottom bars; a tap on
  *  the floor closes them. Double tap or the play button: play (the bars close). A tap while playing pauses; a swipe
  *  while playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
- *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), flow/schema, edit. Bottom bar: every step of
+ *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), flow/schema, edit, back. Bottom bar: every step of
  *  the piece, the current one framed, the annotations pointing at where they start; a tap on a step goes there.
  *  Compositions play once to the end; elements and building blocks loop (chained so that the last beat flows into the
  *  first when they close on themselves, otherwise from the start position again after two beats). */
@@ -87,8 +87,9 @@ class DanceFloorActivity : AppCompatActivity() {
         playBtn = findViewById(R.id.play); rateBtn = findViewById(R.id.rate); songBtn = findViewById(R.id.song)
         muteBtn = findViewById(R.id.mute); modeBtn = findViewById(R.id.mode)
         val edit = findViewById<ImageButton>(R.id.edit)
+        val back = findViewById<ImageButton>(R.id.back)
         topBar.setBackgroundColor(Ui.BAR)
-        for (v in listOf<View>(playBtn, rateBtn, muteBtn, modeBtn, edit)) v.background = Ui.box(this, Color.TRANSPARENT, 2.5f, 11f)
+        for (v in listOf<View>(playBtn, rateBtn, muteBtn, modeBtn, edit, back)) v.background = Ui.box(this, Color.TRANSPARENT, 2.5f, 11f)
         songBtn.background = Ui.box(this, Ui.BAR, 1f, 2f, Color.rgb(128, 128, 128))
         strip.barColor = Ui.BAR; strip.calloutBandDp = 32f; strip.cellWidthDp = 64f; strip.gapDp = 8f
 
@@ -107,6 +108,8 @@ class DanceFloorActivity : AppCompatActivity() {
             if (!playing) { anim?.cancel(); show() }
         }
         edit.setOnClickListener { MaterialAlertDialogBuilder(this).setMessage(R.string.editor_not_ready).setPositiveButton(android.R.string.ok, null).show() }
+        back.setOnClickListener { finish() }   // back to where the floor was opened from (user 2026-10-28)
+        TooltipCompat.setTooltipText(back, getString(R.string.back))
         TooltipCompat.setTooltipText(edit, getString(R.string.edit))
         TooltipCompat.setTooltipText(rateBtn, getString(R.string.tempo))
         TooltipCompat.setTooltipText(songBtn, getString(R.string.song))
