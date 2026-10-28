@@ -21,7 +21,9 @@ object Ui {
     val GEAR = Color.rgb(0xDB, 0xDB, 0xDB)
     val HELP = Color.rgb(0xBE, 0xD1, 0xBA)
     val ARROW = Color.rgb(0x00, 0x38, 0x69)        // the help view's arrows
-    val BAR = Color.rgb(0xD3, 0xD3, 0xD3)          // the dance floor's bars, the explore rows' names
+    val BAR = Color.rgb(0xD3, 0xD3, 0xD3)          // the dance floor's bars
+    val ROW = Color.rgb(0xF7, 0xC1, 0xC7)          // the explore rows' names (the draft, revised 2026-10-28)...
+    val ROW_EDGE = Color.argb(0x75, 0x61, 0x56, 0x56)   // ...and their thin outline
     val NOTE = Color.rgb(0xBA, 0xB1, 0x86)         // the annotations in the dance floor's bottom bar
     val HEART_BOX = Color.rgb(0xF8, 0xBE, 0xC2)
 

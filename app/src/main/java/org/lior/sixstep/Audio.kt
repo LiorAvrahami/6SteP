@@ -363,65 +363,36 @@ class Speaker(private val ctx: Context) {
     fun release() { stop(); onSpeaking = null; ready = false; handler.removeCallbacksAndMessages(null); tts.shutdown() }
 }
 
-/** Plays music from the assets. Two players at once: the one the clock follows and one cued on another file (the next
- *  track, or the same track at another tempo) that takes over on a beat while the first fades out. */
+/** Plays music files from the assets. Every start is a new MediaPlayer, never reused (user 2026-10-28); the open ones
+ *  are kept here only for the volume (the duck under a spoken annotation) and to be released. */
 class MusicPlayer(private val ctx: Context) {
-    /** the player the music clock follows */
-    var player: MediaPlayer? = null
-        private set
-    /** cued on another file, not started yet */
-    var next: MediaPlayer? = null
-        private set
-    /** the asset file `next` is cued on */
-    var nextPath: String? = null
-        private set
-    var onComplete: (() -> Unit)? = null
-    /** 1 normally, lower while an annotation is read aloud: multiplies every player's own level (the crossfades) */
+    private val players = ArrayList<MediaPlayer>()
+    /** 1 normally, lower while an annotation is read aloud */
     var duckLevel = 1f
         private set
-    private val level = HashMap<MediaPlayer, Float>()   // each player's own level, before the duck
 
-    private fun open(path: String): MediaPlayer {
+    /** a player on an asset file, prepared, at the start of the file */
+    fun open(path: String): MediaPlayer {
         val mp = MediaPlayer()
-        mp.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-        val afd = ctx.assets.openFd(path)
-        mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-        afd.close()
-        mp.prepare()
-        level[mp] = 1f; applyVolume(mp)
+        try {
+            mp.setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            val afd = ctx.assets.openFd(path)
+            try { mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length) } finally { afd.close() }
+            mp.prepare()
+        } catch (e: Exception) { mp.release(); throw e }
+        players.add(mp); applyVolume(mp)
         return mp
     }
 
-    /** cue an asset file on the second player, ready to seek and start; whatever was cued before is dropped */
-    fun prepareNext(path: String): MediaPlayer { dropNext(); val mp = open(path); next = mp; nextPath = path; return mp }
-    /** the cued player becomes the one the clock follows; the previous one is handed back, still playing, to be faded
-     *  out and released by the caller. Only the current player reports the end of the music. */
-    fun swapToNext(): MediaPlayer? {
-        val n = next ?: return null
-        val old = player
-        old?.setOnCompletionListener(null)
-        n.setOnCompletionListener { if (player === it) onComplete?.invoke() }
-        player = n; next = null; nextPath = null
-        return old
-    }
-    fun dropNext() { next?.let { releasePlayer(it) }; next = null; nextPath = null }
-
-    fun seekTo(seconds: Double) { player?.let { seekTo(it, seconds) } }
     /** an exact seek (to the sample, not the nearest frame), so the beat is where the grid says */
     fun seekTo(mp: MediaPlayer, seconds: Double) {
         val ms = (seconds * 1000).toLong().coerceAtLeast(0L)
         try { mp.seekTo(ms, MediaPlayer.SEEK_CLOSEST) } catch (e: Exception) { try { mp.seekTo(ms.toInt()) } catch (e2: Exception) {} }
     }
-    fun startAt(seconds: Double) { val mp = player ?: return; seekTo(mp, seconds); mp.start() }
-    fun pause() { player?.let { if (playing(it)) it.pause() } }
-    fun resume() { player?.let { if (!playing(it)) it.start() } }
-    fun isPlaying(): Boolean = player?.let { playing(it) } == true
-    fun playing(mp: MediaPlayer): Boolean = try { mp.isPlaying } catch (e: Exception) { false }
-    /** a player's own level (0..1); what is heard is this times the duck */
-    fun setVolume(mp: MediaPlayer, v: Float) { level[mp] = v; applyVolume(mp) }
-    /** every player at `factor` of its own level: the music under a spoken annotation; 1 brings it all back */
-    fun duck(factor: Float) { duckLevel = factor.coerceIn(0f, 1f); for (mp in level.keys) applyVolume(mp) }
-    private fun applyVolume(mp: MediaPlayer) { val v = (level[mp] ?: 1f) * duckLevel; try { mp.setVolume(v, v) } catch (e: Exception) {} }
-    fun releasePlayer(mp: MediaPlayer) { level.remove(mp); try { mp.stop() } catch (e: Exception) {}; try { mp.release() } catch (e: Exception) {} }
-    fun release() { dropNext(); player?.let { releasePlayer(it) }; player = null }
+
+    /** every player at `factor` of full volume: the music under a spoken annotation; 1 brings it all back */
+    fun duck(factor: Float) { duckLevel = factor.coerceIn(0f, 1f); for (mp in players) applyVolume(mp) }
+    private fun applyVolume(mp: MediaPlayer) { try { mp.setVolume(duckLevel, duckLevel) } catch (e: Exception) {} }
+    fun release(mp: MediaPlayer) { players.remove(mp); try { mp.stop() } catch (e: Exception) {}; try { mp.release() } catch (e: Exception) {} }
+    fun releaseAll() { for (mp in players.toList()) release(mp) }
 }

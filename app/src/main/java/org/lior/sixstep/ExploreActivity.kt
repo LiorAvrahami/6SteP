@@ -77,7 +77,7 @@ class ExploreActivity : AppCompatActivity() {
     private fun rowView(parent: ViewGroup, item: Item, corpus: List<DoubleArray>): View {
         val v = layoutInflater.inflate(R.layout.explore_row, parent, false)
         val name = v.findViewById<View>(R.id.rowName)
-        name.background = Ui.box(this, Ui.BAR, 0f, 0f)
+        name.background = Ui.box(this, Ui.ROW, 1f, 0f, Ui.ROW_EDGE)
         v.findViewById<TextView>(R.id.rowTitle).text = item.title
         val sub = v.findViewById<TextView>(R.id.rowSubtitle)
         if (item.subtitle == null) sub.visibility = View.GONE else sub.text = item.subtitle

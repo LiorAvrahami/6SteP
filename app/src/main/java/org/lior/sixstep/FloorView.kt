@@ -114,18 +114,26 @@ class FeetPainter(ctx: Context) {
         return path
     }
 
+    /** a step's dashed arrow, drawn over the shoes: the dancer's colour darkened, every dash and the head outlined in
+     *  black, so that it stands apart from the feet (user 2026-10-28) */
     private fun dashedArrow(c: Canvas, color: Int, from: Placement, to: Placement) {
         val a = px(from.x, from.y); val b = px(to.x, to.y)
         val len = hypot((b.x - a.x).toDouble(), (b.y - a.y).toDouble()); if (len < 4) return
-        stroke.color = withAlpha(color, 0.85); stroke.strokeWidth = max(2.0, scale * 1.2).toFloat()
+        val dark = Color.rgb((Color.red(color) * 0.72).toInt(), (Color.green(color) * 0.72).toInt(), (Color.blue(color) * 0.72).toInt())
+        val w = max(2.0, scale * 1.2).toFloat()
+        val edge = max(1.0, scale * 0.35).toFloat()
+        // the same dashes twice: black and wider, then the colour; the round caps give each dash its border at the ends too
         stroke.pathEffect = DashPathEffect(floatArrayOf((scale * 3).toFloat(), (scale * 2.2).toFloat()), 0f)
-        c.drawLine(a.x, a.y, b.x, b.y, stroke)
+        stroke.color = Color.BLACK; stroke.strokeWidth = w + 2 * edge; c.drawLine(a.x, a.y, b.x, b.y, stroke)
+        stroke.color = dark; stroke.strokeWidth = w; c.drawLine(a.x, a.y, b.x, b.y, stroke)
         stroke.pathEffect = null
         val ux = (b.x - a.x) / len; val uy = (b.y - a.y) / len; val s = (scale * 4.5).toFloat()
         path.reset(); path.moveTo(b.x, b.y)
         path.lineTo((b.x - ux * s - uy * s * 0.55).toFloat(), (b.y - uy * s + ux * s * 0.55).toFloat())
         path.lineTo((b.x - ux * s + uy * s * 0.55).toFloat(), (b.y - uy * s - ux * s * 0.55).toFloat())
-        path.close(); fill.color = withAlpha(color, 0.9); c.drawPath(path, fill)
+        path.close()
+        fill.color = dark; c.drawPath(path, fill)
+        stroke.color = Color.BLACK; stroke.strokeWidth = edge * 1.5f; c.drawPath(path, stroke)
     }
 }
 
@@ -239,8 +247,8 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         c.drawColor(floorColor)
         painter.grid(c, 0f, 0f, width.toFloat(), height.toFloat())
         if (s == null) return
-        painter.arrows(c, s.arrows)
         painter.feet(c, s.feet, s.weights)
+        painter.arrows(c, s.arrows)   // over the shoes (user 2026-10-28)
         if (showLabels) labels(c, s)
     }
 

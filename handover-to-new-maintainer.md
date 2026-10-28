@@ -181,35 +181,42 @@ commit (there is no diff step any more: the editor's file is the only version). 
   pictures with a scroll bar and annotation callouts: the dance floor's bottom bar and the explore rows), `Piece.kt`
   (`Piece`: an element version, a building block or a composition; the stops; `Rarity`, how unusual a pose is),
   `Audio.kt` (`BeatGrid` with `beatAt`/`beatSeconds` interpolating the non-uniform beats and `scaled(tempo)`, `Track`
-  and `TrackVariant`, the clocks, `Metronome`, `Speaker`, `MusicPlayer`), `Playback.kt` (the music engine of the old
-  `PlayerActivity`, now used by the one floor: track order, count-in, hand-overs, tempo switches, drums in the gaps,
-  mute, audio focus, the voice), `Ui.kt` (the draft's colours, outlined boxes), and the activities: `MainActivity`
+  and `TrackVariant`, the clocks, `Metronome`, `Speaker`, `MusicPlayer`), `Playback.kt` (the music plan and the playing: made
+  from scratch at every play, see Clocks), `Ui.kt` (the draft's colours, outlined boxes), and the activities: `MainActivity`
   (the launcher; keep the class name, home-screen shortcuts point at it), `DanceFloorActivity` (extras `kind`
   element|block|composition, `name`, `variant`, `stop`, `autoplay`), `ExploreActivity`, `HeartActivity` (the email, the
   website and the beer links: `WEBSITE` and `PAY_URL` are still empty, the user has to give them), `SettingsActivity`.
   `tools/check_app.py` checks resources, ids, string arguments and leftovers before a push.
-- **Clocks.** `TempoClock` (a fixed tempo: muted play, and the gap between tracks), `MusicClock` (the
-  MediaPlayer position read a few times a second, extrapolated on the phone clock, small drifts absorbed, mapped through
-  the beat grid), `SlewClock` (a hand-over: another clock plus an offset that fades out over 1.2 s). A new track starts
-  at the next element start at least 2 beats ahead; its clock takes over 220 ms after the start, slewed. Tracks play one
-  after another (the chosen song first, the others shuffled); when a track runs out the snare and hi-hat keep the
-  beat until the next one. Since v10: the drums take over 250 ms before the file ends (`armTrackEnd`), so the beat does not
-  stall while the completion callback is on its way; the next track's file is opened when its start is planned, not on
-  its beat; a tempo change in the gap re-paces the drums at once. The clock never wraps: the floor maps a looping piece
-  onto its timeline (`playBeat`, `pieceBeat`, `clockBeat` in `DanceFloorActivity`) and tells `Playback` where elements
-  start (`boundaryAfter`). Play from a stop seeks the track when it covers that beat; otherwise a track starts with a
-  4-beat count-in, its first bar on the even beat at or before the stop, and the dancers wait at the stop meanwhile.
+- **Clocks and the music plan** (`Playback.kt`, rewritten 2026-10-28 after the user found the dance jittering on play
+  after a pause and a few steps: "when pausing there should be no memory of the animation left over, playing should
+  initialize everything from the step that we are currently in; for every step the app should know via a lookup which
+  beat this is in the audio"). The plan lays the songs along the dance once, for the chosen song and tempo: the first
+  track's first downbeat (`BeatGrid.startBeatIndex`) on dance beat 0 with four beats of it before (the count-in), each
+  next track on the first element start at least 2 beats after the previous file runs out (250 ms before its end), the
+  snare and hi-hat in between. A chosen song repeats; shuffle goes through all of them in a random order fixed for the
+  session. `segmentAt(b)` is the lookup: every dance beat has one place in one file. `play(b)` stops everything, opens a
+  new MediaPlayer, seeks it to b's place, starts it when the seek reports back, runs the dance on a `TempoClock` from
+  that instant and hands over to the `MusicClock` (the player's position through the beat grid) after 220 ms with a
+  `SlewClock` fading the difference out over 1.2 s; the next track is opened in the gap and started on its planned beat.
+  `stop()` releases every player and forgets the clock, the drums, the voice and everything scheduled. A change of song,
+  tempo or mute while playing is a stop and a play from the same beat (so unmute picks the music up where the dance is).
+  The clock never wraps: the floor maps a looping piece onto its timeline (`playBeat`, `pieceBeat`, `clockBeat` in
+  `DanceFloorActivity`) and tells `Playback` where elements start (`boundaryAfter`); a pause keeps only the step and
+  which loop it is in. The old engine's in-place seeks, tempo crossfades and track hand-overs are gone.
 - **The dance floor** (one for everything since 2026-10-28; the old `PlayerActivity` and `FloorActivity` are gone).
   Swipe left or right: the next or previous stop (the start position one beat before count 1, then every instant a foot
   lands; it wraps round), flow (the feet travel, at twice the beat length, trapezoid easing) or schema (dashed arrows,
   both dancers at once). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap or a
   double tap while playing pauses; a swipe while playing jumps to the next part or back (the old player's 2 s rule,
   `BACK_REPLAY_SECONDS`): a composition's entries, any other piece's elements. Top bar: play/pause, tempo (the 7 offsets
-  of the song's variants, the same offset for every song), song (shuffle or one first), mute (music, drums and voice:
-  `Playback.setMuted`), flow/schema (manual stepping only; play always flows), edit (a "not implemented yet" note).
+  of the song's variants, the same offset for every song), song (shuffle, or one song over and over), mute (music,
+  drums and voice; a change of any of these while playing is a stop and a play from the same beat), flow/schema (manual stepping only; play always flows), edit (a "not implemented yet" note).
   Bottom bar: every stop, the current one framed and followed while playing, the annotations (a composition's "say:"
   texts and entry names; a building block's element names) as khaki callouts; tap a stop to go there. Compositions play
-  once and end on "Done!"; elements and building blocks loop: chained to about 1200 beats when they close on themselves
+  once and end on "Done!". Play starts from exactly the picture of the step (the beat where its weight has settled);
+  a swipe or a tap on a step while playing starts afresh there too, and shows the part's name without reading it aloud
+  (the music does not dip under the voice: user 2026-10-28). Schema arrows are drawn over the shoes, darker, outlined
+  in black. Elements and building blocks loop: chained to about 1200 beats when they close on themselves
   (`chainedLoop`), otherwise from the start position again after 2 beats (an even period keeps the music's bars). The
   daily exercise opens playing; everything else opens paused with the bars shown. The system bars are hidden on the floor.
 - **Launcher.** The daily exercise's tile shows how long it takes (its beats plus a 4-beat count-in at the chosen song's

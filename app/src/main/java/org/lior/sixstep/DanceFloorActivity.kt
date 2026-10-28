@@ -65,12 +65,13 @@ class DanceFloorActivity : AppCompatActivity() {
     private var schema = true
     private var playing = false
     private var hold = Double.NEGATIVE_INFINITY   // the dancers wait here until the clock reaches it (a count-in)
-    private var pausedClock = Double.NaN          // the clock beat of the last pause: play goes on in the same loop
+    private var pausedClock = Double.NaN          // the clock beat of the last pause: only which loop we are in
     private var anim: ValueAnimator? = null
     private var barsShown = false
     private var barsFrac = 0f
     private var barsAnim: ValueAnimator? = null
     private var lastAnnounced = -1
+    private var silentNext = false                // the next announcement is shown, not read aloud (after a jump)
     private var banner: String? = null
     private var bannerUntil = Double.NEGATIVE_INFINITY
 
@@ -257,9 +258,14 @@ class DanceFloorActivity : AppCompatActivity() {
         return Scene(t.feetAt(b), weightsAt(t, b), titleOf(el, b, counting), if (b < 0) "" else t.countLabel(b), emptyList(), banner, fillerColor(el))
     }
 
+    /** stop k as a beat of the clock: in the loop of the last pause (the first loop before any) */
+    private fun stopBeat(k: Int): Double = clockBeat(stops[k], pausedClock)
+
+    /** the stop we are on, drawn from the timeline that plays, in the loop of the last pause, so that play starts from
+     *  exactly this picture */
     private fun show(banner: String? = null) {
-        val t = tl ?: return
-        floor.scene = stopScene(t, stops[idx], banner)
+        val ptl = playTl ?: return
+        floor.scene = stopScene(ptl, playBeat(stopBeat(idx)), banner)
         strip.current = idx
         if (barsShown) strip.scrollToCell(idx, true)
     }
@@ -290,61 +296,82 @@ class DanceFloorActivity : AppCompatActivity() {
      *  beat length of the tempo, with a constant acceleration and deceleration of about a sixth of a second at each end;
      *  going round the end is a cut. */
     private fun step(dir: Int) {
-        val t = tl ?: return
+        val ptl = playTl ?: return
         if (stops.size < 2) return
         var next = idx + dir
         val wrapped = next < 0 || next >= stops.size
         if (wrapped) next = if (next < 0) stops.size - 1 else 0
         anim?.cancel()
-        val from = stops[idx]; val to = stops[next]; idx = next
+        val from = playBeat(stopBeat(idx)); val to = playBeat(stopBeat(next)); idx = next
         if (schema || wrapped) { show(); return }
         strip.current = idx
         if (barsShown) strip.scrollToCell(idx, true)
-        val tFrom = t.settledAfter(from); val tTo = t.settledAfter(to)
+        val tFrom = ptl.settledAfter(from); val tTo = ptl.settledAfter(to)
         val ms = (abs(to - from) * 60.0 / pb.bpm() * 2.0 * 1000.0).coerceIn(250.0, 4000.0)
         val ramp = (1.0 / 6.0 * 1000.0 / ms).coerceAtMost(0.45)
         val a = ValueAnimator.ofFloat(0f, 1f)
         a.duration = ms.toLong()
         a.interpolator = TrapezoidInterpolator(ramp.toFloat())
-        a.addUpdateListener { v -> val u = (v.animatedValue as Float).toDouble(); floor.scene = flowScene(t, tFrom + (tTo - tFrom) * u, null, false) }
+        a.addUpdateListener { v -> val u = (v.animatedValue as Float).toDouble(); floor.scene = flowScene(ptl, tFrom + (tTo - tFrom) * u, null, false) }
         a.start(); anim = a
     }
 
     private fun tapStop(k: Int) {
-        if (playing) jump(clockBeat(stops[k], pb.beatNow()))
+        if (playing) startAt(k, pb.beatNow(), quiet = true)
         else { anim?.cancel(); idx = k; show() }
     }
 
-    // ------------------------------------------------------------------ playing
+    // ------------------------------------------------------------------ playing: everything made afresh from a step
 
     private fun play() {
         if (playing || tl == null) return
-        anim?.cancel()
         if (cycle() <= 0 && idx >= stops.size - 1) idx = 0   // a composition at its end starts again
-        val b = clockBeat(stops[idx], pausedClock)
-        pb.play(b)
-        if (!pb.playing) return   // the sound is busy (a call)
-        playing = true; hold = b
-        lastAnnounced = playTl?.elementIndexAt(playBeat(b) - 0.01) ?: -1   // an element started here is announced, one under way is not
-        banner = null
-        hideBars(); updateButtons()
-        floor.postOnAnimation(frame)
+        startAt(idx, pausedClock, quiet = false)
     }
 
+    /** play from stop k, in the loop of clock beat `near`, with nothing kept from before (user 2026-10-28): the music
+     *  from that step's place in the plan, the dance from exactly the picture of the step, the weight settled on what
+     *  landed there. From the start position (unmuted), a count-in of four beats of music first, the dancers waiting.
+     *  quiet: a jump while playing, whose part is shown but not read aloud (so that the music does not dip). */
+    private fun startAt(k: Int, near: Double, quiet: Boolean) {
+        val ptl = playTl ?: return
+        anim?.cancel()
+        val wasPlaying = playing
+        val b = clockBeat(stops[k], near)
+        val countIn = k == 0 && !pb.muted
+        val from = if (countIn) b - (Playback.COUNT_IN - Piece.LEAD_IN) else b + (ptl.settledAfter(playBeat(b)) - playBeat(b))
+        pb.play(from)
+        if (!pb.playing) { standAt(from); return }   // the sound is busy (a call)
+        playing = true
+        hold = if (countIn) b else Double.NEGATIVE_INFINITY
+        lastAnnounced = ptl.elementIndexAt(playBeat(b) - 0.01)   // an element starting on this step is announced, one under way is not
+        silentNext = quiet
+        banner = null
+        hideBars(); updateButtons()
+        if (!wasPlaying) floor.postOnAnimation(frame)
+    }
+
+    /** pause: everything that played is let go (players, clock, drums, voice); what stays is the step we are on */
     private fun pause() {
         if (!playing) return
         val b = pb.beatNow()
-        playing = false; pb.pause()
+        pb.stop()
+        standAt(if (b < hold) hold else b)
+    }
+
+    /** not playing, standing on the stop at clock beat b (in the triple steps that close a loop: its start) */
+    private fun standAt(b: Double) {
+        playing = false
         pausedClock = b
-        val p = pieceBeat(if (b < hold) hold else b)
-        idx = if (p.isNaN()) 0 else stopIndex(stops, p)   // in the triple steps that close the loop: back to the start
+        val p = pieceBeat(b)
+        idx = if (p.isNaN()) 0 else stopIndex(stops, p)
         banner = null
         show(); updateButtons()
     }
 
     /** a composition danced to its end */
     private fun endOfPiece() {
-        playing = false; pb.pause(); pausedClock = Double.NaN
+        playing = false; pb.stop(); pausedClock = Double.NaN
         idx = stops.size - 1
         show(getString(R.string.done)); updateButtons(); showBars()
     }
@@ -357,13 +384,11 @@ class DanceFloorActivity : AppCompatActivity() {
             val cur = near.lastOrNull { it <= b + 0.05 } ?: 0.0
             if (b - cur > BACK_REPLAY_SECONDS * pb.bpm() / 60.0) cur else (near.lastOrNull { it < cur - 0.05 } ?: 0.0)
         }
-        jump(target)
-    }
-
-    private fun jump(target: Double) {
-        pb.jumpTo(target)
+        pb.play(target)   // from scratch, as any start
+        if (!pb.playing) { standAt(target); return }
         hold = Double.NEGATIVE_INFINITY; banner = null
         lastAnnounced = playTl?.elementIndexAt(playBeat(target) - 0.01) ?: -1
+        silentNext = true
     }
 
     private val frame = object : Runnable {
@@ -387,7 +412,8 @@ class DanceFloorActivity : AppCompatActivity() {
             val e = ptl.composed.elements[ei]
             val shown = phrases(e)
             if (shown.isNotEmpty()) { banner = shown.joinToString("\n"); bannerUntil = b + BANNER_BEATS }
-            announcement(e)?.let { pb.speak(it) }
+            if (!silentNext) announcement(e)?.let { pb.speak(it) }
+            silentNext = false
         }
         if (b > bannerUntil) banner = null
         floor.scene = flowScene(ptl, x, banner, true)

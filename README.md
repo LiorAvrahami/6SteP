@@ -24,8 +24,10 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   in flow mode (the feet travel there) or schema mode (dashed lines from where each foot came). Swipe down: the bars; a
   tap on the floor closes them. Double tap or play: play (the bars close); a tap while playing pauses; a swipe while
   playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
-  Top bar: play/pause, the tempo (the song's tempo variants), the song (shuffle, or one song first), mute (music, drums
-  and voice), flow/schema, edit (not on the phone yet). Bottom bar: every step, the current one framed, the annotations
+  Top bar: play/pause, the tempo (the song's tempo variants), the song (shuffle, or one song over and over), mute
+  (music, drums and voice), flow/schema, edit (not on the phone yet). Every step has one place in the music (the plan
+  of the songs along the dance), and play always starts afresh from the step on the screen: a new player sought to that
+  place. Bottom bar: every step, the current one framed, the annotations
   pointing at where they start; a tap on a step goes there. Compositions play once to the end; elements and building
   blocks loop. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
   music dips to 60 percent under a spoken annotation and comes back right after it.
