@@ -2,7 +2,7 @@ name: build
 
 on:
   push:
-    branches: [main]
+    branches: [main, spotify-sync-test]
     # only changes to the app make a new APK; the PC-side tools and the docs (dance/, music/, tools/, *.md) do not
     paths:
       - 'app/**'
@@ -49,7 +49,10 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
-          name: 6SteP build ${{ github.run_number }}
+          # a test branch's build is a pre-release, tagged on its own commit, so main's latest release stays the latest
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ github.ref_name != 'main' }}
+          name: 6SteP build ${{ github.run_number }}${{ github.ref_name != 'main' && format(' ({0})', github.ref_name) || '' }}
           body: |
             Download 6SteP.apk below and open it on the phone. The first time, Android asks to allow installing unknown apps from your browser.
             Each build installs over the previous one.

@@ -54,7 +54,9 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         Ui.bars(this, Ui.LAUNCHER_BG)
         findViewById<View>(R.id.root).setBackgroundColor(Ui.LAUNCHER_BG)
-        findViewById<View>(R.id.logo).background = Ui.box(this, Ui.TITLE, ripple = false)
+        // the title opens the Spotify sync test page (2026-10-29)
+        val logo = findViewById<View>(R.id.logo); logo.background = Ui.box(this, Ui.TITLE)
+        logo.setOnClickListener { startActivity(Intent(this, SpotifyTestActivity::class.java)) }
         findViewById<View>(R.id.snippetBox).background = Ui.box(this, Color.WHITE, ripple = false)
         val daily = findViewById<View>(R.id.daily); daily.background = Ui.box(this, Ui.DAILY)
         val explore = findViewById<View>(R.id.explore); explore.background = Ui.box(this, Ui.EXPLORE)

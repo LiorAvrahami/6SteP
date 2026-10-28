@@ -65,4 +65,23 @@
     <string name="set_voice">Read the annotations aloud</string>
     <string name="set_mute_note">The mute button on the dance floor silences everything at once: the music, the drums and the voice.</string>
     <string name="about">6SteP %1$s · font: Inter (SIL Open Font License) · icons: Lucide (ISC License)</string>
+    <!-- the Spotify sync test page (2026-10-29) -->
+    <string name="tap_hint">Tap along the beat here · long press for the options</string>
+    <string name="status_no_access">No notification access yet: the app cannot see Spotify. Use the buttons below.</string>
+    <string name="status_no_spotify">Spotify is not playing anything yet. Press play to open Like It Is. · %1$d taps</string>
+    <string name="status_line">%1$s – %2$s · %3$s · %4$s (Spotify said %5$s, %6$.2f s ago, speed %7$.2f) · output: %8$s · %9$d taps</string>
+    <string name="access_note">To follow Spotify the app needs notification access (it reads no notifications). If the switch is greyed out (\"restricted setting\"): App info, the ⋮ menu at the top right, \"Allow restricted settings\", then try again. After the link opens Spotify, come back here with the back button.</string>
+    <string name="grant_access">Notification access</string>
+    <string name="app_info">App info</string>
+    <string name="need_access">Give 6SteP notification access, or it cannot follow Spotify</string>
+    <string name="menu_title">%1$d rows, %2$d taps</string>
+    <string name="menu_export">Export the table to Downloads</string>
+    <string name="menu_clear">Clear the table (a backup is kept)</string>
+    <string name="menu_access">Notification access settings</string>
+    <string name="menu_app_info">App info (for \"Allow restricted settings\")</string>
+    <string name="exported">Saved to Downloads as \"%1$s\" (%2$d rows)</string>
+    <string name="export_failed">Could not save: %1$s</string>
+    <string name="clear_confirm">Clear all %1$d rows? A backup stays inside the app.</string>
+    <string name="clear_yes">Clear</string>
+    <string name="clear_no">Keep</string>
 </resources>
