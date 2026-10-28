@@ -20,7 +20,7 @@ import androidx.appcompat.widget.TooltipCompat
  *  them, their website, and a beer (5, 15 or 30 dollars). Upright, as the user drew it (the rest of the app is sideways). */
 class HeartActivity : AppCompatActivity() {
     companion object {
-        const val EMAIL = "lior.2pi@gmail.com"
+        const val EMAIL = "lior.2pi+6step@gmail.com"   // the app's own address at the user's mailbox (user 2026-10-29)
         /** the user's own pages, still to be given: until then a tap says the link is not set up yet */
         const val WEBSITE = ""
         const val PAY_URL = ""          // with %d for the amount in dollars
@@ -39,7 +39,9 @@ class HeartActivity : AppCompatActivity() {
         val money = findViewById<ImageButton>(R.id.money)
         for (b in listOf(mail, web, money)) { b.background = Ui.box(this, Color.TRANSPARENT, 3f, 0f); TooltipCompat.setTooltipText(b, b.contentDescription) }
         mail.setOnClickListener {
-            open(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$EMAIL")).putExtra(Intent.EXTRA_SUBJECT, getString(R.string.app_name)))
+            // fromParts encodes the "+" of the address, so that no mail app reads it as a space
+            open(Intent(Intent.ACTION_SENDTO, Uri.fromParts("mailto", EMAIL, null))
+                .putExtra(Intent.EXTRA_EMAIL, arrayOf(EMAIL)).putExtra(Intent.EXTRA_SUBJECT, getString(R.string.app_name)))
         }
         web.setOnClickListener { if (WEBSITE.isEmpty()) notYet() else open(Intent(Intent.ACTION_VIEW, Uri.parse(WEBSITE))) }
         money.setOnClickListener { beer() }
