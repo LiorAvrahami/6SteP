@@ -56,7 +56,9 @@ import kotlin.math.max
  *  Spotify directly. The big area records a row for every finger tap (the user taps along the beat), with Spotify's
  *  reported position, the clocks and everything else that may help; Spotify's own state changes and the play and pause
  *  presses are rows too. Every row is saved at once (filesDir); a long press offers the export to Downloads.
- *  Reading another app's playback needs notification access (MediaListener below). */
+ *  Reading another app's playback needs notification access (MediaListener below).
+ *  "Beat glow" lights the tap area on every beat of the song's beat map (tap-corrected, 2026-10-29), placed by
+ *  Spotify's position: what the app would dance to, to see and hear how well it lines up. */
 class SpotifyTestActivity : AppCompatActivity() {
     companion object {
         const val SPOTIFY = "com.spotify.music"
@@ -82,6 +84,7 @@ class SpotifyTestActivity : AppCompatActivity() {
     private var running = false
     private var outputs = ""
     private var route = ""
+    private var grid: BeatGrid? = null
     private val clock = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
 
     private val sessionsChanged = MediaSessionManager.OnActiveSessionsChangedListener { list -> pick(list ?: emptyList(), "sessions changed") }
@@ -131,6 +134,17 @@ class SpotifyTestActivity : AppCompatActivity() {
         for (v in listOf<View>(playBtn, back)) v.background = Ui.box(this, Color.TRANSPARENT, 2.5f, 11f)
         back.setOnClickListener { finish() }
         playBtn.setOnClickListener { playOrPause() }
+        grid = try { BeatGrid.load(this, "dance/beatgrids/spotify_like_it_is.json") } catch (e: Exception) { null }
+        val glow = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.glow)
+        val prefs = getSharedPreferences("6step", MODE_PRIVATE)
+        glow.isChecked = prefs.getBoolean("spotify_test_glow", false)
+        pad.beatAge = if (glow.isChecked) ({ sinceBeat() }) else null
+        glow.setOnCheckedChangeListener { _, on ->
+            prefs.edit().putBoolean("spotify_test_glow", on).apply()
+            pad.beatAge = if (on) ({ sinceBeat() }) else null
+            pad.invalidate()
+            record(if (on) "glow_on" else "glow_off")
+        }
         findViewById<Button>(R.id.grantAccess).setOnClickListener { openAccessSettings() }
         findViewById<Button>(R.id.appInfo).setOnClickListener { openAppInfo() }
 
@@ -253,6 +267,17 @@ class SpotifyTestActivity : AppCompatActivity() {
         val age = s?.let { now - it.lastPositionUpdateTime } ?: 0L
         status.text = getString(R.string.status_line, title, artist, stateName(s?.state ?: -1), time(est), time(reported),
             age / 1000.0, s?.playbackSpeed ?: 0f, route, log.taps())
+    }
+
+    /** milliseconds since the last beat of the map at Spotify's position right now, or null when nothing plays */
+    private fun sinceBeat(): Long? {
+        val g = grid ?: return null
+        val s = spotify?.playbackState ?: return null
+        if (s.state != PlaybackState.STATE_PLAYING || s.position < 0) return null
+        val t = estimate(s, SystemClock.elapsedRealtime()) / 1000.0
+        if (t < g.beats.first() - 0.05 || t > g.beats.last() + g.beat) return null
+        val b = g.beatAt(t)
+        return ((t - g.beatSeconds(kotlin.math.floor(b))) * 1000).toLong()
     }
 
     private fun estimate(s: PlaybackState, elapsed: Long): Long {
@@ -543,12 +568,15 @@ class TapPad @JvmOverloads constructor(context: Context, attrs: AttributeSet? = 
     var onLongPress: (() -> Unit)? = null
     var hint = ""
     var count = 0
+    /** set while "Beat glow" is on: milliseconds since the last beat, or null between songs */
+    var beatAge: (() -> Long?)? = null
     private val d = resources.displayMetrics.density
     private val slop = ViewConfiguration.get(context).scaledTouchSlop
     private var downX = 0f
     private var downY = 0f
     private var flashAt = 0L
     private val flash = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Ui.TITLE }
+    private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(0x2E, 0x6E, 0xE6) }
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.rgb(0x55, 0x55, 0x55); textAlign = Paint.Align.CENTER; textSize = 18 * d }
     private val big = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = Color.BLACK; textAlign = Paint.Align.CENTER; textSize = 56 * d; isFakeBoldText = true }
     private val rect = RectF()
@@ -579,10 +607,19 @@ class TapPad @JvmOverloads constructor(context: Context, attrs: AttributeSet? = 
 
     override fun onDraw(c: Canvas) {
         super.onDraw(c)
+        val inset = 4 * d
+        rect.set(inset, inset, width - inset, height - inset)
+        val glow = beatAge
+        if (glow != null) {
+            val age = glow()
+            if (age != null && age < 180) {
+                glowPaint.alpha = ((1f - age / 180f) * 200).toInt()
+                c.drawRoundRect(rect, 6 * d, 6 * d, glowPaint)
+            }
+            postInvalidateOnAnimation()
+        }
         val a = 1f - (SystemClock.uptimeMillis() - flashAt) / 160f
         if (a > 0f) {
-            val inset = 4 * d
-            rect.set(inset, inset, width - inset, height - inset)
             flash.alpha = (max(0f, a) * 255).toInt()
             c.drawRoundRect(rect, 6 * d, 6 * d, flash)
             postInvalidateOnAnimation()

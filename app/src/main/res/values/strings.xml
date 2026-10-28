@@ -85,4 +85,5 @@
     <string name="clear_confirm">Clear all %1$d rows? A backup stays inside the app.</string>
     <string name="clear_yes">Clear</string>
     <string name="clear_no">Keep</string>
+    <string name="beat_glow">Beat glow</string>
 </resources>

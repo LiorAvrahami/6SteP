@@ -45,6 +45,12 @@ for key, base, title, artist, lic in TR:
     diff = {'slow': 'hard: the tempo moves, the band plays with the beat', 'sunday': 'steady', 'hot': 'steady (sequenced)'}.get(key, 'steady')
     tracks.append({'key': key, 'title': title, 'artist': artist, 'licence': lic, 'bpm': round(g['bpm'], 1), 'duration': g['duration'], 'file': 'music/' + key + '.mp3', 'grid': 'dance/beatgrids/' + key + '.json',
                    'difficulty': diff, 'grid_kind': g.get('grid', 'fixed')})
+# ---- the Spotify sync test page's beat map (2026-10-29): "Like It Is" is played in the user's own Spotify, so only its
+# grid ships, never the audio. The tap-corrected grid: beats from 79 to 90 s moved to the user's taps.
+_g = json.load(open(os.path.join(SW, 'music', 'spotify_test', 'Like It Is - beatgrid (tap-corrected).json'), encoding='utf-8'))
+json.dump({k: _g[k] for k in ('bpm', 'beat', 't0', 'swing', 'duration', 'beats', 'bars') if k in _g},
+          open(os.path.join(A, 'dance', 'beatgrids', 'spotify_like_it_is.json'), 'w'))
+
 # ---- tempo variants: the same music time-stretched offline (music/tools/make_variants.py, Rubber Band R3), pitch unchanged.
 # Offset 0 is the original file; a beat of the track's grid lands at beats[i] / tempo seconds in a variant file.
 VAR = os.path.join(SW, 'music', 'variants')
