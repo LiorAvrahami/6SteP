@@ -20,6 +20,9 @@
     <string name="building_blocks">Building Blocks</string>
     <string name="left_free">left foot free</string>
     <string name="right_free">right foot free</string>
+    <string name="left_free_short">left free</string>
+    <string name="right_free_short">right free</string>
+    <string name="choose_version">Choose the version</string>
 
     <!-- the dance floor -->
     <string name="play">Play</string>

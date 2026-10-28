@@ -6,6 +6,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.RippleDrawable
 import androidx.core.view.WindowInsetsControllerCompat
 
@@ -39,6 +40,19 @@ object Ui {
         if (radiiDp != null) g.cornerRadii = FloatArray(8) { dp(ctx, radiiDp[it / 2]) } else g.cornerRadius = dp(ctx, radiusDp)
         if (strokeDp > 0f) g.setStroke(dp(ctx, strokeDp).toInt().coerceAtLeast(1), stroke)
         return if (ripple) RippleDrawable(ColorStateList.valueOf(0x33000000), g, null) else g
+    }
+
+    /** a raised box, something to press: the fill with a black outline over a solid black shadow `offsetDp` down and to
+     *  the right (option A of the explore picker, chosen by the user 2026-10-29). The view's padding leaves room for the
+     *  shadow at the right and the bottom. */
+    fun raised(ctx: Context, fill: Int, radiusDp: Float = 12f, offsetDp: Float = 3f, ripple: Boolean = true): Drawable {
+        val r = dp(ctx, radiusDp); val off = dp(ctx, offsetDp).toInt()
+        val shadow = GradientDrawable(); shadow.setColor(Color.BLACK); shadow.cornerRadius = r
+        val face = GradientDrawable(); face.setColor(fill); face.cornerRadius = r; face.setStroke(dp(ctx, 2f).toInt(), Color.BLACK)
+        val layers = LayerDrawable(arrayOf<Drawable>(shadow, face))
+        layers.setLayerInset(0, off, off, 0, 0)
+        layers.setLayerInset(1, 0, 0, off, off)
+        return if (ripple) RippleDrawable(ColorStateList.valueOf(0x33000000), layers, null) else layers
     }
 
     /** the status and navigation bars in the page's colour, with dark icons */

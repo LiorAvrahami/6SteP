@@ -17,11 +17,14 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
 - **Launcher**: the daily exercise (with how long it takes at the chosen song and tempo), explore, and a little floor that
   dances the "quick recap" (every part of the daily exercise once, in its order) at 1.5 times its speed; the heart (thanks and links), settings, and help (two explanations
   with arrows where the little floor is).
-- **Explore**: three groups that fold (Elements, Compositions, Building Blocks). Every row shows three pictures of
+- **Explore**: three groups that fold. Elements: the user's own list, in their order, whether each is an element or a
+  building block underneath (rock step, rock triple triple, triple step, side to side, follower underarm and back,
+  follower underarm pass, rock back cutoff, lead underarm pass, circle, follower underarm to arrow); Compositions, with
+  the quick recap; Building Blocks: everything else. An element's versions are pills under its name when they all fit,
+  otherwise a raised button with a count badge that opens a list. Every row shows three pictures of
   consecutive steps, centred on the step of the piece that stands out most (the pose least like the poses of all the
-  elements); drag a row sideways to move through its steps. One row per element; at the right of every name a box
-  says where it starts and ends and which foot the leader has free, and for an element with several versions it is a
-  dropdown that chooses the version the row shows. A tap opens the dance floor on the first step of that version.
+  elements); drag a row sideways to move through its steps. A tap opens the dance floor on the first step of the
+  version shown.
 - **The dance floor**, one for everything (the daily exercise included). Swipe left or right: the next or previous step,
   in flow mode (the feet travel there) or schema mode (dashed lines from where each foot came). Swipe down: the bars; a
   tap on the floor closes them. Double tap or play: play (the bars close); a tap while playing pauses; a swipe while

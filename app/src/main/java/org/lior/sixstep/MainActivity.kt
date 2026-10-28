@@ -86,11 +86,11 @@ class MainActivity : AppCompatActivity() {
             val data = DanceData.load(this)
             val whole = Composer.compose(data, store.sequence(d), d.startState, Piece.SWING)
             if (whole.errors.isEmpty()) dailyBeats = whole.length
-            // the quick recap (user 2026-10-28): every part of the daily exercise once, in its order: no "x N", the quiet
-            // bridges kept (they join the parts), no annotations (the little floor is silent)
-            val once = d.elements.filter { !it.trim().lowercase().startsWith("say:") }.map { Entry.parse(it).copy(times = 1).text() }
-            val recap = Composer.compose(data, store.expand(once), d.startState, Piece.SWING)
-            if (recap.errors.isEmpty()) tl = Timeline(recap, Piece.SWING)
+            // the quick recap (CompositionStore.quickRecap): every part of the daily exercise once, in its order
+            store.find(CompositionStore.QUICK_RECAP)?.let { r ->
+                val recap = Composer.compose(data, store.sequence(r), r.startState, Piece.SWING)
+                if (recap.errors.isEmpty()) tl = Timeline(recap, Piece.SWING)
+            }
         }
     }
 

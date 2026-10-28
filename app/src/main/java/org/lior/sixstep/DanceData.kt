@@ -148,8 +148,6 @@ class Composition(
     val elements: MutableList<String>, var notes: String, var isSub: Boolean,
     var revision: Int = 0, var edited: Boolean = false
 ) {
-    fun toJson(): JSONObject = JSONObject().put("name", name).put("start_state", startState).put("repeat", repeat)
-        .put("elements", JSONArray(elements)).put("notes", notes).put("revision", revision).put("edited", edited)
     companion object {
         fun fromJson(o: JSONObject, isSub: Boolean): Composition = Composition(
             o.getString("name"), o.optString("start_state", "side"), maxOf(1, o.optInt("repeat", 1)),
@@ -162,8 +160,10 @@ class Composition(
 data class SeqItem(val name: String, val group: String?, val annotation: String?, val entryIndex: Int, val entryStart: Boolean, val entryLabel: String,
                    val end: String? = null)   // the pinned ending, or null: the composer chooses
 
-/** Compositions and sub-compositions: shipped in the assets, edited copies kept in the app's files. */
+/** Compositions and sub-compositions: shipped in the assets (and copies edited on the phone before 2026-10-28, which
+ *  still load), plus the quick recap, made here from the daily exercise. */
 class CompositionStore(private val ctx: Context) {
+    companion object { const val QUICK_RECAP = "Quick recap" }
     val compositions = ArrayList<Composition>()
     val subs = ArrayList<Composition>()
     private val file: File get() = File(ctx.filesDir, "compositions.json")
@@ -182,6 +182,15 @@ class CompositionStore(private val ctx: Context) {
             if (sc != null) for (i in 0 until sc.length()) merge(compositions, Composition.fromJson(sc.getJSONObject(i), false))
             if (ss != null) for (i in 0 until ss.length()) merge(subs, Composition.fromJson(ss.getJSONObject(i), true))
         }
+        if (find(QUICK_RECAP) == null) quickRecap()?.let { compositions.add(it) }
+    }
+
+    /** "Quick recap" (user 2026-10-28: all the elements we learned one after the other without repetitions): every entry
+     *  of the daily exercise once, in its order, the quiet bridges kept (they join the parts), no annotations. Never saved. */
+    private fun quickRecap(): Composition? {
+        val d = daily() ?: return null
+        val once = d.elements.filter { !it.trim().lowercase().startsWith("say:") }.map { Entry.parse(it).copy(times = 1).text() }
+        return Composition(QUICK_RECAP, d.startState, 1, once.toMutableList(), "", false)
     }
 
     private fun merge(into: ArrayList<Composition>, shipped: Composition) {
@@ -195,15 +204,6 @@ class CompositionStore(private val ctx: Context) {
         if (sc != null) for (i in 0 until sc.length()) compositions.add(Composition.fromJson(sc.getJSONObject(i), false))
         if (ss != null) for (i in 0 until ss.length()) subs.add(Composition.fromJson(ss.getJSONObject(i), true))
     }
-
-    fun save() {
-        val doc = JSONObject()
-        doc.put("compositions", JSONArray(compositions.map { it.toJson() }))
-        doc.put("sub_compositions", JSONArray(subs.map { it.toJson() }))
-        file.writeText(doc.toString(1))
-    }
-
-    fun resetToShipped() { if (file.exists()) file.delete(); load() }
 
     fun find(name: String): Composition? = compositions.firstOrNull { it.name == name }
     fun daily(): Composition? = compositions.firstOrNull { it.name.contains("exercise", ignoreCase = true) } ?: compositions.firstOrNull()

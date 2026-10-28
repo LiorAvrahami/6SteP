@@ -96,7 +96,8 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
   one; for play loops it pads with triple-step fillers until the loop is at least 4 beats and the free foot is restored,
   then chains the loop for the whole track so there is no jump.
 - **Compositions** (`dance/compositions.json`): named lists of entries: an element, a sub-composition (RTT = rock step,
-  triple step, triple step; "follower pass & back" = follower underarm pass, recapture; pass+circle), either "x N",
+  triple step, triple step, renamed "rock triple triple" on 2026-10-29, when "follower pass & back" became "follower
+  underarm and back"; "follower pass & back" = follower underarm pass, recapture; pass+circle), either "x N",
   "say: text" annotations (app only), and quiet entries in parentheses, "(recapture underarm pass)", which are danced
   but never announced and are not swipe stops (since v10; the edit dialog has a "quiet" box). The daily routine is
   "5 minutes exercise" (582 beats; 4:03 on Hot Swing): 5 RTT quiet, 15 follower passes, 15 lead passes, 10 cutoffs,
@@ -224,9 +225,12 @@ commit (there is no diff step any more: the editor's file is the only version). 
   tempo (user 2026-10-28: "all the elements that we learned one after the other without repetitions": made in the app
   from the daily exercise, every entry once, the quiet bridges kept, so it follows the exercise when that changes); help swaps
   the little floor for the draft's two explanations and draws arrows to the tiles (`HelpArrows`).
-- **Explore.** Groups Elements (one row per element: its versions, the starting conditions, are in a dropdown box at
-  the right of the name, which shows start -> end and the leader's free foot; user 2026-10-28, the box drawn in the
-  revised draft; the choice is kept in `explore_version_*` preferences; compositions and blocks show the same box),
+- **Explore.** Groups Elements (the user's list and order, `ExploreActivity.ELEMENTS`, 2026-10-29: elements and
+  sub-compositions alike, only the page's grouping), Compositions (plus the quick recap, which `CompositionStore` makes
+  from the daily exercise and never saves) and Building Blocks (everything else). One row per element; its versions
+  (starting conditions) are pills under the name when they all fit, otherwise a raised button with a count badge that
+  opens a list (the user chose these two of three mock-ups, 2026-10-29); the choice is kept in `explore_version_*`
+  preferences; a piece with one version shows start -> end and the free foot as plain text,
   Compositions, Building Blocks (folded by default; `explore_open_*` preferences). Each row's three pictures start
   centred on the step that stands out most: `Rarity` describes a pose relative to the couple (the feet around their
   middle, his-to-her direction along x, headings as short vectors) and takes the step with the lowest Gaussian density

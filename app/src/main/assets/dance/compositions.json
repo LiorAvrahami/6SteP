@@ -6,9 +6,9 @@
    "start_state": "side",
    "repeat": 1,
    "elements": [
-    "(RTT x7)",
+    "(rock triple triple x7)",
     "side to side x10",
-    "follower pass & back x5",
+    "follower underarm and back x5",
     "(follower underarm pass)",
     "lead underarm pass x10",
     "follower underarm pass x10",
@@ -17,13 +17,13 @@
     "Circle x10",
     "follower underarm to arrow x10"
    ],
-   "notes": "The daily routine, remade 2026-10-26: every kind once. RTT and the bridges are quiet (in parentheses): the recapture is danced as \"follower pass & back\", and quiet bridges join face to face and side by side.",
-   "revision": 4
+   "notes": "The daily routine, remade 2026-10-26: every kind once. Rock triple triple and the bridges are quiet (in parentheses): the recapture is danced as \"follower underarm and back\", and quiet bridges join face to face and side by side.",
+   "revision": 5
   }
  ],
  "sub_compositions": [
   {
-   "name": "RTT",
+   "name": "rock triple triple",
    "start_state": "side",
    "repeat": 1,
    "elements": [
@@ -34,7 +34,7 @@
    "notes": "Rock step, triple step, triple step: the six-count basic (user 2026-10-18). Works from side and from facing."
   },
   {
-   "name": "follower pass & back",
+   "name": "follower underarm and back",
    "start_state": "side",
    "repeat": 1,
    "elements": [

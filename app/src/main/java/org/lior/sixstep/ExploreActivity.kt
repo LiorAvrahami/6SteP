@@ -1,27 +1,46 @@
 package org.lior.sixstep
 
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.text.SpannableString
+import android.text.Spanned
+import android.text.style.RelativeSizeSpan
+import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.LinearLayout
+import android.widget.PopupWindow
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
+import androidx.appcompat.content.res.AppCompatResources
+import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.drawable.DrawableCompat
 
-/** Explore (the user's layout draft, 2026-10-28): three groups that fold (Elements, Compositions, Building Blocks), one
- *  row for each piece: its name, its version box at the right of the name (where it starts and ends, and the leader's
- *  free foot; for an element with several versions a dropdown that chooses which one the row shows, remembered), and
- *  three pictures of consecutive steps, centred on the step that stands out most (Rarity). Drag a row sideways to move
- *  through its steps; dragging one puts the others back where they began. A tap opens the dance floor on the first step
- *  of the version shown. */
+/** Explore (the user's layout draft, 2026-10-28): three groups that fold. Elements: the user's own list, in their order,
+ *  whether each is an element or a building block underneath (2026-10-29); Compositions, with the quick recap; Building
+ *  Blocks: everything else. Each row: the name, its versions (the starting conditions of an element) as pills under it
+ *  when they all fit, otherwise a raised button at the right of the name with a count badge that opens a list (the
+ *  user's choice of the two picker options, 2026-10-29); a piece with one version shows where it starts and ends as
+ *  plain text. Then three pictures of consecutive steps, centred on the step that stands out most (Rarity); drag a row
+ *  sideways to move through its steps, which puts the others back where they began. A tap opens the dance floor on the
+ *  first step of the version shown; the version chosen is remembered. */
 class ExploreActivity : AppCompatActivity() {
-    /** one way to dance a row's piece: an element from one starting condition, or the one way of a composition */
-    private class Version(val piece: Piece, val label: String, val cells: List<StepStrip.Cell>)
+    companion object {
+        /** the Elements group, in this order (user 2026-10-29); every other element and block is under Building Blocks */
+        val ELEMENTS = listOf("rock step", "rock triple triple", "triple step", "side to side", "follower underarm and back",
+            "follower underarm pass", "rock back cutoff", "lead underarm pass", "circle", "follower underarm to arrow")
+    }
+
+    /** one way to dance a row's piece: an element from one starting condition, or the one way of a block or composition */
+    private class Version(val piece: Piece, val facing: String, val foot: String, val footShort: String, val cells: List<StepStrip.Cell>)
     private class Row(val strip: StepStrip, var centre: Int)
     private val rows = ArrayList<Row>()
     private var corpus: List<DoubleArray> = emptyList()
+    private val d by lazy { resources.displayMetrics.density }
+    private fun dp(v: Float): Int = (v * d).toInt()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,19 +55,24 @@ class ExploreActivity : AppCompatActivity() {
             val c = p.compose(data, Piece.SWING)
             if (c.errors.isNotEmpty()) return null
             val t = Timeline(c, Piece.SWING)
-            val label = c.startState.replace('_', ' ') + " → " + c.endState.replace('_', ' ') + "\n" +
-                getString(if (c.startFree == 'L') R.string.left_free else R.string.right_free)
-            return Version(p, label, cellsOf(t, stopsOf(t), start))
+            val left = c.startFree == 'L'
+            return Version(p, c.startState.replace('_', ' ') + " → " + c.endState.replace('_', ' '),
+                getString(if (left) R.string.left_free else R.string.right_free),
+                getString(if (left) R.string.left_free_short else R.string.right_free_short), cellsOf(t, stopsOf(t), start))
         }
-        // one row per element, its versions in the row's dropdown (user 2026-10-28)
-        val elements = data.names.mapNotNull { name ->
-            val vs = data.variants(name).indices.mapNotNull { i -> Piece.find(data, store, Piece.ELEMENT, name, i)?.let { version(it) } }
-            if (vs.isEmpty()) null else Pair(name, vs)
-        }
+        val elementRows = data.names.associateWith { name ->
+            data.variants(name).indices.mapNotNull { i -> Piece.find(data, store, Piece.ELEMENT, name, i)?.let { version(it) } }
+        }.filterValues { it.isNotEmpty() }
+        val blockRows = store.subs.associate { c -> c.name to listOfNotNull(Piece.find(data, store, Piece.BLOCK, c.name)?.let { version(it) }) }
+            .filterValues { it.isNotEmpty() }
         // the poses of every version of every element: what usual looks like (the start positions aside)
-        corpus = elements.flatMap { (_, vs) -> vs.flatMap { v -> v.cells.drop(1).mapNotNull { Rarity.descriptor(it.feet) } } }
+        corpus = elementRows.values.flatMap { vs -> vs.flatMap { v -> v.cells.drop(1).mapNotNull { Rarity.descriptor(it.feet) } } }
+        fun rowFor(name: String): Pair<String, List<Version>>? =
+            (elementRows.entries.firstOrNull { it.key.equals(name, true) } ?: blockRows.entries.firstOrNull { it.key.equals(name, true) })?.toPair()
+        val elements = ELEMENTS.mapNotNull { rowFor(it) }
+        val shown = elements.map { it.first }.toSet()
+        val blocks = (elementRows + blockRows).filterKeys { it !in shown }.toList()
         val compositions = store.compositions.mapNotNull { c -> Piece.find(data, store, Piece.COMPOSITION, c.name)?.let { version(it) }?.let { Pair(c.name, listOf(it)) } }
-        val blocks = store.subs.mapNotNull { c -> Piece.find(data, store, Piece.BLOCK, c.name)?.let { version(it) }?.let { Pair(c.name, listOf(it)) } }
         group(list, R.string.elements, "elements", true, elements)
         group(list, R.string.compositions, "compositions", true, compositions)
         group(list, R.string.building_blocks, "blocks", false, blocks)
@@ -78,34 +102,105 @@ class ExploreActivity : AppCompatActivity() {
         val nameBox = v.findViewById<View>(R.id.rowName)
         nameBox.background = Ui.box(this, Ui.ROW, 1f, 0f, Ui.ROW_EDGE, radiiDp = floatArrayOf(10f, 0f, 0f, 10f))
         v.findViewById<TextView>(R.id.rowTitle).text = titleCase(name)
-        val versionBox = v.findViewById<TextView>(R.id.rowVersion)
-        versionBox.background = Ui.box(this, Ui.VERSION, 1f, 0f, ripple = versions.size > 1)
+        val column = v.findViewById<View>(R.id.rowColumn)
+        val facing = v.findViewById<TextView>(R.id.rowFacing)
+        val pills = v.findViewById<LinearLayout>(R.id.rowPills)
+        val chip = v.findViewById<View>(R.id.rowChip)
+        val chipBox = v.findViewById<View>(R.id.rowChipBox)
+        val chipText = v.findViewById<TextView>(R.id.rowChipText)
         val strip = v.findViewById<StepStrip>(R.id.rowStrip)
         strip.cellsAcross = 3f; strip.separators = true
         val row = Row(strip, 0)
         rows.add(row)
         val key = "explore_version_" + versions[0].piece.kind + "_" + name
         var chosen = prefs.getInt(key, 0).coerceIn(0, versions.size - 1)
+        val pillViews = ArrayList<TextView>()
+
         fun show(i: Int) {
             chosen = i
-            versionBox.text = versions[i].label
-            strip.cells = versions[i].cells
-            row.centre = Rarity.centre(versions[i].cells, corpus)
+            val ver = versions[i]
+            chipText.text = ver.facing + "\n" + ver.foot
+            for ((k, p) in pillViews.withIndex()) stylePill(p, k == i)
+            strip.cells = ver.cells
+            row.centre = Rarity.centre(ver.cells, corpus)
             strip.scrollToCell(row.centre, false)
         }
-        show(chosen)
-        if (versions.size > 1) versionBox.setOnClickListener {
-            val m = PopupMenu(this, versionBox)
-            for ((i, ver) in versions.withIndex()) m.menu.add(0, i, i, ver.label.replace("\n", ", ")).isCheckable = true
-            m.menu.setGroupCheckable(0, true, true)
-            m.menu.findItem(chosen)?.isChecked = true
-            m.setOnMenuItemClickListener { item -> prefs.edit().putInt(key, item.itemId).apply(); show(item.itemId); true }
-            m.show()
+        fun pick(i: Int) { prefs.edit().putInt(key, i).apply(); show(i) }
+
+        if (versions.size == 1) {
+            facing.text = versions[0].facing + " · " + versions[0].foot
+            facing.visibility = View.VISIBLE; pills.visibility = View.GONE
+        } else {
+            for ((i, ver) in versions.withIndex()) {
+                val label = SpannableString(ver.facing + "\n" + ver.footShort)
+                label.setSpan(RelativeSizeSpan(0.875f), ver.facing.length + 1, label.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                val p = TextView(this)
+                p.text = label; p.textSize = 12f; p.typeface = ResourcesCompat.getFont(this, R.font.inter_extrabold)
+                p.gravity = Gravity.CENTER_VERTICAL; p.minHeight = dp(44f); p.setPadding(dp(11f), 0, dp(12f), 0)
+                p.setLineSpacing(0f, 0.95f); p.compoundDrawablePadding = dp(5f); p.isClickable = true
+                p.setOnClickListener { pick(i) }
+                val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                if (i > 0) lp.marginStart = dp(6f)
+                pills.addView(p, lp); pillViews.add(p)
+            }
+            chipBox.background = Ui.raised(this, Ui.VERSION)
+            chipBox.contentDescription = getString(R.string.choose_version)
+            v.findViewById<TextView>(R.id.rowChipCount).let { c -> c.text = versions.size.toString(); c.background = Ui.box(this, Color.BLACK, 0f, 11f, ripple = false) }
+            chipBox.setOnClickListener { showList(chipBox, versions, chosen) { pick(it) } }
+            // the pills when they all fit beside the strip, else the button (decided once the row has its width)
+            column.addOnLayoutChangeListener(object : View.OnLayoutChangeListener {
+                override fun onLayoutChange(view: View, left: Int, top: Int, right: Int, bottom: Int, oldLeft: Int, oldTop: Int, oldRight: Int, oldBottom: Int) {
+                    if (right - left <= 0) return
+                    view.removeOnLayoutChangeListener(this)
+                    pills.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
+                    val fits = pills.measuredWidth <= right - left
+                    view.post {
+                        if (fits) pills.visibility = View.VISIBLE
+                        else { pills.visibility = View.GONE; chip.visibility = View.VISIBLE }
+                    }
+                }
+            })
         }
+        show(chosen)
         strip.onDragStart = { for (r in rows) if (r !== row) r.strip.scrollToCell(r.centre, true) }
         strip.onTap = { open(versions[chosen].piece) }
         nameBox.setOnClickListener { open(versions[chosen].piece) }
         return v
+    }
+
+    /** a version pill: black with a tick when it is the one shown, outlined otherwise */
+    private fun stylePill(p: TextView, selected: Boolean) {
+        p.background = Ui.box(this, if (selected) Color.BLACK else Color.TRANSPARENT, 1.5f, 22f)
+        p.setTextColor(if (selected) Color.WHITE else Color.BLACK)
+        val tick = if (!selected) null else AppCompatResources.getDrawable(this, R.drawable.ic_check)?.mutate()?.also {
+            DrawableCompat.setTint(it, Color.WHITE); it.setBounds(0, 0, dp(14f), dp(14f))
+        }
+        p.setCompoundDrawablesRelative(tick, null, null, null)
+    }
+
+    /** the versions as a list under the raised button: the one shown tinted and bold, a tap on another chooses it */
+    private fun showList(anchor: View, versions: List<Version>, chosen: Int, pick: (Int) -> Unit) {
+        val width = dp(300f)
+        val box = LinearLayout(this)
+        box.orientation = LinearLayout.VERTICAL
+        box.setPadding(dp(6f), dp(6f), dp(6f) + dp(4f), dp(6f) + dp(4f))
+        box.background = Ui.raised(this, Color.WHITE, 14f, 4f, ripple = false)
+        val popup = PopupWindow(box, width, ViewGroup.LayoutParams.WRAP_CONTENT, true)
+        for ((i, ver) in versions.withIndex()) {
+            val t = TextView(this)
+            t.text = ver.facing + " · " + ver.foot
+            t.textSize = 14f; t.setTextColor(Color.BLACK)
+            t.typeface = ResourcesCompat.getFont(this, if (i == chosen) R.font.inter_extrabold else R.font.inter_semibold)
+            t.gravity = Gravity.CENTER_VERTICAL; t.minHeight = dp(48f); t.setPadding(dp(14f), 0, dp(14f), 0)
+            t.background = Ui.box(this, if (i == chosen) Ui.VERSION else Color.WHITE, 0f, 9f)
+            t.setOnClickListener { popup.dismiss(); pick(i) }
+            val lp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+            if (i > 0) lp.topMargin = dp(4f)
+            box.addView(t, lp)
+        }
+        popup.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+        popup.isOutsideTouchable = true
+        popup.showAsDropDown(anchor, anchor.width - width, dp(6f))
     }
 
     /** the dance floor, always on the first step: the start position (user 2026-10-28) */
