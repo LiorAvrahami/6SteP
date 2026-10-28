@@ -11,8 +11,8 @@ import androidx.appcompat.app.AppCompatActivity
 
 /** Explore (the user's layout draft, 2026-10-28): three groups that fold (Elements, Compositions, Building Blocks), a
  *  row for each piece: its name, and three pictures of consecutive steps, centred on the step of the piece that stands
- *  out most (Rarity). Drag a row sideways to move through its steps; dragging one puts the others back where they began.
- *  A tap on a picture opens the dance floor on that step; a tap on the name, on the picture in the middle. */
+ *  out most (Rarity), and under its name how it starts and ends. Drag a row sideways to move through its steps;
+ *  dragging one puts the others back where they began. A tap opens the dance floor on the piece's first step. */
 class ExploreActivity : AppCompatActivity() {
     private class Item(val piece: Piece, val title: String, val subtitle: String?, val cells: List<StepStrip.Cell>)
     private class Row(val strip: StepStrip, val centre: Int)
@@ -27,19 +27,21 @@ class ExploreActivity : AppCompatActivity() {
         val data = DanceData.load(this); val store = CompositionStore(this)
         val start = getString(R.string.start)
 
-        fun item(p: Piece, subtitle: String?): Item? {
+        // every row says how the piece starts and ends (user 2026-10-28), and after that what else tells it apart
+        fun item(p: Piece, more: String?): Item? {
             val c = p.compose(data, Piece.SWING)
             if (c.errors.isNotEmpty()) return null
             val t = Timeline(c, Piece.SWING)
-            return Item(p, titleCase(p.name), subtitle, cellsOf(t, stopsOf(t), start))
+            val facing = c.startState.replace('_', ' ') + " → " + c.endState.replace('_', ' ')
+            return Item(p, titleCase(p.name), if (more == null) facing else facing + more, cellsOf(t, stopsOf(t), start))
         }
         val elements = data.names.flatMap { name ->
-            data.variants(name).indices.mapNotNull { i -> Piece.find(data, store, Piece.ELEMENT, name, i)?.let { item(it, versionLabel(data, name, i)) } }
+            data.variants(name).indices.mapNotNull { i -> Piece.find(data, store, Piece.ELEMENT, name, i)?.let { item(it, freeFoot(data, name, i)) } }
         }
         // the poses of every element: what usual looks like (the start positions aside)
         val corpus = elements.flatMap { it.cells.drop(1).mapNotNull { c -> Rarity.descriptor(c.feet) } }
         val compositions = store.compositions.mapNotNull { c -> Piece.find(data, store, Piece.COMPOSITION, c.name)?.let { item(it, null) } }
-        val blocks = store.subs.mapNotNull { c -> Piece.find(data, store, Piece.BLOCK, c.name)?.let { item(it, c.elements.joinToString(", ")) } }
+        val blocks = store.subs.mapNotNull { c -> Piece.find(data, store, Piece.BLOCK, c.name)?.let { item(it, " · " + c.elements.joinToString(", ")) } }
         group(list, R.string.elements, "elements", true, elements, corpus)
         group(list, R.string.compositions, "compositions", true, compositions, corpus)
         group(list, R.string.building_blocks, "blocks", false, blocks, corpus)
@@ -47,15 +49,11 @@ class ExploreActivity : AppCompatActivity() {
 
     private fun titleCase(s: String): String = s.split(' ').joinToString(" ") { w -> w.replaceFirstChar { it.uppercaseChar() } }
 
-    /** for an element with several versions: where this one starts and ends (and which foot is free, when that is the
-     *  only difference) */
-    private fun versionLabel(data: DanceData, name: String, i: Int): String? {
-        val vs = data.variants(name)
-        if (vs.size < 2) return null
-        val v = vs[i]
-        val s = v.startState.replace('_', ' ') + " → " + v.endState.replace('_', ' ')
+    /** which foot is free, for a version of an element that starts and ends like another one */
+    private fun freeFoot(data: DanceData, name: String, i: Int): String? {
+        val vs = data.variants(name); val v = vs[i]
         val twin = vs.count { it.startState == v.startState && it.endState == v.endState } > 1
-        return if (!twin) s else s + ", " + getString(if (v.leaderFreeStart == 'L') R.string.left_free else R.string.right_free)
+        return if (!twin) null else ", " + getString(if (v.leaderFreeStart == 'L') R.string.left_free else R.string.right_free)
     }
 
     /** a heading with its triangle (pointing at the heading when folded, down when open) and its rows */
@@ -88,13 +86,13 @@ class ExploreActivity : AppCompatActivity() {
         rows.add(row)
         strip.scrollToCell(row.centre, false)
         strip.onDragStart = { for (r in rows) if (r !== row) r.strip.scrollToCell(r.centre, true) }
-        strip.onTap = { k -> open(item.piece, k) }
-        name.setOnClickListener { open(item.piece, strip.centreCell()) }
+        strip.onTap = { open(item.piece) }
+        name.setOnClickListener { open(item.piece) }
         return v
     }
 
-    private fun open(p: Piece, stop: Int) {
-        startActivity(Intent(this, DanceFloorActivity::class.java)
-            .putExtra("kind", p.kind).putExtra("name", p.name).putExtra("variant", p.variant).putExtra("stop", stop))
+    /** the dance floor, always on the first step: the start position (user 2026-10-28) */
+    private fun open(p: Piece) {
+        startActivity(Intent(this, DanceFloorActivity::class.java).putExtra("kind", p.kind).putExtra("name", p.name).putExtra("variant", p.variant))
     }
 }

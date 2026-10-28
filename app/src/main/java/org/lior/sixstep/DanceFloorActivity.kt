@@ -24,8 +24,8 @@ import kotlin.math.floor
 import kotlin.math.roundToInt
 
 /** The one dance floor (the user's layout draft, 2026-10-28): every element, building block and composition is danced
- *  here, the daily exercise included. Opened with the extras kind, name, variant (see Piece), stop (the step to show
- *  first) and autoplay.
+ *  here, the daily exercise included. Opened with the extras kind, name, variant (see Piece) and autoplay, always on
+ *  the first step.
  *
  *  Swipe left or right: the next or previous step, in flow mode (the feet travel there) or schema mode (they are there,
  *  dashed lines show where each foot came from; both dancers at once). Swipe down: the top and bottom bars; a tap on
@@ -71,7 +71,7 @@ class DanceFloorActivity : AppCompatActivity() {
     private var barsFrac = 0f
     private var barsAnim: ValueAnimator? = null
     private var lastAnnounced = -1
-    private var silentNext = false                // the next announcement is shown, not read aloud (after a jump)
+    private var silentUntil = Double.NEGATIVE_INFINITY   // a jump's part is shown, not read aloud (clock beat)
     private var banner: String? = null
     private var bannerUntil = Double.NEGATIVE_INFINITY
 
@@ -134,7 +134,6 @@ class DanceFloorActivity : AppCompatActivity() {
         strip.callouts = callouts(p, t)
         strip.onTap = { k -> tapStop(k) }
         if (p.isComposition) pb.prefetch(composed.elements.mapNotNull { announcement(it) }.distinct())
-        idx = intent.getIntExtra("stop", 0).coerceIn(0, stops.size - 1)
         val autoplay = intent.getBooleanExtra("autoplay", false)
 
         val gestures = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
@@ -236,8 +235,16 @@ class DanceFloorActivity : AppCompatActivity() {
         else -> el.name
     }
 
-    /** a stop: the feet where they landed, the weight settled on them; in schema mode a dashed arrow for every foot that
-     *  landed here, from where it was (both dancers at once) */
+    /** the instant a stop is shown at, and play starts from: the weight settled on what landed at b, but before anything
+     *  lands next; one instant for the feet and the weights, so that the first frame of play is this very picture */
+    private fun settled(t: Timeline, b: Double): Double {
+        var next = Double.POSITIVE_INFINITY
+        for (d in t.dancers.values) for (track in d.tracks.values) { val n = track.around(b).second; if (n != null && n.tLand > b + 1e-6) next = minOf(next, n.tLand) }
+        return minOf(t.settledAfter(b), next - 1e-3)
+    }
+
+    /** a stop: the feet and their weights at its settled instant; in schema mode a dashed arrow for every foot that
+     *  landed at the stop, from where it was (both dancers at once) */
     private fun stopScene(t: Timeline, b: Double, banner: String?): Scene {
         val arrows = ArrayList<Arrow>()
         if (schema) for (d in listOf('L', 'F')) for (f in listOf('L', 'R')) {
@@ -249,7 +256,8 @@ class DanceFloorActivity : AppCompatActivity() {
             }
         }
         val el = t.elementAt(b)
-        return Scene(t.feetAt(b), weightsAt(t, t.settledAfter(b)), titleOf(el, b, false), if (b < 0) "" else t.countLabel(b), arrows, banner, fillerColor(el))
+        val s = settled(t, b)
+        return Scene(t.feetAt(s), weightsAt(t, s), titleOf(el, b, false), if (b < 0) "" else t.countLabel(b), arrows, banner, fillerColor(el))
     }
 
     /** any instant of the dance as it moves */
@@ -306,7 +314,7 @@ class DanceFloorActivity : AppCompatActivity() {
         if (schema || wrapped) { show(); return }
         strip.current = idx
         if (barsShown) strip.scrollToCell(idx, true)
-        val tFrom = ptl.settledAfter(from); val tTo = ptl.settledAfter(to)
+        val tFrom = settled(ptl, from); val tTo = settled(ptl, to)
         val ms = (abs(to - from) * 60.0 / pb.bpm() * 2.0 * 1000.0).coerceIn(250.0, 4000.0)
         val ramp = (1.0 / 6.0 * 1000.0 / ms).coerceAtMost(0.45)
         val a = ValueAnimator.ofFloat(0f, 1f)
@@ -339,13 +347,13 @@ class DanceFloorActivity : AppCompatActivity() {
         val wasPlaying = playing
         val b = clockBeat(stops[k], near)
         val countIn = k == 0 && !pb.muted
-        val from = if (countIn) b - (Playback.COUNT_IN - Piece.LEAD_IN) else b + (ptl.settledAfter(playBeat(b)) - playBeat(b))
+        val from = if (countIn) b - (Playback.COUNT_IN - Piece.LEAD_IN) else b + (settled(ptl, playBeat(b)) - playBeat(b))
         pb.play(from)
         if (!pb.playing) { standAt(from); return }   // the sound is busy (a call)
         playing = true
         hold = if (countIn) b else Double.NEGATIVE_INFINITY
         lastAnnounced = ptl.elementIndexAt(playBeat(b) - 0.01)   // an element starting on this step is announced, one under way is not
-        silentNext = quiet
+        silentUntil = if (quiet) from + 0.05 else Double.NEGATIVE_INFINITY
         banner = null
         hideBars(); updateButtons()
         if (!wasPlaying) floor.postOnAnimation(frame)
@@ -388,7 +396,7 @@ class DanceFloorActivity : AppCompatActivity() {
         if (!pb.playing) { standAt(target); return }
         hold = Double.NEGATIVE_INFINITY; banner = null
         lastAnnounced = playTl?.elementIndexAt(playBeat(target) - 0.01) ?: -1
-        silentNext = true
+        silentUntil = target + 0.05
     }
 
     private val frame = object : Runnable {
@@ -412,8 +420,7 @@ class DanceFloorActivity : AppCompatActivity() {
             val e = ptl.composed.elements[ei]
             val shown = phrases(e)
             if (shown.isNotEmpty()) { banner = shown.joinToString("\n"); bannerUntil = b + BANNER_BEATS }
-            if (!silentNext) announcement(e)?.let { pb.speak(it) }
-            silentNext = false
+            if (b > silentUntil) announcement(e)?.let { pb.speak(it) }
         }
         if (b > bannerUntil) banner = null
         floor.scene = flowScene(ptl, x, banner, true)

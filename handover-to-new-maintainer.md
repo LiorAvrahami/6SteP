@@ -184,7 +184,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   and `TrackVariant`, the clocks, `Metronome`, `Speaker`, `MusicPlayer`), `Playback.kt` (the music plan and the playing: made
   from scratch at every play, see Clocks), `Ui.kt` (the draft's colours, outlined boxes), and the activities: `MainActivity`
   (the launcher; keep the class name, home-screen shortcuts point at it), `DanceFloorActivity` (extras `kind`
-  element|block|composition, `name`, `variant`, `stop`, `autoplay`), `ExploreActivity`, `HeartActivity` (the email, the
+  element|block|composition, `name`, `variant`, `autoplay`; it always opens on the first step), `ExploreActivity`, `HeartActivity` (the email, the
   website and the beer links: `WEBSITE` and `PAY_URL` are still empty, the user has to give them), `SettingsActivity`.
   `tools/check_app.py` checks resources, ids, string arguments and leftovers before a push.
 - **Clocks and the music plan** (`Playback.kt`, rewritten 2026-10-28 after the user found the dance jittering on play
@@ -222,7 +222,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
 - **Launcher.** The daily exercise's tile shows how long it takes (its beats plus a 4-beat count-in at the chosen song's
   tempo and offset, or the songs' average for shuffle); the little floor dances it at 1.5 times that tempo; help swaps
   the little floor for the draft's two explanations and draws arrows to the tiles (`HelpArrows`).
-- **Explore.** Groups Elements (one row per version, subtitled with its start and end when there are several),
+- **Explore.** Groups Elements (one row per version), every row subtitled with how it starts and ends (user
+  2026-10-28; a version that starts and ends like another adds its free foot, a building block its elements),
   Compositions, Building Blocks (folded by default; `explore_open_*` preferences). Each row's three pictures start
   centred on the step that stands out most: `Rarity` describes a pose relative to the couple (the feet around their
   middle, his-to-her direction along x, headings as short vectors) and takes the step with the lowest Gaussian density

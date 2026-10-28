@@ -141,10 +141,6 @@ class StepStrip @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         if (abs(target - offset) > 0.5f) { offset += ((target - offset) * FOLLOW).toFloat(); invalidate() }
     }
 
-    /** the picture nearest the middle */
-    fun centreCell(): Int =
-        if (cells.isEmpty()) -1 else ((offset + width / 2f - padH - cellW() / 2) / pitch()).roundToInt().coerceIn(0, cells.size - 1)
-
     private fun cellAt(x: Float): Int {
         val p = pitch(); val k = floor((x + offset - padH) / p).toInt()
         val inside = x + offset - padH - k * p
