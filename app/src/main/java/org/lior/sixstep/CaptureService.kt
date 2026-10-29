@@ -49,8 +49,7 @@ class CaptureService : Service() {
             AudioSync.failed("capture", "startForeground: ${e.message}"); stopSelf(); return
         }
         val code = intent.getIntExtra(EXTRA_CODE, 0)
-        val data: Intent? = if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
-            else @Suppress("DEPRECATION") intent.getParcelableExtra(EXTRA_DATA)
+        val data: Intent? = consentData(intent)
         val p = try {
             getSystemService(MediaProjectionManager::class.java).getMediaProjection(code, data ?: throw IllegalStateException("no consent data"))
         } catch (e: Exception) { null }
@@ -61,6 +60,11 @@ class CaptureService : Service() {
         projection = p
         AudioSync.startCapture(p)
     }
+
+    @Suppress("DEPRECATION")
+    private fun consentData(intent: Intent): Intent? =
+        if (Build.VERSION.SDK_INT >= 33) intent.getParcelableExtra(EXTRA_DATA, Intent::class.java)
+        else intent.getParcelableExtra<Intent>(EXTRA_DATA)
 
     override fun onDestroy() {
         AudioSync.stopCapture()

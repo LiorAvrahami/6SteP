@@ -92,7 +92,12 @@ class SpotifyTestActivity : AppCompatActivity() {
     private lateinit var listenSwitch: com.google.android.material.materialswitch.MaterialSwitch
 
     private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
-        if (ok) startListening() else { record("listen", note = "event=mic_permission_refused"); listenSwitch.isChecked = false }
+        if (ok) {
+            startListening()
+        } else {
+            record("listen", note = "event=mic_permission_refused")
+            listenSwitch.isChecked = false
+        }
     }
 
     private val captureConsent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
