@@ -335,8 +335,7 @@ class SpotifyTestActivity : AppCompatActivity() {
         val age = s?.let { now - it.lastPositionUpdateTime } ?: 0L
         status.text = getString(R.string.status_line, title, artist, stateName(s?.state ?: -1), time(est), time(reported),
             age / 1000.0, s?.playbackSpeed ?: 0f, route, log.taps()) +
-            (if (hearing) "
-" + getString(R.string.listen_status, AudioSync.statusText()) else "")
+            (if (hearing) "\n" + getString(R.string.listen_status, AudioSync.statusText()) else "")
     }
 
     /** milliseconds since the last beat of the map at Spotify's position right now, or null when nothing plays */
