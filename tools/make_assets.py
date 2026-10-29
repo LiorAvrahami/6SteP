@@ -50,6 +50,8 @@ for key, base, title, artist, lic in TR:
 _g = json.load(open(os.path.join(SW, 'music', 'spotify_test', 'Like It Is - beatgrid (tap-corrected).json'), encoding='utf-8'))
 json.dump({k: _g[k] for k in ('bpm', 'beat', 't0', 'swing', 'duration', 'beats', 'bars') if k in _g},
           open(os.path.join(A, 'dance', 'beatgrids', 'spotify_like_it_is.json'), 'w'))
+# and its onset curve (music/tools/onset_curve.py), for "Listen" to line up what the phone hears: the rhythm, no audio
+shutil.copyfile(os.path.join(SW, 'music', 'spotify_test', 'Like It Is - onsets.json'), os.path.join(A, 'dance', 'beatgrids', 'spotify_like_it_is_onsets.json'))
 
 # ---- tempo variants: the same music time-stretched offline (music/tools/make_variants.py, Rubber Band R3), pitch unchanged.
 # Offset 0 is the original file; a beat of the track's grid lands at beats[i] / tempo seconds in a variant file.

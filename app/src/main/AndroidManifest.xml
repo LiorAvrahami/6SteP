@@ -5,6 +5,10 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <!-- the Spotify test page's export to Downloads; Android 10 and later need no permission for that -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <!-- the Spotify test page's "Listen": the microphone, and the phone's own output through a media projection -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
     <!-- the Spotify test page opens the track in the Spotify app -->
     <queries>
@@ -34,6 +38,10 @@
         <activity android:name=".HeartActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".SettingsActivity" android:exported="false" android:screenOrientation="landscape" />
         <activity android:name=".SpotifyTestActivity" android:exported="false" android:screenOrientation="landscape" />
+        <service
+            android:name=".CaptureService"
+            android:exported="false"
+            android:foregroundServiceType="mediaProjection" />
         <!-- empty: with it switched on (notification access) the app may see Spotify's playback position -->
         <service
             android:name=".MediaListener"

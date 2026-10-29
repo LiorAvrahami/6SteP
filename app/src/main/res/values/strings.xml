@@ -86,4 +86,9 @@
     <string name="clear_yes">Clear</string>
     <string name="clear_no">Keep</string>
     <string name="beat_glow">Beat glow</string>
+    <string name="listen">Listen</string>
+    <string name="listen_status">listening · %1$s</string>
+    <string name="listen_channel">Listening to the music</string>
+    <string name="listen_notification">6SteP is listening to the music to find the beat</string>
+    <string name="listen_consent_note">Android will ask to record or cast the screen: 6SteP only hears the sound to find the beat, and saves no audio</string>
 </resources>

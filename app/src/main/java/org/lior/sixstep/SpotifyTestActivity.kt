@@ -38,6 +38,7 @@ import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -58,7 +59,9 @@ import kotlin.math.max
  *  presses are rows too. Every row is saved at once (filesDir); a long press offers the export to Downloads.
  *  Reading another app's playback needs notification access (MediaListener below).
  *  "Beat glow" lights the tap area on every beat of the song's beat map (tap-corrected, 2026-10-29), placed by
- *  Spotify's position: what the app would dance to, to see and hear how well it lines up. */
+ *  Spotify's position: what the app would dance to, to see and hear how well it lines up.
+ *  "Listen" hears the music (the microphone, and the phone's own output where Android and Spotify allow it) and lines it
+ *  up with the song's onset curve (OnsetSync.kt): every estimate is a row; once two agree, the glow uses the correction. */
 class SpotifyTestActivity : AppCompatActivity() {
     companion object {
         const val SPOTIFY = "com.spotify.music"
@@ -85,14 +88,29 @@ class SpotifyTestActivity : AppCompatActivity() {
     private var outputs = ""
     private var route = ""
     private var grid: BeatGrid? = null
+    private var hearing = false
+    private lateinit var listenSwitch: com.google.android.material.materialswitch.MaterialSwitch
+
+    private val micPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { ok ->
+        if (ok) startListening() else { record("listen", note = "event=mic_permission_refused"); listenSwitch.isChecked = false }
+    }
+
+    private val captureConsent = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+        val data = res.data
+        if (res.resultCode == RESULT_OK && data != null && hearing) {
+            record("listen", note = "source=capture;event=consent_given")
+            startForegroundService(Intent(this, CaptureService::class.java)
+                .putExtra(CaptureService.EXTRA_CODE, res.resultCode).putExtra(CaptureService.EXTRA_DATA, data))
+        } else record("listen", note = "source=capture;event=consent_refused")
+    }
     private val clock = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US)
 
     private val sessionsChanged = MediaSessionManager.OnActiveSessionsChangedListener { list -> pick(list ?: emptyList(), "sessions changed") }
 
     private val callback = object : MediaController.Callback() {
-        override fun onPlaybackStateChanged(state: PlaybackState?) { record("state"); showPlay() }
-        override fun onMetadataChanged(metadata: MediaMetadata?) { record("metadata") }
-        override fun onSessionDestroyed() { record("session_destroyed"); drop(); showPlay() }
+        override fun onPlaybackStateChanged(state: PlaybackState?) { noteSpotify(); record("state"); showPlay() }
+        override fun onMetadataChanged(metadata: MediaMetadata?) { noteSpotify(); record("metadata") }
+        override fun onSessionDestroyed() { record("session_destroyed"); drop(); noteSpotify(); showPlay() }
     }
 
     private val devices = object : AudioDeviceCallback() {
@@ -145,6 +163,15 @@ class SpotifyTestActivity : AppCompatActivity() {
             pad.invalidate()
             record(if (on) "glow_on" else "glow_off")
         }
+        try { AudioSync.curve = OnsetCurve.load(this, "dance/beatgrids/spotify_like_it_is_onsets.json") } catch (e: Exception) {}
+        AudioSync.onEvent = { note -> main.post { record(if (note.contains("event=estimate")) "sync" else "listen", note = note) } }
+        listenSwitch = findViewById(R.id.listen)
+        listenSwitch.setOnCheckedChangeListener { _, on ->
+            if (on && !hearing) {
+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) startListening()
+                else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+            } else if (!on && hearing) stopListening()
+        }
         findViewById<Button>(R.id.grantAccess).setOnClickListener { openAccessSettings() }
         findViewById<Button>(R.id.appInfo).setOnClickListener { openAppInfo() }
 
@@ -169,6 +196,8 @@ class SpotifyTestActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         super.onDestroy()
+        if (hearing) stopListening()
+        AudioSync.onEvent = null
         audio.unregisterAudioDeviceCallback(devices)
         if (listening) try { sessions?.removeOnActiveSessionsChangedListener(sessionsChanged) } catch (e: Exception) {}
         spotify?.unregisterCallback(callback)
@@ -202,11 +231,45 @@ class SpotifyTestActivity : AppCompatActivity() {
         drop()
         spotify = found
         found?.registerCallback(callback, main)
+        noteSpotify()
         record("session", note = if (found == null) "$why: no Spotify session" else "$why: Spotify session found")
         showPlay()
     }
 
     private fun drop() { spotify?.unregisterCallback(callback); spotify = null }
+
+    /** tell the listeners where Spotify is: they line up only while our song plays, and start afresh at every change */
+    private fun noteSpotify() {
+        val c = spotify
+        val s = c?.playbackState
+        if (c == null || s == null) { AudioSync.spotify(false, 0, 0, 0f); return }
+        AudioSync.spotify(isOurTrack(c) && s.state == PlaybackState.STATE_PLAYING && s.position >= 0,
+            s.position, s.lastPositionUpdateTime, s.playbackSpeed)
+    }
+
+    private fun startListening() {
+        hearing = true
+        noteSpotify()
+        record("listen", note = "event=listen_on")
+        AudioSync.startMic(this)
+        if (Build.VERSION.SDK_INT >= 29) {
+            Toast.makeText(this, R.string.listen_consent_note, Toast.LENGTH_LONG).show()
+            val mpm = getSystemService(android.media.projection.MediaProjectionManager::class.java)
+            try { captureConsent.launch(mpm.createScreenCaptureIntent()) } catch (e: Exception) {
+                record("listen", note = "source=capture;event=failed;error=${e.javaClass.simpleName}")
+            }
+        } else record("listen", note = "source=capture;event=unavailable;error=Android below 10")
+    }
+
+    private fun stopListening() {
+        hearing = false
+        AudioSync.stopAll()
+        stopService(Intent(this, CaptureService::class.java))
+        record("listen", note = "event=listen_off")
+    }
+
+    /** the correction in use, for a tap row's note */
+    private fun syncNote(): String = AudioSync.correction()?.let { String.format(Locale.US, "correction_ms=%.0f;correction_source=%s", it.second * 1000, it.first) } ?: ""
 
     private fun isPlaying(): Boolean {
         val s = spotify?.playbackState?.state ?: return false
@@ -266,7 +329,9 @@ class SpotifyTestActivity : AppCompatActivity() {
         val reported = s?.position ?: -1L
         val age = s?.let { now - it.lastPositionUpdateTime } ?: 0L
         status.text = getString(R.string.status_line, title, artist, stateName(s?.state ?: -1), time(est), time(reported),
-            age / 1000.0, s?.playbackSpeed ?: 0f, route, log.taps())
+            age / 1000.0, s?.playbackSpeed ?: 0f, route, log.taps()) +
+            (if (hearing) "
+" + getString(R.string.listen_status, AudioSync.statusText()) else "")
     }
 
     /** milliseconds since the last beat of the map at Spotify's position right now, or null when nothing plays */
@@ -274,7 +339,7 @@ class SpotifyTestActivity : AppCompatActivity() {
         val g = grid ?: return null
         val s = spotify?.playbackState ?: return null
         if (s.state != PlaybackState.STATE_PLAYING || s.position < 0) return null
-        val t = estimate(s, SystemClock.elapsedRealtime()) / 1000.0
+        val t = estimate(s, SystemClock.elapsedRealtime()) / 1000.0 + (AudioSync.correction()?.second ?: 0.0)
         if (t < g.beats.first() - 0.05 || t > g.beats.last() + g.beat) return null
         val b = g.beatAt(t)
         return ((t - g.beatSeconds(kotlin.math.floor(b))) * 1000).toLong()
@@ -291,7 +356,7 @@ class SpotifyTestActivity : AppCompatActivity() {
 
     private fun tap(e: MotionEvent, index: Int) {
         pad.count = log.taps() + 1
-        record("tap", eventUptime = e.eventTime, x = e.getX(index), y = e.getY(index), pointers = e.pointerCount, tapNumber = pad.count)
+        record("tap", eventUptime = e.eventTime, x = e.getX(index), y = e.getY(index), pointers = e.pointerCount, tapNumber = pad.count, note = syncNote())
     }
 
     private fun longPress() {
