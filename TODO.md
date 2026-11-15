@@ -59,14 +59,6 @@ down without doing it. When one is finished, move it to "Done" with the date and
 - **Questions for later:** what is wrong with the current circle, and how the user dances it (start, end, turn, where
   each dancer goes).
 
-### Underarm circle: fix the foot placement
-- **Added:** 2026-11-16, by the user.
-- **What:** finish "underarm circle" (`dance/skeletons/elements/underarm_circle__side__L__facing.json`): "similar to
-  circle, except it ends in face to face, there [are] subtle difference[s] in foot placement".
-- **Context:** made on 2026-11-15 as a copy of Circle with its end state set to facing; the steps are still Circle's, so
-  `check.py` reports its end position (and a close count 4 and 6). The user places the feet in the editor. Explore lists
-  it in the Elements group after circle.
-
 ### From the first maintainer's backlog (handover section 9)
 - Exercises graded by the sections of Slow Your Roll where the beat moves (harder) or does not (easier).
 - A licence agreement with Laughing Manny before any public release; more real-band saxophone swing tracks.
@@ -75,6 +67,7 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-16, v40:** "Underarm circle: fix the foot placement": placed by the user.
 - **2026-11-16, v40:** "Yoyo": YOYO (12 beats, side to side), written by the user from the "send out and bring
   back" copy.
 - **2026-10-28, v19 (the redesign):** "the exploration floor's play honouring the snare and hi-hat toggles" (first
