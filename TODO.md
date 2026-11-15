@@ -67,13 +67,6 @@ down without doing it. When one is finished, move it to "Done" with the date and
   `check.py` reports its end position (and a close count 4 and 6). The user places the feet in the editor. Explore lists
   it in the Elements group after circle.
 
-### Yoyo
-- **Added:** 2026-11-16, by the user.
-- **What:** write the element "yoyo"; "this one is complicated, I'll do it completely manually" (user 2026-11-15).
-- **Context:** made on 2026-11-16 as "YOYO" (`dance/skeletons/elements/YOYO__side__L__side.json`, 12 beats, side to
-  side): the sub-composition "send out and bring back" written out as one element (send out's 6 counts, then bring
-  back's as 7 to 12), for the user to change by hand. Explore lists it in the Elements group.
-
 ### From the first maintainer's backlog (handover section 9)
 - Exercises graded by the sections of Slow Your Roll where the beat moves (harder) or does not (easier).
 - A licence agreement with Laughing Manny before any public release; more real-band saxophone swing tracks.
@@ -82,6 +75,8 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-16, v40:** "Yoyo": YOYO (12 beats, side to side), written by the user from the "send out and bring
+  back" copy.
 - **2026-10-28, v19 (the redesign):** "the exploration floor's play honouring the snare and hi-hat toggles" (first
   maintainer's backlog) no longer applies: there is one dance floor, it plays on the music, the settings page chooses
   the drums and the mute button silences everything.
