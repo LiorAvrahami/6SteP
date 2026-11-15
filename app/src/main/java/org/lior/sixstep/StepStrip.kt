@@ -149,6 +149,9 @@ class StepStrip @JvmOverloads constructor(context: Context, attrs: AttributeSet?
 
     override fun onDraw(c: Canvas) {
         val w = width.toFloat()
+        // the strip draws only inside itself: an explore row does not clip its children (the version button's count badge
+        // sticks out of its box), so a picture scrolled past the strip's left edge used to show over the row's name
+        c.clipRect(0f, 0f, w, height.toFloat())
         if (barColor != Color.TRANSPARENT) { paint.style = Paint.Style.FILL; paint.color = barColor; c.drawRect(0f, band(), w, height.toFloat(), paint) }
         val n = cells.size
         if (n == 0) return

@@ -307,6 +307,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   choice of mock-ups), "rock triple triple" and "follower underarm and back". v25: dragging a row puts the others back
   at once. v27: the heart page without its beer box; the $ button opens "Buy me a Beer" (made on main
   while the working copy was on the spotify-sync-test branch of another session, then merged into it: pre-release v28).
+  2026-11-15 (on main): the explore rows' step strips clip their drawing to themselves; a strip scrolled sideways drew its
+  leftmost picture over the row's name, because the row does not clip its children (`StepStrip.onDraw`).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
