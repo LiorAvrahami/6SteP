@@ -29,13 +29,20 @@ import androidx.core.graphics.drawable.DrawableCompat
  *  first step of the version shown; the version chosen is remembered. */
 class ExploreActivity : AppCompatActivity() {
     companion object {
-        /** the Elements group, in this order (user 2026-10-29); every other element and block is under Building Blocks */
-        val ELEMENTS = listOf("rock step", "rock triple triple", "triple step", "side to side", "follower underarm and back",
-            "follower underarm pass", "rock back cutoff", "lead underarm pass", "circle", "follower underarm to arrow")
+        /** a row of the Elements group: a name, and when only some of its versions are elements, their start and end states
+         *  (its other versions are building blocks) */
+        class Pick(val name: String, val only: Set<Pair<String, String>>? = null)
+        /** the Elements group, in this order (user 2026-10-29). User 2026-11-15: the rock step and the triple step are
+         *  building blocks, and so are the follower underarm pass from side by side (to face to face, to reversed side);
+         *  the one from face to face to face to face stays an element. Everything else is under Building Blocks. */
+        val ELEMENTS = listOf(Pick("rock triple triple"), Pick("side to side"), Pick("follower underarm and back"),
+            Pick("follower underarm pass", setOf("facing" to "facing")), Pick("rock back cutoff"), Pick("lead underarm pass"),
+            Pick("circle"), Pick("follower underarm to arrow"))
     }
 
     /** one way to dance a row's piece: an element from one starting condition, or the one way of a block or composition */
-    private class Version(val piece: Piece, val facing: String, val foot: String, val footShort: String, val cells: List<StepStrip.Cell>)
+    private class Version(val piece: Piece, val facing: String, val foot: String, val footShort: String, val cells: List<StepStrip.Cell>,
+                          val startState: String, val endState: String)
     private class Row(val strip: StepStrip, var centre: Int)
     private val rows = ArrayList<Row>()
     private var corpus: List<DoubleArray> = emptyList()
@@ -58,7 +65,8 @@ class ExploreActivity : AppCompatActivity() {
             val left = c.startFree == 'L'
             return Version(p, c.startState.replace('_', ' ') + " → " + c.endState.replace('_', ' '),
                 getString(if (left) R.string.left_free else R.string.right_free),
-                getString(if (left) R.string.left_free_short else R.string.right_free_short), cellsOf(t, stopsOf(t), start))
+                getString(if (left) R.string.left_free_short else R.string.right_free_short), cellsOf(t, stopsOf(t), start),
+                c.startState, c.endState)
         }
         val elementRows = data.names.associateWith { name ->
             data.variants(name).indices.mapNotNull { i -> Piece.find(data, store, Piece.ELEMENT, name, i)?.let { version(it) } }
@@ -69,9 +77,16 @@ class ExploreActivity : AppCompatActivity() {
         corpus = elementRows.values.flatMap { vs -> vs.flatMap { v -> v.cells.drop(1).mapNotNull { Rarity.descriptor(it.feet) } } }
         fun rowFor(name: String): Pair<String, List<Version>>? =
             (elementRows.entries.firstOrNull { it.key.equals(name, true) } ?: blockRows.entries.firstOrNull { it.key.equals(name, true) })?.toPair()
-        val elements = ELEMENTS.mapNotNull { rowFor(it) }
-        val shown = elements.map { it.first }.toSet()
-        val blocks = (elementRows + blockRows).filterKeys { it !in shown }.toList()
+        val elements = ELEMENTS.mapNotNull { pick ->
+            rowFor(pick.name)?.let { (name, vs) ->
+                val only = pick.only
+                val keep = if (only == null) vs else vs.filter { (it.startState to it.endState) in only }
+                if (keep.isEmpty()) null else Pair(name, keep)
+            }
+        }
+        // every version not in the Elements group is a building block, under the same name
+        val shown = elements.flatMap { it.second }.toSet()
+        val blocks = (elementRows + blockRows).mapNotNull { (name, vs) -> vs.filter { it !in shown }.takeIf { it.isNotEmpty() }?.let { Pair(name, it) } }
         val compositions = store.compositions.mapNotNull { c -> Piece.find(data, store, Piece.COMPOSITION, c.name)?.let { version(it) }?.let { Pair(c.name, listOf(it)) } }
         group(list, R.string.elements, "elements", true, elements)
         group(list, R.string.compositions, "compositions", true, compositions)
@@ -88,7 +103,7 @@ class ExploreActivity : AppCompatActivity() {
         val triangle = header.findViewById<ImageView>(R.id.headerTriangle)
         val box = LinearLayout(this)
         box.orientation = LinearLayout.VERTICAL
-        for ((name, versions) in items) box.addView(rowView(box, name, versions))
+        for ((name, versions) in items) box.addView(rowView(box, name, versions, key))
         var open = prefs.getBoolean("explore_open_$key", openByDefault)
         fun refresh() { box.visibility = if (open) View.VISIBLE else View.GONE; triangle.rotation = if (open) 0f else 90f }
         refresh()
@@ -96,7 +111,7 @@ class ExploreActivity : AppCompatActivity() {
         list.addView(header); list.addView(box)
     }
 
-    private fun rowView(parent: ViewGroup, name: String, versions: List<Version>): View {
+    private fun rowView(parent: ViewGroup, name: String, versions: List<Version>, group: String): View {
         val prefs = getSharedPreferences("6step", MODE_PRIVATE)
         val v = layoutInflater.inflate(R.layout.explore_row, parent, false)
         val nameBox = v.findViewById<View>(R.id.rowName)
@@ -112,7 +127,8 @@ class ExploreActivity : AppCompatActivity() {
         strip.cellsAcross = 3f; strip.separators = true
         val row = Row(strip, 0)
         rows.add(row)
-        val key = "explore_version_" + versions[0].piece.kind + "_" + name
+        // a name can have rows in two groups (some versions elements, the others building blocks): each remembers its own
+        val key = "explore_version_" + versions[0].piece.kind + "_" + name + (if (group == "blocks" && versions[0].piece.kind == Piece.ELEMENT) "_block" else "")
         var chosen = prefs.getInt(key, 0).coerceIn(0, versions.size - 1)
         val pillViews = ArrayList<TextView>()
 

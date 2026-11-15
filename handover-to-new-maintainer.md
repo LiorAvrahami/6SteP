@@ -309,6 +309,10 @@ commit (there is no diff step any more: the editor's file is the only version). 
   while the working copy was on the spotify-sync-test branch of another session, then merged into it: pre-release v28).
   2026-11-15 (on main): the explore rows' step strips clip their drawing to themselves; a strip scrolled sideways drew its
   leftmost picture over the row's name, because the row does not clip its children (`StepStrip.onDraw`).
+  2026-11-15: Explore's Elements group no longer lists the rock step and the triple step (building blocks, the user), and
+  of the follower underarm pass only the version from face to face to face to face is an element; its versions from side
+  by side (to face to face, to reversed side) are under Building Blocks, in a row of the same name
+  (`ExploreActivity.ELEMENTS` takes a name and, optionally, the start and end states of the versions that are elements).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
