@@ -37,7 +37,7 @@ class ExploreActivity : AppCompatActivity() {
          *  the one from face to face to face to face stays an element. Everything else is under Building Blocks. */
         val ELEMENTS = listOf(Pick("rock triple triple"), Pick("side to side"), Pick("follower underarm and back"),
             Pick("follower underarm pass", setOf("facing" to "facing")), Pick("rock back cutoff"), Pick("lead underarm pass"),
-            Pick("circle"), Pick("follower underarm to arrow"))
+            Pick("circle"), Pick("underarm circle"), Pick("yoyo"), Pick("tak turn"), Pick("follower underarm to arrow"))
     }
 
     /** one way to dance a row's piece: an element from one starting condition, or the one way of a block or composition */

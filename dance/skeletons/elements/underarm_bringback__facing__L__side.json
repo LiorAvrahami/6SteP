@@ -1,5 +1,5 @@
 {
- "name": "recapture underarm pass",
+ "name": "underarm bringback",
  "start_state": "facing",
  "end_state": "side",
  "beats": 6,
@@ -33,9 +33,9 @@
    "count": "2",
    "dancer": "F",
    "foot": "L",
-   "x": 20,
-   "y": 31,
-   "heading": 180
+   "x": 23,
+   "y": 39.5,
+   "heading": 160
   },
   {
    "count": "3",
@@ -49,9 +49,15 @@
    "count": "3",
    "dancer": "F",
    "foot": "R",
-   "x": 36,
-   "y": 18,
-   "heading": 135
+   "x": 37,
+   "y": 16,
+   "heading": 100,
+   "via": [
+    [
+     8.9,
+     32.7
+    ]
+   ]
   },
   {
    "count": "3&",

@@ -100,6 +100,9 @@ class DanceData(val states: Map<String, DanceState>, val elements: List<Element>
                     val h = hj.getJSONObject(k)
                     hands.add(Pair(h.get("count").toString(), strList(h.optJSONArray("hands"))))
                 }
+                // an element still being written in the editor, with no steps yet for one of the dancers, is left out
+                // until it has them (it could not be danced, and its end would be unknown)
+                if (steps.none { it.dancer == 'L' } || steps.none { it.dancer == 'F' }) continue
                 elements.add(Element(e.getString("name"), e.getString("start_state"), e.getString("end_state"), e.getInt("beats"),
                     e.optString("leader_free_start", "L").firstOrNull() ?: 'L', e.optString("source", ""), e.optString("notes", ""), steps, hands))
             }

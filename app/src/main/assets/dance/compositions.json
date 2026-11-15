@@ -1,5 +1,5 @@
 {
- "_about": "Compositions: named sequences of entries. An entry is an element name, a sub-composition name, or either followed by ' x N'; 'say: text' is an annotation shown and read aloud before the next entry; an entry in parentheses, like '(recapture underarm pass)', is quiet: danced but not announced, and not a stop for the swipes. Sub-compositions (made of elements) are used inside compositions by name; the composer picks each element's starting condition from the previous element's end.",
+ "_about": "Compositions: named sequences of entries. An entry is an element name, a sub-composition name, or either followed by ' x N'; 'say: text' is an annotation shown and read aloud before the next entry; an entry in parentheses, like '(underarm bringback)', is quiet: danced but not announced, and not a stop for the swipes. Sub-compositions (made of elements) are used inside compositions by name; the composer picks each element's starting condition from the previous element's end.",
  "compositions": [
   {
    "name": "5 minutes exercise",
@@ -12,13 +12,13 @@
     "(follower underarm pass)",
     "lead underarm pass x10",
     "follower underarm pass x10",
-    "(recapture underarm pass)",
+    "(underarm bringback)",
     "rock back cutoff x10",
     "Circle x10",
     "follower underarm to arrow x10"
    ],
-   "notes": "The daily routine, remade 2026-10-26: every kind once. Rock triple triple and the bridges are quiet (in parentheses): the recapture is danced as \"follower underarm and back\", and quiet bridges join face to face and side by side.",
-   "revision": 5
+   "notes": "The daily routine, remade 2026-10-26: every kind once. Rock triple triple and the bridges are quiet (in parentheses): the underarm bringback is danced as \"follower underarm and back\", and quiet bridges join face to face and side by side.",
+   "revision": 6
   }
  ],
  "sub_compositions": [
@@ -39,10 +39,10 @@
    "repeat": 1,
    "elements": [
     "follower underarm pass",
-    "recapture underarm pass"
+    "underarm bringback"
    ],
-   "notes": "Follower underarm pass out to face to face and the recapture back to side by side (the user's name, 2026-10-19).",
-   "revision": 1
+   "notes": "Follower underarm pass out to face to face and the underarm bringback back to side by side (the user's name, 2026-10-19).",
+   "revision": 2
   },
   {
    "name": "side to side",
