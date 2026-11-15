@@ -70,8 +70,9 @@ down without doing it. When one is finished, move it to "Done" with the date and
 ### Yoyo
 - **Added:** 2026-11-16, by the user.
 - **What:** write the element "yoyo"; "this one is complicated, I'll do it completely manually" (user 2026-11-15).
-- **Context:** not created yet; the user makes it in the editor (new element, start and end facing). Explore already
-  lists "yoyo" in the Elements group, shown once it exists with steps for both dancers.
+- **Context:** made on 2026-11-16 as "YOYO" (`dance/skeletons/elements/YOYO__side__L__side.json`, 12 beats, side to
+  side): the sub-composition "send out and bring back" written out as one element (send out's 6 counts, then bring
+  back's as 7 to 12), for the user to change by hand. Explore lists it in the Elements group.
 
 ### From the first maintainer's backlog (handover section 9)
 - Exercises graded by the sections of Slow Your Roll where the beat moves (harder) or does not (easier).

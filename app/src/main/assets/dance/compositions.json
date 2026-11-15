@@ -65,6 +65,16 @@
     "arrow"
    ],
    "notes": ""
+  },
+  {
+   "name": "send out and bring back",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "send out",
+    "bring back"
+   ],
+   "notes": "Send out to face to face, bring back to side by side (user 2026-11-16)."
   }
  ]
 }

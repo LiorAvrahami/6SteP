@@ -35,7 +35,7 @@ class ExploreActivity : AppCompatActivity() {
         /** the Elements group, in this order (user 2026-10-29). User 2026-11-15: the rock step and the triple step are
          *  building blocks, and so are the follower underarm pass from side by side (to face to face, to reversed side);
          *  the one from face to face to face to face stays an element. Everything else is under Building Blocks. */
-        val ELEMENTS = listOf(Pick("rock triple triple"), Pick("side to side"), Pick("follower underarm and back"),
+        val ELEMENTS = listOf(Pick("rock triple triple"), Pick("side to side"), Pick("follower underarm and back"), Pick("send out and bring back"),
             Pick("follower underarm pass", setOf("facing" to "facing")), Pick("rock back cutoff"), Pick("lead underarm pass"),
             Pick("circle"), Pick("underarm circle"), Pick("yoyo"), Pick("tak turn"), Pick("follower underarm to arrow"))
     }
