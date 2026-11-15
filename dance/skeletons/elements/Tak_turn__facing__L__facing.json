@@ -1,0 +1,160 @@
+{
+ "name": "Tak turn",
+ "start_state": "facing",
+ "end_state": "facing",
+ "beats": 6,
+ "leader_free_start": "L",
+ "hands": [],
+ "steps": [
+  {
+   "count": "1",
+   "dancer": "L",
+   "foot": "L",
+   "x": 0,
+   "y": 14,
+   "heading": 0
+  },
+  {
+   "count": "1",
+   "dancer": "F",
+   "foot": "R",
+   "x": 8,
+   "y": 48,
+   "heading": 200
+  },
+  {
+   "count": "2",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "2",
+   "dancer": "F",
+   "foot": "L",
+   "x": 20,
+   "y": 31,
+   "heading": 180
+  },
+  {
+   "count": "3",
+   "dancer": "L",
+   "foot": "L",
+   "x": -1,
+   "y": -9,
+   "heading": 0
+  },
+  {
+   "count": "3",
+   "dancer": "F",
+   "foot": "R",
+   "x": 3,
+   "y": 33,
+   "heading": 225
+  },
+  {
+   "count": "3&",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "3&",
+   "dancer": "F",
+   "foot": "L",
+   "x": 22,
+   "y": 31,
+   "heading": 165
+  },
+  {
+   "count": "4",
+   "dancer": "L",
+   "foot": "L",
+   "x": -2,
+   "y": -2,
+   "heading": 0
+  },
+  {
+   "count": "4",
+   "dancer": "F",
+   "foot": "R",
+   "x": 4,
+   "y": 39,
+   "heading": 315
+  },
+  {
+   "count": "5",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "5",
+   "dancer": "F",
+   "foot": "L",
+   "x": -3.3,
+   "y": 56.4,
+   "heading": 435,
+   "via": [
+    [
+     8.6,
+     21.2
+    ],
+    [
+     -8.7,
+     25.9
+    ],
+    [
+     -13.5,
+     42.5
+    ]
+   ]
+  },
+  {
+   "count": "5&",
+   "dancer": "L",
+   "foot": "L",
+   "x": -2,
+   "y": -2,
+   "heading": 0
+  },
+  {
+   "count": "5&",
+   "dancer": "F",
+   "foot": "R",
+   "x": -1.3,
+   "y": 35.7,
+   "heading": 540
+  },
+  {
+   "count": "6",
+   "dancer": "L",
+   "foot": "R",
+   "x": 20,
+   "y": 0,
+   "heading": 0
+  },
+  {
+   "count": "6",
+   "dancer": "F",
+   "foot": "L",
+   "x": 18.3,
+   "y": 35.8,
+   "heading": 530,
+   "via": [
+    [
+     10.5,
+     50.3
+    ]
+   ]
+  }
+ ],
+ "winding": true,
+ "order": 18
+}
