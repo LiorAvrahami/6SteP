@@ -103,10 +103,17 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
   triple step, triple step, renamed "rock triple triple" on 2026-10-29, when "follower pass & back" became "follower
   underarm and back"; "follower pass & back" = follower underarm pass, recapture; pass+circle), either "x N",
   "say: text" annotations (app only), and quiet entries in parentheses, "(recapture underarm pass)", which are danced
-  but never announced and are not swipe stops (since v10; the edit dialog has a "quiet" box). The daily routine is
-  "5 minutes exercise" (582 beats; 4:03 on Hot Swing): 5 RTT quiet, 15 follower passes, 15 lead passes, 10 cutoffs,
-  12 "follower pass & back", 15 lead passes, 10 cutoffs, with quiet bridges where the states do not meet (the cutoff
-  starts side by side, the lead pass starts face to face). The user wants bridges quiet and RTT never announced.
+  but never announced and are not swipe stops (since v10; the edit dialog has a "quiet" box). The daily routine is the
+  composition still named "5 minutes exercise" (the app takes the first one with "exercise" in its name); the user
+  wants its bridges quiet and RTT never announced.
+- **The daily exercise's philosophy** (the user, 2026-11-16; also in the composition's own notes): **as short as
+  possible, with as many elements as possible packed into it.** It is not aimed at 5 minutes; it is aimed at a good
+  amount of elements in the least time, about 3 minutes now. Its order serves that and is the user's: ordered well,
+  the elements pack better (fewer bridges between them) and the whole makes more sense to the person dancing it, so it
+  feels less chaotic. So it does not follow Explore's order, which is the order the elements were learned in (the
+  quick recap keeps that order too). Few repeats: two of what is known well, a few more of what is new; never more than
+  4 underarm circles. When an element is added: find the place where it packs best and makes sense, give it the most
+  repeats, take repeats away elsewhere, and show the user the order before building.
 - **Tools.** `render.py` makes an MP4 on the music (about 40 fps, stops where a short track ends); the editor
   (`dance/editor/server.py`, port 8771) edits skeletons and compositions, plays in the browser with Web Audio and
   autosaves; a Node test with a stubbed DOM covers the page logic: `node dance/editor/test/test_editor.js`.
@@ -259,14 +266,6 @@ commit (there is no diff step any more: the editor's file is the only version). 
 
 ## 7. State at the handover (2026-10-19)
 
-- **Waiting for the user's confirmation since 2026-11-16, not built, not on main.** They asked to see the order before
-  the next build. On the branch `claude/inspiring-heisenberg-kuti4n` (one commit ahead of main): (1) a new order for the
-  daily exercise, which no longer follows Explore's order (non-turning elements first, as they asked): rock triple triple
-  1 (quiet), side to side 2, send out and bring back 4, yoyo 18, follower underarm and back 2, follower underarm pass 2,
-  lead underarm pass 3, follower underarm to arrow 3, rock back cutoff 2, circle 3, underarm circle 4 (their cap), tak
-  turn 24; (2) what they asked for in the same message: a swipe to a part lands 2 beats before it, nothing is written
-  once a part has started, and the voice says how many times an entry repeats while the screen never does. When they
-  confirm or change the order: put the branch on main, watch the build, name the release, and delete this paragraph.
 - Releases: v2 first APK (2026-10-18), v3 camera/sounds/swipes/map, v4 folding rows, BPM-paced transitions, chained loop,
   v5 sync screen removed and review fixes, v6 the annotated Slow Your Roll grid and the difficulty text, **v7 (build passed, APK 71 MB)
   the snare and hi-hat sounds, the tempo variants, the player's options bar and the dimming fix.** v8 is this file alone.
@@ -374,6 +373,19 @@ commit (there is no diff step any more: the editor's file is the only version). 
   (`MARK_MIN_R_DP`), since the paused view with its bars is zoomed far out. The user found the editor's turn arrow too
   big and badly placed; the editor's is unchanged (it is a handle there: a click flips the way round). The look was
   tried first in a throwaway Python picture; nobody has seen it on a phone.
+  2026-11-16, the user's answers on the annotations (in the commit that waits, see the top of this section): a swipe to
+  a part lands `ANNOUNCE_LEAD` beats before it (`jumpLead` in `skip()`; the part's annotation is written for those beats
+  and not read aloud), and nothing is written once a part has started: an annotation that comes up with less than
+  `MIN_NOTICE` beats left (play started on the part's first step) is only read. The voice says how many times an entry
+  repeats ("side to side, 2 times": `said`), the screen never writes it (`phrases` strips `TIMES`, also from a "say:"
+  text that ends in ", N times", which is how a run of quiet entries gets its count spoken). The editor mirrors this
+  (`model.expand_annotations` keeps the count, `drawNote` strips it). The daily exercise (revision 12) has its own
+  order and is about 3 minutes (388 beats: 2:41 on Hot Swing, 3:03 on Sunday Reflection, 3:09 on Slow Your Roll): rock
+  triple triple 1 (quiet), side to side 2, send out and bring back 4, yoyo 8, follower underarm and back 2, follower
+  underarm pass 2, lead underarm pass 2, follower underarm to arrow 2, rock back cutoff 2, circle 2, underarm circle
+  4, tak turn 10; it ends face to face after the last tak turn (no bringback after it). The user confirmed the order
+  and asked for about 3 minutes; see the philosophy in section 3. Still to settle with them: the composition's name
+  and the launcher's help text ("Five minutes a day ...") still say five minutes.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

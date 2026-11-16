@@ -34,14 +34,16 @@ import kotlin.math.roundToInt
  *  while playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
  *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), flow/schema, edit, back. Bottom bar: every step of
  *  the piece, the current one framed, the annotations pointing at where they start; a tap on a step goes there.
- *  While a composition plays, each annotation (a "say:" text, the name of an entry; never how many times it repeats)
- *  comes up at the top, and is read aloud, 2 beats before its element starts, and goes away just as the element starts.
+ *  While a composition plays, each annotation (a "say:" text, the name of an entry) comes up at the top, and is read
+ *  aloud, 2 beats before its element starts, and goes away just as the element starts. The voice says how many times
+ *  an entry repeats; the screen never does. A swipe to a part lands those 2 beats before it.
  *  Compositions play once to the end; elements and building blocks loop (chained so that the last beat flows into the
  *  first when they close on themselves, otherwise from the start position again after two beats). */
 class DanceFloorActivity : AppCompatActivity() {
     companion object {
         const val ANNOUNCE_LEAD = 2.0         // an annotation comes up this many beats before its element starts, and goes as it starts (user 2026-11-16)
-        const val LATE_NOTICE = 1.0           // one that comes up with less warning than this (a jump to its part) shows for ANNOUNCE_LEAD beats instead
+        const val MIN_NOTICE = 0.5            // with less time than this left before its element, it is not written at all (too short to read)
+        val TIMES = Regex(",\\s*\\d+\\s+times\\s*$")   // how often an entry repeats, as the voice says it: never written on the screen
         const val BACK_REPLAY_SECONDS = 2.0   // swipe right in the first 2 s of a part goes to the previous one (as in Workout Instructinator)
         const val LOOP_REST = 2.0             // beats of the start position before a piece that does not close is danced again
         const val CHAIN_BEATS = 1200.0        // a piece that closes is chained to about this long for play
@@ -75,6 +77,7 @@ class DanceFloorActivity : AppCompatActivity() {
     private var barsAnim: ValueAnimator? = null
     private var cues: List<Pair<Double, CElement>> = emptyList()   // a composition's annotations: (its element's start, the element), in order
     private var lastCue = -1                             // the last annotation that has come up, or whose element is under way
+    private var jumpLead = 0.0                           // a swipe lands this many beats before a part: where its annotation comes up (compositions)
     private var silentUntil = Double.NEGATIVE_INFINITY   // a jump's part (an element starting by this beat) is shown, not read aloud
     private var banner: String? = null
     private var bannerUntil = Double.NEGATIVE_INFINITY
@@ -139,7 +142,8 @@ class DanceFloorActivity : AppCompatActivity() {
         strip.cells = cellsOf(t, stops, getString(R.string.start))
         strip.callouts = callouts(p, t)
         // a composition plays once, so the clock's beats are its own beats
-        if (p.isComposition) cues = ptl.composed.elements.filter { phrases(it).isNotEmpty() }.map { Pair(it.start, it) }
+        if (p.isComposition) cues = ptl.composed.elements.filter { said(it).isNotEmpty() }.map { Pair(it.start, it) }
+        if (cues.isNotEmpty()) jumpLead = ANNOUNCE_LEAD
         strip.onTap = { k -> tapStop(k) }
         if (p.isComposition) pb.prefetch(composed.elements.mapNotNull { announcement(it) }.distinct())
         val autoplay = intent.getBooleanExtra("autoplay", false)
@@ -292,11 +296,17 @@ class DanceFloorActivity : AppCompatActivity() {
         if (barsShown) strip.scrollToCell(idx, true)
     }
 
-    /** an entry's name without how many times it repeats (user 2026-11-16): "side to side x10" -> "side to side" */
-    private fun entryName(label: String): String = Regex("^(.*?)\\s*x(\\d+)$").matchEntire(label)?.groupValues?.get(1) ?: label
-    /** an element's annotation in a composition, shown and said: its "say:" text, and the name of the entry it starts */
-    private fun phrases(e: CElement): List<String> = listOfNotNull(e.annotation, if (e.entryStart) entryName(e.entryLabel) else null)
-    private fun announcement(e: CElement): String? = phrases(e).joinToString(". ").ifEmpty { null }
+    /** an entry as the voice says it, with how often it repeats: "side to side x10" -> "side to side, 10 times" */
+    private fun spokenEntry(label: String): String {
+        val m = Regex("^(.*?)\\s*x(\\d+)$").matchEntire(label)
+        return if (m != null) "${m.groupValues[1]}, ${m.groupValues[2]} times" else label
+    }
+    /** an element's annotation in a composition as the voice says it: its "say:" text, and the entry it starts */
+    private fun said(e: CElement): List<String> = listOfNotNull(e.annotation, if (e.entryStart) spokenEntry(e.entryLabel) else null)
+    /** the same as it is written, on the floor and in the bottom bar: without how many times, be it an entry's "x N" or a
+     *  "say:" text that ends in ", N times" (user 2026-11-16: the voice says the number, the screen does not) */
+    private fun phrases(e: CElement): List<String> = said(e).map { it.replace(TIMES, "") }
+    private fun announcement(e: CElement): String? = said(e).joinToString(". ").ifEmpty { null }
 
     /** the bottom bar's annotations: a composition's "say:" texts and entry names; a building block's element names */
     private fun callouts(p: Piece, t: Timeline): List<Pair<Int, String>> = t.composed.elements.mapNotNull { e ->
@@ -395,10 +405,12 @@ class DanceFloorActivity : AppCompatActivity() {
         show(getString(R.string.done)); updateButtons(); showBars()
     }
 
-    /** while playing: to the next part, or back to the start of this one (the previous one in its first seconds) */
+    /** while playing: to the next part, or back to the start of this one (the previous one in its first seconds). In a
+     *  composition a swipe lands ANNOUNCE_LEAD beats before the part, where its annotation comes up: it is on the screen
+     *  for those beats and gone when the part starts (user 2026-11-16) */
     private fun skip(forward: Boolean) {
         val b = pb.beatNow()
-        val near = partsNear(b)
+        val near = partsNear(b).map { it - jumpLead }   // where a swipe lands for each part
         val target = if (forward) (near.firstOrNull { it > b + 0.05 } ?: return) else {
             val cur = near.lastOrNull { it <= b + 0.05 } ?: 0.0
             if (b - cur > BACK_REPLAY_SECONDS * pb.bpm() / 60.0) cur else (near.lastOrNull { it < cur - 0.05 } ?: 0.0)
@@ -407,7 +419,7 @@ class DanceFloorActivity : AppCompatActivity() {
         if (!pb.playing) { standAt(target); return }
         hold = Double.NEGATIVE_INFINITY; banner = null
         lastCue = cues.indexOfLast { it.first < target - 0.01 }
-        silentUntil = target + 0.05
+        silentUntil = target + jumpLead + 0.05   // the part the swipe went to is written, not read aloud
     }
 
     private val frame = object : Runnable {
@@ -425,15 +437,14 @@ class DanceFloorActivity : AppCompatActivity() {
 
     /** a composition's annotations, by the clock itself (so the first can come up during the count-in): each comes up
      *  ANNOUNCE_LEAD beats before its element starts, is read aloud, and goes away just as the element starts (user
-     *  2026-11-16). After a start or a jump, one whose time has already come comes up at once; when that leaves less than
-     *  LATE_NOTICE beats before its element (a jump to that part, play started on its first step) there is no "before"
-     *  to show it in, and it stays ANNOUNCE_LEAD beats instead. The part a jump went to is shown, not read. */
+     *  2026-11-16): once a part has started nothing is written. After a start or a jump, one whose time has already come
+     *  comes up at once, for what is left until its element; with less than MIN_NOTICE beats left (play started on the
+     *  part's first step) it is only read aloud. The part a jump went to is written, not read. */
     private fun announce(b: Double) {
         val next = cues.getOrNull(lastCue + 1)
         if (next != null && b >= next.first - ANNOUNCE_LEAD) {
             lastCue++
-            banner = phrases(next.second).joinToString("\n")
-            bannerUntil = if (next.first - b >= LATE_NOTICE) next.first else b + ANNOUNCE_LEAD
+            if (next.first - b >= MIN_NOTICE) { banner = phrases(next.second).joinToString("\n"); bannerUntil = next.first }
             if (next.first > silentUntil) announcement(next.second)?.let { pb.speak(it) }
         }
         if (b > bannerUntil) banner = null

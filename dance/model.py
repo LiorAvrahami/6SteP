@@ -467,10 +467,11 @@ def expand_sequence(entries, subs, _depth=0, _inside=()):
     return out
 
 def expand_annotations(entries, subs, _depth=0, _inside=()):
-    """For each element of expand_sequence(entries, subs), in the same order: what the phone shows and says for it, 2 beats
-    before it starts (the app's CompositionStore.expand and DanceFloorActivity): 'say', the "say:" texts written before its
-    entry, and 'announce', at the start of an entry that is not quiet, the entry's name ("lead underarm pass"; never how
-    many times it repeats, user 2026-11-16)."""
+    """For each element of expand_sequence(entries, subs), in the same order: what the phone says for it, 2 beats before
+    it starts (the app's CompositionStore.expand and DanceFloorActivity): 'say', the "say:" texts written before its
+    entry, and 'announce', at the start of an entry that is not quiet, the entry with how often it repeats ("lead
+    underarm pass, 10 times"). The voice says the number; what is written on the floor drops it, in an entry and in a
+    "say:" text that ends in ", N times" alike (user 2026-11-16)."""
     by_name = {s['name']: s for s in (subs or [])}
     out, pending = [], None
     for entry in entries:
@@ -479,7 +480,7 @@ def expand_annotations(entries, subs, _depth=0, _inside=()):
             pending = (pending + '. ' if pending else '') + t[4:].strip()
             continue
         name, times, _end, quiet = parse_entry_full(entry)
-        spoken = name
+        spoken = f'{name}, {times} times' if times > 1 else name
         for rep in range(times):
             if name in by_name and name not in _inside and _depth < 6:
                 inner = expand_annotations(by_name[name]['elements'], subs, _depth + 1, _inside + (name,))

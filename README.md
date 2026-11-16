@@ -15,7 +15,7 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
 ## The screens (the user's layout draft, `design/app_layout.free`, 2026-10-28)
 
 - **Launcher**: the daily exercise (with how long it takes at the chosen song and tempo), explore, and a little floor that
-  dances the "quick recap" (every part of the daily exercise once, in its order) at 1.5 times its speed; the heart (thanks and links), settings, and help (two explanations
+  dances the "quick recap" (every element once, in the order they were learned) at 1.5 times its speed; the heart (thanks and links), settings, and help (two explanations
   with arrows where the little floor is).
 - **Explore**: three groups that fold. Elements: the user's own list, in their order, whether each is an element or a
   building block underneath (rock step, rock triple triple, triple step, side to side, follower underarm and back,
@@ -35,8 +35,9 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   of the songs along the dance), and play always starts afresh from the step on the screen: a new player sought to that
   place. Bottom bar: every step, the current one framed, the annotations
   pointing at where they start; a tap on a step goes there. Compositions play once to the end; elements and building
-  blocks loop. While a composition plays, the name of each part comes up, and is read aloud, 2 beats before the part
-  starts (never how many times it repeats), and goes away just as the part starts. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
+  blocks loop. While a composition plays, the name of each part comes up 2 beats before the part starts and goes away
+  just as it starts; the voice reads it with how many times it repeats, the screen writes only the name. A swipe to a
+  part lands those 2 beats before it. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
   music dips to 60 percent under a spoken annotation and comes back right after it.
 - **Heart**: upright, as the user drew it (the rest of the app is sideways): the note, and the email, website and beer
   links; the $ button opens "Buy me a Beer" (its words and the amounts) in the same look.

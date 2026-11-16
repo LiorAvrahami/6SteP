@@ -170,7 +170,9 @@ any save it refuses). The page warns when the server runs older code than the fi
   turns a composition into one) or either "x N". Every row shows the starting and ending condition of the whole entry as
   dictated by the previous one; the add list only offers what can follow. The map strip lists the composed elements with
   their sub-composition group; the floor and the step flow show the composed timeline, read-only. "5 minutes exercise" is
-  the daily routine (582 beats = 4:03 on Hot Swing); it is the only composition since 2026-10-25.
+  the daily routine, now about 3 minutes (388 beats): as short as possible with as many elements as possible packed in,
+  in the user's own order (its notes in `compositions.json` say why); "Quick recap" is every element once, in the order
+  they were learned.
 - **play** (space bar too): the music runs on continuously (the whole track, looped, with a one-bar count-in) and the
   element or composition is danced on it, in the browser, with the same weight and travel model as `render.py`. If the
   dance alone would not loop (ending with the other foot free) the server pads it with triple steps

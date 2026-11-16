@@ -1106,8 +1106,8 @@
     ctx.font = '12px sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#999'; ctx.fillText(player.info || '', 12, 38);
     if (player.notes) drawNote(tl, noteBeat);
   }
-  // the annotations of a composition (what the phone shows and says: the "say:" texts and the name of an entry that is not
-  // quiet, never how many times it repeats), black on yellow at the bottom of the floor, out of the dancers' way (user
+  // the annotations of a composition (what the phone writes: the "say:" texts and the name of an entry that is not
+  // quiet, without how many times it repeats), black on yellow at the bottom of the floor, out of the dancers' way (user
   // 2026-10-26). As on the phone, each comes up NOTE_LEAD beats before its element starts and goes away just as it starts
   // (user 2026-11-16).
   const NOTE_LEAD = 2;
@@ -1117,7 +1117,7 @@
     at(b);
     if (!e && !player.closes && player.loopBeats > 0) at(b - player.loopBeats);   // a piece that starts again: its first note before the restart
     if (!e) return;
-    const lines = [e.say, e.announce].filter(Boolean);
+    const lines = [e.say, e.announce].filter(Boolean).map(t => t.replace(/,\s*\d+\s+times\s*$/, ''));   // written without how many times: the voice says that
     ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const tw = Math.max(...lines.map(t => ctx.measureText(t).width)), lh = 26, pad = 10;
     const bw = tw + pad * 3, bh = lines.length * lh + pad, x0 = cv.width / 2 - bw / 2, y0 = cv.height - 16 - bh;
