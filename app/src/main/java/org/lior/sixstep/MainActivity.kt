@@ -86,7 +86,7 @@ class MainActivity : AppCompatActivity() {
             val data = DanceData.load(this)
             val whole = Composer.compose(data, store.sequence(d), d.startState, Piece.SWING)
             if (whole.errors.isEmpty()) dailyBeats = whole.length
-            // the quick recap (CompositionStore.quickRecap): every part of the daily exercise once, in its order
+            // the quick recap (shipped in compositions.json): every element once, in the order the user learned them
             store.find(CompositionStore.QUICK_RECAP)?.let { r ->
                 val recap = Composer.compose(data, store.sequence(r), r.startState, Piece.SWING)
                 if (recap.errors.isEmpty()) tl = Timeline(recap, Piece.SWING)

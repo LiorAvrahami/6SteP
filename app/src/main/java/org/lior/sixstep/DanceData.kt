@@ -188,8 +188,10 @@ class CompositionStore(private val ctx: Context) {
         if (find(QUICK_RECAP) == null) quickRecap()?.let { compositions.add(it) }
     }
 
-    /** "Quick recap" (user 2026-10-28: all the elements we learned one after the other without repetitions): every entry
-     *  of the daily exercise once, in its order, the quiet bridges kept (they join the parts), no annotations. Never saved. */
+    /** "Quick recap" (user 2026-10-28: all the elements we learned one after the other without repetitions). Since
+     *  2026-11-16 it ships in compositions.json (every element once, in the order the user learned them, with quiet
+     *  bridges), and this is only the fallback when it is missing: every entry of the daily exercise once, in its order,
+     *  the quiet bridges kept, no annotations. Never saved. */
     private fun quickRecap(): Composition? {
         val d = daily() ?: return null
         val once = d.elements.filter { !it.trim().lowercase().startsWith("say:") }.map { Entry.parse(it).copy(times = 1).text() }

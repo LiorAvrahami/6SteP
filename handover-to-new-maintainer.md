@@ -316,6 +316,11 @@ commit (there is no diff step any more: the editor's file is the only version). 
   2026-11-16: the Elements group in the order the user learned them: rock triple triple, side to side, follower underarm
   and back, follower underarm pass (face to face), rock back cutoff, lead underarm pass, circle, follower underarm to
   arrow, underarm circle, send out and bring back, yoyo, tak turn.
+  2026-11-16: the "Quick recap" (the launcher's little floor, and a composition in Explore) ships in
+  `dance/compositions.json`: every element once in that same order, joined by quiet bridges ((follower underarm pass) to
+  face to face, (underarm bringback) to side by side, a (triple step) after the yoyo for the free foot) and ending side by
+  side with the left foot free, so it loops without a jump; 28 elements, 147 beats. `CompositionStore.quickRecap` (each
+  part of the daily exercise once) is only the fallback now. When an element is added to Explore's list, add it here too.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
