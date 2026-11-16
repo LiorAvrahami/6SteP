@@ -357,7 +357,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   2026-11-16, the schema view's arrows (user): each arrow follows the path its foot really takes (`Arrow.via`, drawn
   through `Curve.samples`, the same curve the flow view travels), with its head along the end of the path; and a step
   that turns its foot by more than 90 degrees (`FeetPainter.TURN_MARK`, the raw heading difference, winding kept) gets
-  a turn mark: a small round arrow, clockwise or anticlockwise, no number. `FeetPainter.placeMarks` puts it beside the
+  a turn mark: a small round arrow, clockwise or anticlockwise, no number, in the dancer's own colour as the editor's
+  turn arrows (blue for the leader, pink for the follower; the user asked for that after the first version, darkened
+  and edged in black like the step arrows, did not read as colour coded). `FeetPainter.placeMarks` puts it beside the
   middle of its arrow, on the side and at the distance with free floor (clear of the shoes, the arrows and other marks)
   and inside the floor that can be seen between the bars once the camera has settled (`FloorView.sight`), so it never
   sits under a bar and does not hop while the camera glides. Its size is cm of floor with a minimum on the screen

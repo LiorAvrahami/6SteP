@@ -48,11 +48,10 @@ class FeetPainter(ctx: Context) {
     companion object {
         const val GRID = 50.0
         const val TURN_MARK = 90.0        // degrees: a step that turns its foot by more gets a turn mark (user 2026-11-16)
-        // the turn mark: a small round arrow, no number. Its sizes are cm of floor; zoomed out it stops shrinking at
-        // MARK_MIN_R_DP, so that it can still be read
+        // the turn mark: a small round arrow in the dancer's colour, no number. Its sizes are cm of floor; zoomed out it
+        // stops shrinking at MARK_MIN_R_DP, so that it can still be read
         const val MARK_R = 2.2            // the radius of its arc
-        const val MARK_W = 0.65           // its line
-        const val MARK_EDGE = 0.22        // the black edge of the line and of the head
+        const val MARK_W = 0.75           // its line
         const val MARK_HEAD_L = 1.9
         const val MARK_HEAD_W = 1.2
         const val MARK_REACH = MARK_R + MARK_HEAD_W   // how far a mark reaches from its centre
@@ -288,19 +287,16 @@ class FeetPainter(ctx: Context) {
     }
 
     /** a turn mark centred at (x, y) cm: a small round arrow, three quarters of a circle from the top, clockwise for a foot
-     *  that turns to the right; the arrows' darkened colour and black edge; no number (user 2026-11-16) */
+     *  that turns to the right, in the dancer's own colour as the editor's turn arrows are (blue for the leader, pink for
+     *  the follower; user 2026-11-16): no darkening and no black edge, which hid the colour at this size; no number */
     private fun turnMark(c: Canvas, color: Int, x: Double, y: Double, clockwise: Boolean) {
         val k = scale * markGrow(scale)   // px per cm of the mark itself
         val p = px(x, y)
         val r = (MARK_R * k).toFloat()
-        val w = (MARK_W * k).toFloat()
-        val edge = (MARK_EDGE * k).toFloat()
-        val dark = darker(color)
         val sweep = if (clockwise) 270f else -270f
         oval.set(p.x - r, p.y - r, p.x + r, p.y + r)
         stroke.pathEffect = null
-        stroke.color = Color.BLACK; stroke.strokeWidth = w + 2 * edge; c.drawArc(oval, -90f, sweep, false, stroke)
-        stroke.color = dark; stroke.strokeWidth = w; c.drawArc(oval, -90f, sweep, false, stroke)
+        stroke.color = color; stroke.strokeWidth = (MARK_W * k).toFloat(); c.drawArc(oval, -90f, sweep, false, stroke)
         // the head at the end of the arc, pointing on round the circle (the screen's angles run clockwise, y down)
         val end = Math.toRadians(-90.0 + sweep)
         val way = if (clockwise) 1.0 else -1.0
@@ -312,8 +308,7 @@ class FeetPainter(ctx: Context) {
         path.lineTo((ex - ty * hw).toFloat(), (ey + tx * hw).toFloat())
         path.lineTo((ex + ty * hw).toFloat(), (ey - tx * hw).toFloat())
         path.close()
-        fill.color = dark; c.drawPath(path, fill)
-        stroke.color = Color.BLACK; stroke.strokeWidth = edge * 1.5f; c.drawPath(path, stroke)
+        fill.color = color; c.drawPath(path, fill)
     }
 }
 
