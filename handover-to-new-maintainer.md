@@ -335,6 +335,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   annotations are kept as `cues` (element start, element); after a start or a jump the one already due comes up at once,
   and the part a jump went to is shown but not read. The editor mirrors both (`model.expand_annotations`, `drawNote`
   with `NOTE_LEAD`). The bottom bar's labels still point at the step where their element starts.
+  2026-11-16 (revision 10): send out and bring back x4 instead of x6 (the user's number); 623 beats, 4:54 at 127 BPM.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
