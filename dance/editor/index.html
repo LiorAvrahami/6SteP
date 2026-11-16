@@ -1091,8 +1091,9 @@
     const base = parseInt(counts[0], 10); const rel = b - e.start; const nn = base + Math.floor(rel); const frac = rel - Math.floor(rel);
     return [e.name + (e.filler ? ' — triple step filler' : ''), (frac >= tl.swing - 0.02 && counts.includes(nn + '&')) ? nn + '&' : String(nn)];
   }
-  function drawFrame(tl, b) {
+  function drawFrame(tl, b, clock) {
     drawGrid();
+    const noteBeat = clock === undefined ? b : clock;   // the annotations go by the clock itself, also in the count-in
     if (b < 0) b = -0.001;  // the count-in: every foot at its start position, no weight change yet
     const feet = {}, weights = {};
     for (const d of ['L', 'F']) { for (const f of ['L', 'R']) feet[d + '.' + f] = placementAt(tl.tracks[d].tracks[f], b); weights[d] = weightsAt(tl.tracks[d], b); }
@@ -1103,13 +1104,18 @@
     ctx.fillStyle = name.includes('filler') ? '#8a6d00' : '#222'; ctx.font = '22px sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.fillText(name || '', 12, 10);
     ctx.fillStyle = '#222'; ctx.font = 'bold 44px sans-serif'; ctx.textAlign = 'right'; ctx.fillText(count || '', cv.width - 14, 6);
     ctx.font = '12px sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#999'; ctx.fillText(player.info || '', 12, 38);
-    if (player.notes && b >= 0) drawNote(tl, b);
+    if (player.notes) drawNote(tl, noteBeat);
   }
-  // the annotations of a composition (what the phone says: the "say:" texts and the name of an entry that is not quiet, as it
-  // starts), black on yellow at the bottom of the floor for 3 beats, out of the dancers' way (user 2026-10-26)
-  const NOTE_BEATS = 3;
+  // the annotations of a composition (what the phone shows and says: the "say:" texts and the name of an entry that is not
+  // quiet, never how many times it repeats), black on yellow at the bottom of the floor, out of the dancers' way (user
+  // 2026-10-26). As on the phone, each comes up NOTE_LEAD beats before its element starts and stays NOTE_BEATS (user 2026-11-16).
+  const NOTE_BEATS = 3, NOTE_LEAD = 2;
   function drawNote(tl, b) {
-    const e = tl.elements.find(x => b >= x.start && b < x.start + NOTE_BEATS && (x.say || x.announce)); if (!e) return;
+    let e = null;   // the last one whose time has come
+    const at = t => { for (const x of tl.elements) if ((x.say || x.announce) && t >= x.start - NOTE_LEAD && t < x.start - NOTE_LEAD + NOTE_BEATS) e = x; };
+    at(b);
+    if (!e && !player.closes && player.loopBeats > 0) at(b - player.loopBeats);   // a piece that starts again: its first note before the restart
+    if (!e) return;
     const lines = [e.say, e.announce].filter(Boolean);
     ctx.font = 'bold 20px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     const tw = Math.max(...lines.map(t => ctx.measureText(t).width)), lh = 26, pad = 10;
@@ -1185,7 +1191,7 @@ it plays only as far as it composes: ${problem}` : ''));
         view.cx = player.cam[0]; view.cy = player.cam[1];
       }
       player.lastT = now;
-      drawFrame(tl, bb); player.raf = requestAnimationFrame(frame); };
+      drawFrame(tl, bb, b < 0 ? b : bb); player.raf = requestAnimationFrame(frame); };
     player.raf = requestAnimationFrame(frame);
   }
   function stopPlay() { if (!player.on) return; player.on = false; try { player.src.stop(); } catch (e) {} cancelAnimationFrame(player.raf);

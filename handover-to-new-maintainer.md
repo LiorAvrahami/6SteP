@@ -326,8 +326,15 @@ commit (there is no diff step any more: the editor's file is the only version). 
   larger for the newer: rock triple triple 1, side to side 2, follower underarm and back 2, follower underarm pass 2, rock
   back cutoff 2, lead underarm pass 3, circle 3, follower underarm to arrow 3, underarm circle 5, send out and bring back
   6, yoyo 15, tak turn 16. The underarm circle and the yoyo cannot follow themselves: each repeat has a quiet bridge after
-  it (underarm bringback, triple step), and a "say: yoyo, 15 times" before the run is what the voice reads. When a new
+  it (underarm bringback, triple step), and a "say: yoyo" before the run is what the voice reads. When a new
   element comes: add it at the end with the most repeats, take repeats from the older ones, bump the revision.
+  2026-11-16 (revision 9): a composition's annotations never say how many times an element repeats ("side to side", not
+  "side to side, 2 times": the banner, the voice and the bottom bar's labels all come from `DanceFloorActivity.phrases`),
+  and each comes up 2 beats before its element starts (`ANNOUNCE_LEAD`; `announce()` goes by the clock itself, so the
+  first can come up during the count-in) and stays 3 beats as before, so until one beat into the element. The
+  annotations are kept as `cues` (element start, element); after a start or a jump the one already due comes up at once,
+  and the part a jump went to is shown but not read. The editor mirrors both (`model.expand_annotations`, `drawNote`
+  with `NOTE_LEAD`). The bottom bar's labels still point at the step where their element starts.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

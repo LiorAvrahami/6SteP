@@ -34,7 +34,8 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   of the songs along the dance), and play always starts afresh from the step on the screen: a new player sought to that
   place. Bottom bar: every step, the current one framed, the annotations
   pointing at where they start; a tap on a step goes there. Compositions play once to the end; elements and building
-  blocks loop. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
+  blocks loop. While a composition plays, the name of each part comes up, and is read aloud, 2 beats before the part
+  starts (never how many times it repeats). The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
   music dips to 60 percent under a spoken annotation and comes back right after it.
 - **Heart**: upright, as the user drew it (the rest of the app is sideways): the note, and the email, website and beer
   links; the $ button opens "Buy me a Beer" (its words and the amounts) in the same look.

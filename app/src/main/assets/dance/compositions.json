@@ -18,7 +18,7 @@
     "(underarm bringback)",
     "Circle x3",
     "follower underarm to arrow x3",
-    "say: underarm circle, 5 times",
+    "say: underarm circle",
     "(underarm circle)",
     "(underarm bringback)",
     "(underarm circle)",
@@ -30,7 +30,7 @@
     "(underarm circle)",
     "(underarm bringback)",
     "send out and bring back x6",
-    "say: yoyo, 15 times",
+    "say: yoyo",
     "(YOYO)",
     "(triple step)",
     "(YOYO)",
@@ -65,8 +65,8 @@
     "Tak turn x16",
     "(underarm bringback)"
    ],
-   "notes": "The daily routine (user 2026-11-16): about 5 minutes; every element in the order it was learned, repeated k times back to back, k small for the early ones and larger for the newer ones: rock triple triple 1, side to side 2, follower underarm and back 2, follower underarm pass 2, rock back cutoff 2, lead underarm pass 3, circle 3, follower underarm to arrow 3, underarm circle 5, send out and bring back 6, yoyo 15, tak turn 16. Quiet bridges join elements that do not fit; the underarm circle and the yoyo cannot follow themselves, so each repeat has a quiet bridge after it (the underarm bringback, a triple step) and the voice says the count once before the run. When a new element comes, add it at the end with the most repeats and take repeats away from the older ones to stay near 5 minutes.",
-   "revision": 8
+   "notes": "The daily routine (user 2026-11-16): about 5 minutes; every element in the order it was learned, repeated k times back to back, k small for the early ones and larger for the newer ones: rock triple triple 1, side to side 2, follower underarm and back 2, follower underarm pass 2, rock back cutoff 2, lead underarm pass 3, circle 3, follower underarm to arrow 3, underarm circle 5, send out and bring back 6, yoyo 15, tak turn 16. Quiet bridges join elements that do not fit; the underarm circle and the yoyo cannot follow themselves, so each repeat has a quiet bridge after it (the underarm bringback, a triple step) and a 'say:' line names the run once, before it. The annotations never say how many times an element repeats, and each comes up 2 beats before its element starts (user 2026-11-16). When a new element comes, add it at the end with the most repeats and take repeats away from the older ones to stay near 5 minutes.",
+   "revision": 9
   },
   {
    "name": "Quick recap",

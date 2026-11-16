@@ -33,11 +33,14 @@ import kotlin.math.roundToInt
  *  while playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
  *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), flow/schema, edit, back. Bottom bar: every step of
  *  the piece, the current one framed, the annotations pointing at where they start; a tap on a step goes there.
+ *  While a composition plays, each annotation (a "say:" text, the name of an entry; never how many times it repeats)
+ *  comes up at the top, and is read aloud, 2 beats before its element starts, and stays 3 beats.
  *  Compositions play once to the end; elements and building blocks loop (chained so that the last beat flows into the
  *  first when they close on themselves, otherwise from the start position again after two beats). */
 class DanceFloorActivity : AppCompatActivity() {
     companion object {
         const val BANNER_BEATS = 3.0          // an annotation stays on the screen this long
+        const val ANNOUNCE_LEAD = 2.0         // and comes up this many beats before its element starts (user 2026-11-16)
         const val BACK_REPLAY_SECONDS = 2.0   // swipe right in the first 2 s of a part goes to the previous one (as in Workout Instructinator)
         const val LOOP_REST = 2.0             // beats of the start position before a piece that does not close is danced again
         const val CHAIN_BEATS = 1200.0        // a piece that closes is chained to about this long for play
@@ -53,7 +56,6 @@ class DanceFloorActivity : AppCompatActivity() {
     private lateinit var modeBtn: ImageButton
     private lateinit var pb: Playback
 
-    private var piece: Piece? = null
     private var tl: Timeline? = null              // the piece danced once: what the swipes and the strip go through
     private var playTl: Timeline? = null          // what plays: the piece itself, or chained into a long loop
     private var loopBeats = 0.0                   // one loop in playTl (the piece and the triple steps that close it); 0: not chained
@@ -70,8 +72,9 @@ class DanceFloorActivity : AppCompatActivity() {
     private var barsShown = false
     private var barsFrac = 0f
     private var barsAnim: ValueAnimator? = null
-    private var lastAnnounced = -1
-    private var silentUntil = Double.NEGATIVE_INFINITY   // a jump's part is shown, not read aloud (clock beat)
+    private var cues: List<Pair<Double, CElement>> = emptyList()   // a composition's annotations: (its element's start, the element), in order
+    private var lastCue = -1                             // the last annotation that has come up, or whose element is under way
+    private var silentUntil = Double.NEGATIVE_INFINITY   // a jump's part (an element starting by this beat) is shown, not read aloud
     private var banner: String? = null
     private var bannerUntil = Double.NEGATIVE_INFINITY
 
@@ -124,7 +127,6 @@ class DanceFloorActivity : AppCompatActivity() {
             floor.scene = Scene(emptyMap(), emptyMap(), name, banner = composed?.errors?.joinToString("\n") ?: getString(R.string.nothing_to_show))
             return
         }
-        piece = p
         val t = Timeline(composed, swing); tl = t
         stops = stopsOf(t)
         val ptl: Timeline = if (p.isComposition) t else chainedLoop(p, data, swing) ?: t.also { period = t.length + LOOP_REST }
@@ -135,6 +137,8 @@ class DanceFloorActivity : AppCompatActivity() {
         pb.boundaryAfter = { b -> boundaryAfter(b) }
         strip.cells = cellsOf(t, stops, getString(R.string.start))
         strip.callouts = callouts(p, t)
+        // a composition plays once, so the clock's beats are its own beats
+        if (p.isComposition) cues = ptl.composed.elements.filter { phrases(it).isNotEmpty() }.map { Pair(it.start, it) }
         strip.onTap = { k -> tapStop(k) }
         if (p.isComposition) pb.prefetch(composed.elements.mapNotNull { announcement(it) }.distinct())
         val autoplay = intent.getBooleanExtra("autoplay", false)
@@ -281,19 +285,16 @@ class DanceFloorActivity : AppCompatActivity() {
         if (barsShown) strip.scrollToCell(idx, true)
     }
 
-    /** "side to side x10" -> "side to side, 10 times" */
-    private fun spoken(label: String): String {
-        val m = Regex("^(.*?)\\s*x(\\d+)$").matchEntire(label)
-        return if (m != null) "${m.groupValues[1]}, ${m.groupValues[2]} times" else label
-    }
-    /** what is said, and shown, as an element of a composition starts: its "say:" text, and its entry's name */
-    private fun phrases(e: CElement): List<String> = listOfNotNull(e.annotation, if (e.entryStart) spoken(e.entryLabel) else null)
+    /** an entry's name without how many times it repeats (user 2026-11-16): "side to side x10" -> "side to side" */
+    private fun entryName(label: String): String = Regex("^(.*?)\\s*x(\\d+)$").matchEntire(label)?.groupValues?.get(1) ?: label
+    /** an element's annotation in a composition, shown and said: its "say:" text, and the name of the entry it starts */
+    private fun phrases(e: CElement): List<String> = listOfNotNull(e.annotation, if (e.entryStart) entryName(e.entryLabel) else null)
     private fun announcement(e: CElement): String? = phrases(e).joinToString(". ").ifEmpty { null }
 
     /** the bottom bar's annotations: a composition's "say:" texts and entry names; a building block's element names */
     private fun callouts(p: Piece, t: Timeline): List<Pair<Int, String>> = t.composed.elements.mapNotNull { e ->
         val text = when (p.kind) {
-            Piece.COMPOSITION -> listOfNotNull(e.annotation, if (e.entryStart) e.entryLabel else null).joinToString(" · ")
+            Piece.COMPOSITION -> phrases(e).joinToString(" · ")
             Piece.BLOCK -> e.name
             else -> ""
         }
@@ -355,8 +356,8 @@ class DanceFloorActivity : AppCompatActivity() {
         if (!pb.playing) { standAt(from); return }   // the sound is busy (a call)
         playing = true
         hold = if (countIn) b else Double.NEGATIVE_INFINITY
-        lastAnnounced = ptl.elementIndexAt(playBeat(b) - 0.01)   // an element starting on this step is announced, one under way is not
-        silentUntil = if (quiet) from + 0.05 else Double.NEGATIVE_INFINITY
+        lastCue = cues.indexOfLast { it.first < b - 0.01 }   // an element starting on this step is announced, one under way is not
+        silentUntil = if (quiet) b + 0.05 else Double.NEGATIVE_INFINITY
         banner = null
         hideBars(); updateButtons()
         if (!wasPlaying) floor.postOnAnimation(frame)
@@ -398,7 +399,7 @@ class DanceFloorActivity : AppCompatActivity() {
         pb.play(target)   // from scratch, as any start
         if (!pb.playing) { standAt(target); return }
         hold = Double.NEGATIVE_INFINITY; banner = null
-        lastAnnounced = playTl?.elementIndexAt(playBeat(target) - 0.01) ?: -1
+        lastCue = cues.indexOfLast { it.first < target - 0.01 }
         silentUntil = target + 0.05
     }
 
@@ -409,23 +410,28 @@ class DanceFloorActivity : AppCompatActivity() {
             val b = pb.beatNow()
             if (cycle() <= 0 && b >= ptl.length) { endOfPiece(); return }
             if (b >= hold) hold = Double.NEGATIVE_INFINITY
+            announce(b)
             drawPlaying(if (b < hold) hold else b)
             floor.postOnAnimation(this)
         }
     }
 
+    /** a composition's annotations, by the clock itself (so the first can come up during the count-in): each comes up
+     *  ANNOUNCE_LEAD beats before its element starts (user 2026-11-16), is shown for BANNER_BEATS and read aloud. After a
+     *  start or a jump, one whose time has already come comes up at once; the part a jump went to is shown, not read. */
+    private fun announce(b: Double) {
+        val next = cues.getOrNull(lastCue + 1)
+        if (next != null && b >= next.first - ANNOUNCE_LEAD) {
+            lastCue++
+            banner = phrases(next.second).joinToString("\n"); bannerUntil = b + BANNER_BEATS
+            if (next.first > silentUntil) announcement(next.second)?.let { pb.speak(it) }
+        }
+        if (b > bannerUntil) banner = null
+    }
+
     private fun drawPlaying(b: Double) {
         val ptl = playTl ?: return
         val x = playBeat(b)
-        val ei = ptl.elementIndexAt(x)
-        if (piece?.isComposition == true && ei >= 0 && ei != lastAnnounced) {
-            lastAnnounced = ei
-            val e = ptl.composed.elements[ei]
-            val shown = phrases(e)
-            if (shown.isNotEmpty()) { banner = shown.joinToString("\n"); bannerUntil = b + BANNER_BEATS }
-            if (b > silentUntil) announcement(e)?.let { pb.speak(it) }
-        }
-        if (b > bannerUntil) banner = null
         floor.scene = flowScene(ptl, x, banner, true)
         val p = pieceBeat(b)
         val k = if (p.isNaN()) -1 else stopIndex(stops, p)
