@@ -259,6 +259,14 @@ commit (there is no diff step any more: the editor's file is the only version). 
 
 ## 7. State at the handover (2026-10-19)
 
+- **Waiting for the user's confirmation since 2026-11-16, not built, not on main.** They asked to see the order before
+  the next build. On the branch `claude/inspiring-heisenberg-kuti4n` (one commit ahead of main): (1) a new order for the
+  daily exercise, which no longer follows Explore's order (non-turning elements first, as they asked): rock triple triple
+  1 (quiet), side to side 2, send out and bring back 4, yoyo 18, follower underarm and back 2, follower underarm pass 2,
+  lead underarm pass 3, follower underarm to arrow 3, rock back cutoff 2, circle 3, underarm circle 4 (their cap), tak
+  turn 24; (2) what they asked for in the same message: a swipe to a part lands 2 beats before it, nothing is written
+  once a part has started, and the voice says how many times an entry repeats while the screen never does. When they
+  confirm or change the order: put the branch on main, watch the build, name the release, and delete this paragraph.
 - Releases: v2 first APK (2026-10-18), v3 camera/sounds/swipes/map, v4 folding rows, BPM-paced transitions, chained loop,
   v5 sync screen removed and review fixes, v6 the annotated Slow Your Roll grid and the difficulty text, **v7 (build passed, APK 71 MB)
   the snare and hi-hat sounds, the tempo variants, the player's options bar and the dimming fix.** v8 is this file alone.
