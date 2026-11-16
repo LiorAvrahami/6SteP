@@ -313,6 +313,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   of the follower underarm pass only the version from face to face to face to face is an element; its versions from side
   by side (to face to face, to reversed side) are under Building Blocks, in a row of the same name
   (`ExploreActivity.ELEMENTS` takes a name and, optionally, the start and end states of the versions that are elements).
+  2026-11-16: the Elements group in the order the user learned them: rock triple triple, side to side, follower underarm
+  and back, follower underarm pass (face to face), rock back cutoff, lead underarm pass, circle, follower underarm to
+  arrow, underarm circle, send out and bring back, yoyo, tak turn.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
