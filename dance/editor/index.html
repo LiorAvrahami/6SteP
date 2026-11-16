@@ -1108,11 +1108,12 @@
   }
   // the annotations of a composition (what the phone shows and says: the "say:" texts and the name of an entry that is not
   // quiet, never how many times it repeats), black on yellow at the bottom of the floor, out of the dancers' way (user
-  // 2026-10-26). As on the phone, each comes up NOTE_LEAD beats before its element starts and stays NOTE_BEATS (user 2026-11-16).
-  const NOTE_BEATS = 3, NOTE_LEAD = 2;
+  // 2026-10-26). As on the phone, each comes up NOTE_LEAD beats before its element starts and goes away just as it starts
+  // (user 2026-11-16).
+  const NOTE_LEAD = 2;
   function drawNote(tl, b) {
     let e = null;   // the last one whose time has come
-    const at = t => { for (const x of tl.elements) if ((x.say || x.announce) && t >= x.start - NOTE_LEAD && t < x.start - NOTE_LEAD + NOTE_BEATS) e = x; };
+    const at = t => { for (const x of tl.elements) if ((x.say || x.announce) && t >= x.start - NOTE_LEAD && t < x.start) e = x; };
     at(b);
     if (!e && !player.closes && player.loopBeats > 0) at(b - player.loopBeats);   // a piece that starts again: its first note before the restart
     if (!e) return;

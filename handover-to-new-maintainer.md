@@ -335,7 +335,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   2026-11-16 (revision 9): a composition's annotations never say how many times an element repeats ("side to side", not
   "side to side, 2 times": the banner, the voice and the bottom bar's labels all come from `DanceFloorActivity.phrases`),
   and each comes up 2 beats before its element starts (`ANNOUNCE_LEAD`; `announce()` goes by the clock itself, so the
-  first can come up during the count-in) and stays 3 beats as before, so until one beat into the element. The
+  first can come up during the count-in) and (the user's answer later the same day) goes away just as its element
+  starts. One that comes up with less than a beat of warning (`LATE_NOTICE`: a jump to that part, play started on its
+  first step) has no "before" to show in and stays 2 beats instead; ask the user if they want nothing shown then. The
   annotations are kept as `cues` (element start, element); after a start or a jump the one already due comes up at once,
   and the part a jump went to is shown but not read. The editor mirrors both (`model.expand_annotations`, `drawNote`
   with `NOTE_LEAD`). The bottom bar's labels still point at the step where their element starts.

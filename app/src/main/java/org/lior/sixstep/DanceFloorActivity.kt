@@ -34,13 +34,13 @@ import kotlin.math.roundToInt
  *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), flow/schema, edit, back. Bottom bar: every step of
  *  the piece, the current one framed, the annotations pointing at where they start; a tap on a step goes there.
  *  While a composition plays, each annotation (a "say:" text, the name of an entry; never how many times it repeats)
- *  comes up at the top, and is read aloud, 2 beats before its element starts, and stays 3 beats.
+ *  comes up at the top, and is read aloud, 2 beats before its element starts, and goes away just as the element starts.
  *  Compositions play once to the end; elements and building blocks loop (chained so that the last beat flows into the
  *  first when they close on themselves, otherwise from the start position again after two beats). */
 class DanceFloorActivity : AppCompatActivity() {
     companion object {
-        const val BANNER_BEATS = 3.0          // an annotation stays on the screen this long
-        const val ANNOUNCE_LEAD = 2.0         // and comes up this many beats before its element starts (user 2026-11-16)
+        const val ANNOUNCE_LEAD = 2.0         // an annotation comes up this many beats before its element starts, and goes as it starts (user 2026-11-16)
+        const val LATE_NOTICE = 1.0           // one that comes up with less warning than this (a jump to its part) shows for ANNOUNCE_LEAD beats instead
         const val BACK_REPLAY_SECONDS = 2.0   // swipe right in the first 2 s of a part goes to the previous one (as in Workout Instructinator)
         const val LOOP_REST = 2.0             // beats of the start position before a piece that does not close is danced again
         const val CHAIN_BEATS = 1200.0        // a piece that closes is chained to about this long for play
@@ -417,13 +417,16 @@ class DanceFloorActivity : AppCompatActivity() {
     }
 
     /** a composition's annotations, by the clock itself (so the first can come up during the count-in): each comes up
-     *  ANNOUNCE_LEAD beats before its element starts (user 2026-11-16), is shown for BANNER_BEATS and read aloud. After a
-     *  start or a jump, one whose time has already come comes up at once; the part a jump went to is shown, not read. */
+     *  ANNOUNCE_LEAD beats before its element starts, is read aloud, and goes away just as the element starts (user
+     *  2026-11-16). After a start or a jump, one whose time has already come comes up at once; when that leaves less than
+     *  LATE_NOTICE beats before its element (a jump to that part, play started on its first step) there is no "before"
+     *  to show it in, and it stays ANNOUNCE_LEAD beats instead. The part a jump went to is shown, not read. */
     private fun announce(b: Double) {
         val next = cues.getOrNull(lastCue + 1)
         if (next != null && b >= next.first - ANNOUNCE_LEAD) {
             lastCue++
-            banner = phrases(next.second).joinToString("\n"); bannerUntil = b + BANNER_BEATS
+            banner = phrases(next.second).joinToString("\n")
+            bannerUntil = if (next.first - b >= LATE_NOTICE) next.first else b + ANNOUNCE_LEAD
             if (next.first > silentUntil) announcement(next.second)?.let { pb.speak(it) }
         }
         if (b > bannerUntil) banner = null
