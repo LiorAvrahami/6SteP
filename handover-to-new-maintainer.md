@@ -344,6 +344,14 @@ commit (there is no diff step any more: the editor's file is the only version). 
   87c9608), but the two builds ran side by side and v45 was published 18 s after v46, so GitHub named v45 "latest"; both
   tags point at 87c9608, which is wrong for v45. v47 is the same app as v46, built by the push that made the builds run
   one at a time: it is the release named to the user.
+  2026-11-16, later: the user fixed the YOYO in the editor (its last step removed: 12 beats, side to side, ending on the
+  foot it starts with, so it repeats on its own). v48 shipped that with the daily exercise and the quick recap unable to
+  compose: each had a quiet triple step after the yoyo, for the free foot. Exercise revision 11: "say: yoyo", "(YOYO
+  x17)", and tak turn x20 (the time the bridges freed went to the two newest elements; 626 beats, 4:56 at 127 BPM).
+  Quick recap revision 2: no triple step after the yoyo (144 beats). `tools/make_assets.py` now refuses to write
+  anything when a composition cannot be danced, and warns for a building block: run it after every element change.
+  When you compose a composition by hand, pass `ends=model.composition_ends(c)` as the editor does: without the pinned
+  endings a sequence that cannot be danced reports its error at the wrong element.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
