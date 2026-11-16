@@ -28,7 +28,8 @@ import kotlin.math.roundToInt
  *  the first step.
  *
  *  Swipe left or right: the next or previous step, in flow mode (the feet travel there) or schema mode (they are there,
- *  dashed lines show where each foot came from; both dancers at once). Swipe down: the top and bottom bars; a tap on
+ *  dashed arrows show the path each foot came by, with a small round arrow where a foot turns more than a quarter
+ *  turn; both dancers at once). Swipe down: the top and bottom bars; a tap on
  *  the floor closes them. Double tap or the play button: play (the bars close). A tap while playing pauses; a swipe
  *  while playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
  *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), flow/schema, edit, back. Bottom bar: every step of
@@ -251,7 +252,8 @@ class DanceFloorActivity : AppCompatActivity() {
     }
 
     /** a stop: the feet and their weights at its settled instant; in schema mode a dashed arrow for every foot that
-     *  landed at the stop, from where it was (both dancers at once) */
+     *  landed at the stop, from where it was and along the path it took (both dancers at once); the floor adds a small
+     *  round arrow beside a step that turns its foot by more than a quarter turn (FeetPainter.arrows) */
     private fun stopScene(t: Timeline, b: Double, banner: String?): Scene {
         val arrows = ArrayList<Arrow>()
         if (schema) for (d in listOf('L', 'F')) for (f in listOf('L', 'R')) {
@@ -259,7 +261,12 @@ class DanceFloorActivity : AppCompatActivity() {
             val (cur, _) = track.around(b)
             if (abs(cur.tLand - b) < 1e-6) {
                 val i = track.landings.indexOf(cur)
-                if (i > 0) { val prev = track.landings[i - 1].p; if (abs(prev.x - cur.p.x) > 0.5 || abs(prev.y - cur.p.y) > 0.5) arrows.add(Arrow(d, prev, cur.p)) }
+                if (i > 0) {
+                    val prev = track.landings[i - 1].p
+                    // a foot that moved, went round by the anchors of its path, or turned a lot on the spot
+                    val moved = abs(prev.x - cur.p.x) > 0.5 || abs(prev.y - cur.p.y) > 0.5
+                    if (moved || cur.via.isNotEmpty() || abs(cur.p.h - prev.h) > FeetPainter.TURN_MARK) arrows.add(Arrow(d, prev, cur.p, cur.via))
+                }
             }
         }
         val el = t.elementAt(b)

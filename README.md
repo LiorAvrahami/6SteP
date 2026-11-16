@@ -26,7 +26,8 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   elements); drag a row sideways to move through its steps. A tap opens the dance floor on the first step of the
   version shown.
 - **The dance floor**, one for everything (the daily exercise included). Swipe left or right: the next or previous step,
-  in flow mode (the feet travel there) or schema mode (dashed lines from where each foot came). Swipe down: the bars; a
+  in flow mode (the feet travel there) or schema mode (a dashed arrow along the path each foot came by, and a small
+  round arrow beside it when the foot turns more than a quarter turn, showing which way). Swipe down: the bars; a
   tap on the floor closes them. Double tap or play: play (the bars close); a tap while playing pauses; a swipe while
   playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
   Top bar: play/pause, the tempo (the song's tempo variants), the song (shuffle, or one song over and over), mute

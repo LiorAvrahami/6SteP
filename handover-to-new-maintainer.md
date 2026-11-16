@@ -354,6 +354,16 @@ commit (there is no diff step any more: the editor's file is the only version). 
   anything when a composition cannot be danced, and warns for a building block: run it after every element change.
   When you compose a composition by hand, pass `ends=model.composition_ends(c)` as the editor does: without the pinned
   endings a sequence that cannot be danced reports its error at the wrong element.
+  2026-11-16, the schema view's arrows (user): each arrow follows the path its foot really takes (`Arrow.via`, drawn
+  through `Curve.samples`, the same curve the flow view travels), with its head along the end of the path; and a step
+  that turns its foot by more than 90 degrees (`FeetPainter.TURN_MARK`, the raw heading difference, winding kept) gets
+  a turn mark: a small round arrow, clockwise or anticlockwise, no number. `FeetPainter.placeMarks` puts it beside the
+  middle of its arrow, on the side and at the distance with free floor (clear of the shoes, the arrows and other marks)
+  and inside the floor that can be seen between the bars once the camera has settled (`FloorView.sight`), so it never
+  sits under a bar and does not hop while the camera glides. Its size is cm of floor with a minimum on the screen
+  (`MARK_MIN_R_DP`), since the paused view with its bars is zoomed far out. The user found the editor's turn arrow too
+  big and badly placed; the editor's is unchanged (it is a handle there: a click flips the way round). The look was
+  tried first in a throwaway Python picture; nobody has seen it on a phone.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
