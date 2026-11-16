@@ -12,6 +12,13 @@ on:
       - '.github/workflows/**'
   workflow_dispatch:
 
+# One build of a branch at a time, in the order of the pushes. Two pushes close together used to build side by side, and
+# the older commit's build, finishing last, became the "latest" release (v45 after v46, 2026-11-16). Now the second
+# waits for the first; a third push replaces the one that is waiting (its commit is inside the newer one anyway).
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: write
 
@@ -49,6 +56,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ github.run_number }}
+          # the tag marks the commit that was built, not wherever the branch has moved to since
+          target_commitish: ${{ github.sha }}
           name: 6SteP build ${{ github.run_number }}
           body: |
             Download 6SteP.apk below and open it on the phone. The first time, Android asks to allow installing unknown apps from your browser.

@@ -51,6 +51,10 @@ notes are "all rights reserved"; see `reference/README.md`), the Rubber Band exe
    `dance/`, `music/`, `tools/`, `design/` or the docs alone do not (the `paths:` filter in `.github/workflows/build.yml`).
    Asset and icon changes reach `app/` through `tools/make_assets.py` and `design/make_icon.py`, so they do build.
    Pull before you push: two agents have pushed to `main` on the same day. Push with `git push https://x-access-token:<token>@github.com/LiorAvrahami/6SteP.git main`.
+   Builds of a branch run one at a time, in the order of the pushes (the `concurrency` group in `build.yml`, since
+   2026-11-16), and a release's tag marks the commit that was built. Before that, two pushes close together built side by
+   side and the older build could finish last and become the "latest" release. After the last build, check that
+   `releases/latest` is the release you are about to name to the user.
 7. **The GitHub token.** The user gives you a fine-grained token (Contents, Actions, Workflows read-write on that repo).
    Keep it only in a temporary file outside both projects, never in a commit, a memory note, a README or a message. Ask the
    user for it again at the start of a new session. `tools/watch_build.sh` reads it from `$GH_TOKEN` or `$GH_TOKEN_FILE`.
@@ -336,6 +340,10 @@ commit (there is no diff step any more: the editor's file is the only version). 
   and the part a jump went to is shown but not read. The editor mirrors both (`model.expand_annotations`, `drawNote`
   with `NOTE_LEAD`). The bottom bar's labels still point at the step where their element starts.
   2026-11-16 (revision 10): send out and bring back x4 instead of x6 (the user's number); 623 beats, 4:54 at 127 BPM.
+  Releases of 2026-11-16: v45 is the annotation change alone (built from 65aaf28) and v46 has the x4 as well (built from
+  87c9608), but the two builds ran side by side and v45 was published 18 s after v46, so GitHub named v45 "latest"; both
+  tags point at 87c9608, which is wrong for v45. v47 is the same app as v46, built by the push that made the builds run
+  one at a time: it is the release named to the user.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
