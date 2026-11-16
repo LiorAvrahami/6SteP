@@ -321,11 +321,13 @@ commit (there is no diff step any more: the editor's file is the only version). 
   face to face, (underarm bringback) to side by side, a (triple step) after the yoyo for the free foot) and ending side by
   side with the left foot free, so it loops without a jump; 28 elements, 147 beats. `CompositionStore.quickRecap` (each
   part of the daily exercise once) is only the fallback now. When an element is added to Explore's list, add it here too.
-  2026-11-16: the daily exercise ("5 minutes exercise", revision 7) follows the user's new rule: it changes as elements
-  are added, holds every element in the order they were learned, a little of the early ones (x2 to x4) and much more of
-  the newest (underarm circle x7, send out and bring back x7, yoyo x7, tak turn x12); 563 beats. The underarm circle and
-  the yoyo cannot follow themselves, so each repeat is followed by a quiet bridge, and only the first is announced. When a
-  new element comes: add it at the end with the most repeats, take repeats from the older ones, bump the revision.
+  2026-11-16: the daily exercise ("5 minutes exercise", revision 8) follows the user's rule: about 5 minutes (647 beats:
+  5:05 at 127 BPM), every element in the order learned, repeated k times back to back, k small for the early ones and
+  larger for the newer: rock triple triple 1, side to side 2, follower underarm and back 2, follower underarm pass 2, rock
+  back cutoff 2, lead underarm pass 3, circle 3, follower underarm to arrow 3, underarm circle 5, send out and bring back
+  6, yoyo 15, tak turn 16. The underarm circle and the yoyo cannot follow themselves: each repeat has a quiet bridge after
+  it (underarm bringback, triple step), and a "say: yoyo, 15 times" before the run is what the voice reads. When a new
+  element comes: add it at the end with the most repeats, take repeats from the older ones, bump the revision.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
