@@ -104,16 +104,18 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
   underarm and back"; "follower pass & back" = follower underarm pass, recapture; pass+circle), either "x N",
   "say: text" annotations (app only), and quiet entries in parentheses, "(recapture underarm pass)", which are danced
   but never announced and are not swipe stops (since v10; the edit dialog has a "quiet" box). The daily routine is the
-  composition still named "5 minutes exercise" (the app takes the first one with "exercise" in its name); the user
-  wants its bridges quiet and RTT never announced.
+  composition named "3 minutes exercise" ("5 minutes exercise" until 2026-11-16; the app takes the first one with
+  "exercise" in its name, and `CompositionStore.RENAMED` makes a copy a phone kept under the old name the same
+  composition); the user wants its bridges quiet and RTT never announced.
 - **The daily exercise's philosophy** (the user, 2026-11-16; also in the composition's own notes): **as short as
   possible, with as many elements as possible packed into it.** It is not aimed at 5 minutes; it is aimed at a good
   amount of elements in the least time, about 3 minutes now. Its order serves that and is the user's: ordered well,
   the elements pack better (fewer bridges between them) and the whole makes more sense to the person dancing it, so it
   feels less chaotic. So it does not follow Explore's order, which is the order the elements were learned in (the
-  quick recap keeps that order too). Few repeats: two of what is known well, a few more of what is new; never more than
-  4 underarm circles. When an element is added: find the place where it packs best and makes sense, give it the most
-  repeats, take repeats away elsewhere, and show the user the order before building.
+  quick recap keeps that order too). **It always starts with one rock triple triple** (quiet), and so does the quick
+  recap (there it is announced, being the first element of the list). Few repeats, and the numbers are the user's:
+  three of most things, 8 yoyos, 5 tak turns, never more than 4 underarm circles. When an element is added: find the
+  place where it packs best and makes sense, and show the user the order and the counts before building.
 - **Tools.** `render.py` makes an MP4 on the music (about 40 fps, stops where a short track ends); the editor
   (`dance/editor/server.py`, port 8771) edits skeletons and compositions, plays in the browser with Web Audio and
   autosaves; a Node test with a stubbed DOM covers the page logic: `node dance/editor/test/test_editor.js`.
@@ -384,8 +386,18 @@ commit (there is no diff step any more: the editor's file is the only version). 
   triple triple 1 (quiet), side to side 2, send out and bring back 4, yoyo 8, follower underarm and back 2, follower
   underarm pass 2, lead underarm pass 2, follower underarm to arrow 2, rock back cutoff 2, circle 2, underarm circle
   4, tak turn 10; it ends face to face after the last tak turn (no bringback after it). The user confirmed the order
-  and asked for about 3 minutes; see the philosophy in section 3. Still to settle with them: the composition's name
-  and the launcher's help text ("Five minutes a day ...") still say five minutes.
+  and asked for about 3 minutes; see the philosophy in section 3.
+  2026-11-16, later, the user's numbers and the name: "just change it from 5 to 3". The composition is named
+  "3 minutes exercise" (revision 13) and the launcher's help says "Three minutes a day ...". A phone that kept a copy
+  under the old name (a file from the time the phone had an editor) would otherwise hold two exercises and
+  `daily()` would pick the old one, so `CompositionStore.readInto` gives such a copy its new name
+  (`RENAMED`), and the usual rule applies: the newer shipped revision replaces it unless it was edited there. Add a
+  line to `RENAMED` whenever a shipped composition is renamed. The counts: rock triple triple 1 (quiet), side to side
+  3, send out and bring back 3, yoyo 8, follower underarm and back 3, follower underarm pass 3, lead underarm pass 3,
+  follower underarm to arrow 3, rock back cutoff 3, circle 3, underarm circle 4, tak turn 5: 404 beats (2:48 on Hot
+  Swing, 3:11 on Sunday Reflection, 3:17 on Slow Your Roll). The user's rule: the exercise always starts with one
+  rock triple triple, and so does the quick recap. The quick recap already did (revision 3 only says so in its
+  notes); its rock triple triple is still announced, and the user was asked whether it should be quiet there too.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
