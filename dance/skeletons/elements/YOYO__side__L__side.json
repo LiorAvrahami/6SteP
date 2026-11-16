@@ -2,7 +2,7 @@
  "name": "YOYO",
  "start_state": "side",
  "end_state": "side",
- "beats": 13,
+ "beats": 12,
  "leader_free_start": "L",
  "hands": [
   {
@@ -241,9 +241,9 @@
    "count": "11",
    "dancer": "F",
    "foot": "L",
-   "x": 35,
-   "y": 13,
-   "heading": -145
+   "x": 34,
+   "y": 11,
+   "heading": -100
   },
   {
    "count": "11&",
@@ -257,9 +257,19 @@
    "count": "11&",
    "dancer": "F",
    "foot": "R",
-   "x": 24,
-   "y": 18,
-   "heading": -25
+   "x": 60.4,
+   "y": -1.5,
+   "heading": -15,
+   "via": [
+    [
+     28.7,
+     37.2
+    ],
+    [
+     47.3,
+     24
+    ]
+   ]
   },
   {
    "count": "12",
@@ -276,22 +286,6 @@
    "x": 42,
    "y": -27,
    "heading": -5
-  },
-  {
-   "count": "13",
-   "dancer": "L",
-   "foot": "L",
-   "x": 1,
-   "y": -45,
-   "heading": 0
-  },
-  {
-   "count": "13",
-   "dancer": "F",
-   "foot": "R",
-   "x": 63,
-   "y": -41,
-   "heading": 5
   }
  ]
 }
