@@ -25,13 +25,14 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   consecutive steps, centred on the step of the piece that stands out most (the pose least like the poses of all the
   elements); drag a row sideways to move through its steps. A tap opens the dance floor on the first step of the
   version shown.
-- **The dance floor**, one for everything (the daily exercise included). Swipe left or right: the next or previous step,
-  in flow mode (the feet travel there) or schema mode (a dashed arrow along the path each foot came by, and a small
-  round arrow in the dancer's colour beside it when the foot turns more than a quarter turn, showing which way).
+- **The dance floor**, one for everything (the daily exercise included). Swipe left or right: the next or previous step.
+  The feet travel there, and once they are there a dashed arrow shows the path each foot that stepped came by, with a
+  small round arrow in the dancer's colour beside it when the foot turns more than a quarter turn, showing which way
+  (one way of stepping since 2026-11-17; before, a button chose between a "flow" and a "schema" mode).
   Swipe down: the bars; a tap on the floor closes them. Double tap or play: play (the bars close); a tap while playing pauses; a swipe while
   playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
   Top bar: play/pause, the tempo (the song's tempo variants), the song (shuffle, or one song over and over), mute
-  (music, drums and voice), flow/schema, edit (not on the phone yet). Every step has one place in the music (the plan
+  (music, drums and voice), edit (not on the phone yet). Every step has one place in the music (the plan
   of the songs along the dance), and play always starts afresh from the step on the screen: a new player sought to that
   place. Bottom bar: every step, the current one framed, the annotations
   pointing at where they start; a tap on a step goes there. Compositions play once to the end; elements and building

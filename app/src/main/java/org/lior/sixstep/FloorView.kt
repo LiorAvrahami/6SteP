@@ -21,9 +21,9 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
-/** A step's arrow in the schema view: the foot's way from where it stood, through the anchors of its path (if it has
- *  any), to where it landed. The headings keep their winding, so `to.h - from.h` is the turn the foot makes, clockwise
- *  when positive. */
+/** A step's arrow, drawn at a stop once the feet are there: the foot's way from where it stood, through the anchors of
+ *  its path (if it has any), to where it landed. The headings keep their winding, so `to.h - from.h` is the turn the
+ *  foot makes, clockwise when positive. */
 data class Arrow(val dancer: Char, val from: Placement, val to: Placement, val via: List<Pair<Double, Double>> = emptyList())
 
 /** Everything the floor shows at one instant. */
@@ -41,7 +41,7 @@ fun withAlpha(color: Int, alpha: Double): Int = (color and 0x00FFFFFF) or ((alph
 
 /** The dancers' feet seen from above, through a camera: the world point (cx, cy) in cm is drawn at the screen point
  *  (ox, oy), `scale` px per cm. Shoes are dancing-shoe soles (the dancer's colour with the weight as its opacity, over a
- *  grey silhouette; the pointed toe shows the heading), the schema view's dashed step arrows along the feet's paths with
+ *  grey silhouette; the pointed toe shows the heading), a stop's dashed step arrows along the feet's paths with
  *  their turn marks, the 50 cm grid.
  *  The one drawing of the dancers: the dance floor, the strips of step pictures and the launcher's little floor all use it. */
 class FeetPainter(ctx: Context) {
@@ -103,7 +103,7 @@ class FeetPainter(ctx: Context) {
         }
     }
 
-    /** the schema view's step arrows, over the shoes: each follows the path its foot really takes (through the anchors
+    /** a stop's step arrows, over the shoes: each follows the path its foot really takes (through the anchors
      *  set in the editor), and beside the arrow of a step that turns its foot by more than TURN_MARK degrees a small
      *  round arrow shows which way the foot turns (user 2026-11-16). `sight`: the floor that can be seen (not under a
      *  bar), where the turn marks have to be; null when all of it can. */

@@ -86,19 +86,9 @@
             android:layout_weight="1" />
 
         <ImageButton
-            android:id="@+id/mode"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:padding="10dp"
-            android:scaleType="fitCenter"
-            android:src="@drawable/ic_schema"
-            android:contentDescription="@string/schema_view" />
-
-        <ImageButton
             android:id="@+id/edit"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="10dp"
             android:padding="10dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ic_pencil"

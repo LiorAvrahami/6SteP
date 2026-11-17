@@ -219,17 +219,18 @@ commit (there is no diff step any more: the editor's file is the only version). 
   which loop it is in. The old engine's in-place seeks, tempo crossfades and track hand-overs are gone.
 - **The dance floor** (one for everything since 2026-10-28; the old `PlayerActivity` and `FloorActivity` are gone).
   Swipe left or right: the next or previous stop (the start position one beat before count 1, then every instant a foot
-  lands; it wraps round), flow (the feet travel, at twice the beat length, trapezoid easing) or schema (dashed arrows,
-  both dancers at once). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap or a
+  lands; it wraps round): the feet travel there (`step()`: `STEP_PACE` = 2/1.75 times the step's own time in the music,
+  trapezoid easing), and once they are there the stop's dashed arrows come, both dancers at once (one way of stepping
+  since 2026-11-17; the flow and schema modes and their button are gone). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap or a
   double tap while playing pauses; a swipe while playing jumps to the next part or back (the old player's 2 s rule,
   `BACK_REPLAY_SECONDS`): a composition's entries, any other piece's elements. Top bar: play/pause, tempo (the 7 offsets
   of the song's variants, the same offset for every song), song (shuffle, or one song over and over), mute (music,
-  drums and voice; a change of any of these while playing is a stop and a play from the same beat), flow/schema (manual stepping only; play always flows), edit (a "not implemented yet" note).
+  drums and voice; a change of any of these while playing is a stop and a play from the same beat), edit (a "not implemented yet" note).
   Bottom bar: every stop, the current one framed and followed while playing, the annotations (a composition's "say:"
   texts and entry names; a building block's element names) as khaki callouts; tap a stop to go there. Compositions play
   once and end on "Done!". Play starts from exactly the picture of the step (the beat where its weight has settled);
   a swipe or a tap on a step while playing starts afresh there too, and shows the part's name without reading it aloud
-  (the music does not dip under the voice: user 2026-10-28). Schema arrows are drawn over the shoes, darker, outlined
+  (the music does not dip under the voice: user 2026-10-28). A stop's arrows are drawn over the shoes, darker, outlined
   in black. Elements and building blocks loop: chained to about 1200 beats when they close on themselves
   (`chainedLoop`), otherwise from the start position again after 2 beats (an even period keeps the music's bars). The
   daily exercise opens playing; everything else opens paused with the bars shown. The system bars are hidden on the floor.
@@ -258,7 +259,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   This was the fix for "the music and the annotations both go dim sometimes" (2026-10-19); the diagnosis also named the
   phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
 - **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on` (the settings page);
-  `bpm_offset`, `song` (a track key or `shuffle`), `muted`, `strategic` (schema mode) (the dance floor's top bar);
+  `bpm_offset`, `song` (a track key or `shuffle`), `muted` (the dance floor's top bar; `strategic`, the schema mode, is no longer read since 2026-11-17);
   `explore_open_elements`, `explore_open_compositions`, `explore_open_blocks`, `explore_version_<kind>_<name>`. Gone with the redesign: the exploration
   floor's free `bpm` slider (the tempo is the song's), the main screen's switches and the player's options bar.
 - **Shipped compositions and the phone's copy.** `CompositionStore` reads the phone's own file when there is one and only
@@ -398,6 +399,17 @@ commit (there is no diff step any more: the editor's file is the only version). 
   Swing, 3:11 on Sunday Reflection, 3:17 on Slow Your Roll). The user's rule: the exercise always starts with one
   rock triple triple, and so does the quick recap. The quick recap already did (revision 3 only says so in its
   notes); its rock triple triple is still announced, and the user was asked whether it should be quiet there too.
+  2026-11-17, one way of stepping (user: "remove the distinction between these two modes"): the flow and schema modes
+  and their button are gone (`modeBtn`, `ic_flow`, `ic_schema`, their two strings; the `strategic` preference is no
+  longer read; `tools/check_app.py` keeps the names from coming back). A swipe to the next or previous stop: the
+  arrows of the stop on the screen go, the feet travel (`flowScene`), and when the travel ends that stop's arrows
+  come (`stopScene`, set in the animator's `onAnimationEnd` unless another swipe, a tap on a step or play cut the
+  travel short). The travel is 75% faster than the flow mode's was: every time of it is divided by `STEP_SPEEDUP` =
+  1.75 (`STEP_PACE`, 2/1.75 times the step's own time in the music where it was 2; the ramps at its ends, the
+  shortest and the longest travel), so a one-beat step on Sunday Reflection takes 0.54 s where it took 0.95 s. A tap
+  on a step in the bottom bar, a pause and going round the end stay cuts to the stop at rest, with its arrows. A
+  swipe back plays the travel backwards and then shows the arrows of the stop it arrives at; the user was asked
+  whether they would rather see that step replayed forwards. Nobody has seen it on a phone.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

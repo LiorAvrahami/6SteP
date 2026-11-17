@@ -35,8 +35,6 @@
     <string name="shuffle_now">Shuffle · %1$s</string>
     <string name="mute">Mute the music and the voice</string>
     <string name="unmute">Turn the music and the voice back on</string>
-    <string name="flow_view">Flow: the feet travel from step to step</string>
-    <string name="schema_view">Schema: dashed lines show where each foot came from</string>
     <string name="edit">Edit</string>
     <string name="back">Back</string>
     <string name="editor_not_ready">Choreography editor for phone not implemented yet.</string>
