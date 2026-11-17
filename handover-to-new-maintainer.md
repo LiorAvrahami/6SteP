@@ -129,6 +129,23 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
   Sunday Reflection (127) and Slow Your Roll (123) by Laughing Manny & The Swinging Dicks (CC BY-NC-SA: fine privately,
   a deal with the band is needed before any commercial release; contact form on their Free Music Archive page). The user
   wants saxophone-led real swing; the whole search history and their 1 to 10 scores are in the README.
+- **Music for a web version (research, 2026-11-17).** The user asked whether a web app could play copyrighted music
+  through the listener's own Spotify account (a "virtual browser" logged into it) or in any other way, so that the
+  good music need not be shipped. The report is `reports/Music sources for dance web app.md`; the researchers' notes,
+  with their sources, are in `research_notes/Music sources for dance web app/`. In short: Spotify is closed (5 named
+  users per app for an individual developer; rules against synchronised visuals, other audio on top and altered
+  tempo; a browser logged into the user's account breaks its user rules); YouTube's embedded player, kept visible, is
+  the one open streaming route (speed in 5% steps, coarse position, ads, per-video blocks: it needs a test on phones
+  first); the listener's own files meet every need; tapping along works with any player; Apple Music's licence says
+  its music "cannot be synchronized with any other content". Recommended: one beat-grid format with swappable sound
+  sources (built-in tracks, own file, YouTube for a curated list, tap-along). Most of the services' rule pages were
+  read only as search excerpts (this environment's network blocks them) and nothing was tested on a phone.
+  Two findings about the app as it is: **it shows no music credits** (CC BY and CC BY-NC-SA require the creator, the
+  licence with a link and a note of the changes; the About line credits only the font and the icons), and the two
+  band tracks are non-commercial while the heart page has a "Buy me a Beer" button (its payment link, `PAY_URL` in
+  `HeartActivity`, is still empty, so nothing can be paid yet): get the band's written permission before that link
+  is set. The user was asked whether to add the credits now. The report and the notes are on the session branch
+  `claude/inspiring-heisenberg-kuti4n` only, until the user says whether they belong on `main`.
 - **Beat grids** `<track> - beatgrid.json`: `beats[]` is the time of every beat and is used directly (it is NOT uniform
   for the live band), `bars[]` the bar starts, `swing` the "&" fraction, `grid` = `fixed` (comb-search tempo, Hot Swing),
   `tracked` (librosa beats snapped to onsets, Sunday Reflection) or `annotated` (the user's own marks, Slow Your Roll).
