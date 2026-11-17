@@ -26,9 +26,10 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   elements); drag a row sideways to move through its steps. A tap opens the dance floor on the first step of the
   version shown.
 - **The dance floor**, one for everything (the daily exercise included). Swipe left or right: the next or previous step.
-  The feet travel there, and once they are there a dashed arrow shows the path each foot that stepped came by, with a
-  small round arrow in the dancer's colour beside it when the foot turns more than a quarter turn, showing which way
-  (one way of stepping since 2026-11-17; before, a button chose between a "flow" and a "schema" mode).
+  The feet travel there in a third of a beat, whatever the step, moving as they do when the dance plays; once they
+  are there a dashed arrow shows the path each foot that stepped came by, with a small round arrow in the dancer's
+  colour beside it when the foot turns more than a quarter turn, showing which way (one way of stepping since
+  2026-11-17; before, a button chose between a "flow" and a "schema" mode).
   Swipe down: the bars; a tap on the floor closes them. Double tap or play: play (the bars close); a tap while playing pauses; a swipe while
   playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
   Top bar: play/pause, the tempo (the song's tempo variants), the song (shuffle, or one song over and over), mute

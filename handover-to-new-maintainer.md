@@ -219,9 +219,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   which loop it is in. The old engine's in-place seeks, tempo crossfades and track hand-overs are gone.
 - **The dance floor** (one for everything since 2026-10-28; the old `PlayerActivity` and `FloorActivity` are gone).
   Swipe left or right: the next or previous stop (the start position one beat before count 1, then every instant a foot
-  lands; it wraps round): the feet travel there (`step()`: `STEP_PACE` = 2/1.75 times the step's own time in the music,
-  trapezoid easing), and once they are there the stop's dashed arrows come, both dancers at once (one way of stepping
-  since 2026-11-17; the flow and schema modes and their button are gone). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap or a
+  lands; it wraps round): the feet travel there (`step()`: every travel takes `STEP_BEATS`, a third of a beat, and plays
+  that stretch of the dance at an even rate), and once they are there the stop's dashed arrows come, both dancers at
+  once (one way of stepping since 2026-11-17; the flow and schema modes and their button are gone). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap or a
   double tap while playing pauses; a swipe while playing jumps to the next part or back (the old player's 2 s rule,
   `BACK_REPLAY_SECONDS`): a composition's entries, any other piece's elements. Top bar: play/pause, tempo (the 7 offsets
   of the song's variants, the same offset for every song), song (shuffle, or one song over and over), mute (music,
@@ -404,11 +404,19 @@ commit (there is no diff step any more: the editor's file is the only version). 
   longer read; `tools/check_app.py` keeps the names from coming back). A swipe to the next or previous stop: the
   arrows of the stop on the screen go, the feet travel (`flowScene`), and when the travel ends that stop's arrows
   come (`stopScene`, set in the animator's `onAnimationEnd` unless another swipe, a tap on a step or play cut the
-  travel short). The travel is 75% faster than the flow mode's was: every time of it is divided by `STEP_SPEEDUP` =
-  1.75 (`STEP_PACE`, 2/1.75 times the step's own time in the music where it was 2; the ramps at its ends, the
-  shortest and the longest travel), so a one-beat step on Sunday Reflection takes 0.54 s where it took 0.95 s. A tap
-  on a step in the bottom bar, a pause and going round the end stay cuts to the stop at rest, with its arrows. A
-  swipe back plays the travel backwards and then shows the arrows of the stop it arrives at; the user was asked
+  travel short). In v55 the travel was the flow mode's, 75% faster (every time of it divided by 1.75: 2/1.75 times
+  the step's own time in the music, trapezoid easing). The same day the user found that a travel as long as its step
+  made the half steps fast and the whole steps slow, "mostly confusing", and that the travel's speeding up and
+  slowing down felt annoying, and asked how it relates to the play's. So since v56 **every travel takes a third of
+  a beat** at the chosen tempo (`STEP_BEATS`; 0.14 s on Hot Swing, 0.16 s on the two others), whatever the step, and
+  the travel has no easing of its own: it plays the stretch of the dance between the two settled pictures at an even
+  rate (`LinearInterpolator`), so each foot speeds up and slows down exactly as it does in play (`Timeline`: a
+  smoothstep from its release to its landing). Before, the trapezoid eased the travel's time on top of that, so
+  every foot was eased twice (a slow start on a slow start: it seemed to hesitate), and the end of the travel, where
+  only the weight settles, dragged before the arrows came; `TrapezoidInterpolator` is gone. This was the best guess
+  to "maybe they should be the same": the user was told how the two differed and asked whether it feels right now.
+  A tap on a step in the bottom bar, a pause and going round the end stay cuts to the stop at rest, with its arrows.
+  A swipe back plays the travel backwards and then shows the arrows of the stop it arrives at; the user was asked
   whether they would rather see that step replayed forwards. Nobody has seen it on a phone.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**

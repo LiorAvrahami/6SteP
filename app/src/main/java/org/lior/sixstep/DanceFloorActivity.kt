@@ -12,6 +12,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.LinearInterpolator
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -50,13 +51,10 @@ class DanceFloorActivity : AppCompatActivity() {
         const val BACK_REPLAY_SECONDS = 2.0   // swipe right in the first 2 s of a part goes to the previous one (as in Workout Instructinator)
         const val LOOP_REST = 2.0             // beats of the start position before a piece that does not close is danced again
         const val CHAIN_BEATS = 1200.0        // a piece that closes is chained to about this long for play
-        // stepping by hand, the feet's travel to the next stop: 75% faster since 2026-11-17 (user). Every time of the
-        // travel as it was is divided by STEP_SPEEDUP, so the same motion plays 1.75 times as fast
-        const val STEP_SPEEDUP = 1.75
-        const val STEP_PACE = 2.0 / STEP_SPEEDUP         // the travel takes this many times the step's own time in the music
-        const val STEP_RAMP = 1.0 / 6.0 / STEP_SPEEDUP   // s: it speeds up for this long at its start, and slows down for as long at its end
-        const val STEP_MIN_MS = 250.0 / STEP_SPEEDUP     // no travel is shorter than this,
-        const val STEP_MAX_MS = 4000.0 / STEP_SPEEDUP    // or longer than this
+        // stepping by hand: the feet's travel to the next stop takes this long, in beats of the music at the chosen tempo,
+        // whatever the step (user 2026-11-17: a travel as long as its step made the half steps fast and the whole steps
+        // slow, which was mostly confusing)
+        const val STEP_BEATS = 1.0 / 3.0
     }
 
     private lateinit var floor: FloorView
@@ -325,10 +323,12 @@ class DanceFloorActivity : AppCompatActivity() {
     /** one stop forward or back; past the last comes the first again, and before the first the last (user 2026-10-19).
      *  The one way of stepping (user 2026-11-17): the arrows of the stop we leave go, the feet travel from its settled
      *  state to the settled state of the next one, and only when they are there do that stop's arrows come (stopScene):
-     *  where each foot that stepped came from, and by which path. The travel takes STEP_PACE times the step's own time in
-     *  the music, speeding up at a constant rate for STEP_RAMP seconds and slowing down in the same way at its end. A
-     *  swipe back is the same travel backwards, to the picture of the stop before, with its own arrows. Going round the
-     *  end is a cut. */
+     *  where each foot that stepped came from, and by which path. Every travel takes STEP_BEATS of a beat, whatever the
+     *  step, and plays that stretch of the dance at an even rate, so the feet speed up and slow down exactly as they do
+     *  when the dance plays (Timeline: a foot eases out of its place and into its landing). Until 2026-11-17 the travel
+     *  also sped up and slowed down as a whole, which eased every foot twice; the user found that annoying. A swipe
+     *  back is the same travel backwards, to the picture of the stop before, with its own arrows. Going round the end
+     *  is a cut. */
     private fun step(dir: Int) {
         val ptl = playTl ?: return
         if (stops.size < 2) return
@@ -341,11 +341,9 @@ class DanceFloorActivity : AppCompatActivity() {
         strip.current = idx
         if (barsShown) strip.scrollToCell(idx, true)
         val tFrom = settled(ptl, from); val tTo = settled(ptl, to)
-        val ms = (abs(to - from) * 60.0 / pb.bpm() * STEP_PACE * 1000.0).coerceIn(STEP_MIN_MS, STEP_MAX_MS)
-        val ramp = (STEP_RAMP * 1000.0 / ms).coerceAtMost(0.45)
         val a = ValueAnimator.ofFloat(0f, 1f)
-        a.duration = ms.toLong()
-        a.interpolator = TrapezoidInterpolator(ramp.toFloat())
+        a.duration = (STEP_BEATS * 60.0 / pb.bpm() * 1000.0).coerceIn(60.0, 600.0).toLong()   // the limits only guard against a tempo that makes no sense
+        a.interpolator = LinearInterpolator()   // the dance's own time, at an even rate (an animator's default eases in and out)
         a.addUpdateListener { v -> val u = (v.animatedValue as Float).toDouble(); floor.scene = flowScene(ptl, tFrom + (tTo - tFrom) * u, null, false) }
         a.addListener(object : AnimatorListenerAdapter() {
             private var cancelled = false   // cut short by another swipe, a tap on a step, or play: they draw their own picture
@@ -546,18 +544,5 @@ class DanceFloorActivity : AppCompatActivity() {
         super.onDestroy()
         anim?.cancel(); barsAnim?.cancel(); playing = false
         pb.release()
-    }
-}
-
-/** Position with a constant acceleration for the first `ramp` of the time, constant speed, then the mirror image. */
-class TrapezoidInterpolator(private val ramp: Float) : android.view.animation.Interpolator {
-    override fun getInterpolation(t: Float): Float {
-        val r = ramp.coerceIn(0.05f, 0.5f)
-        val vmax = 1f / (1f - r)   // so that the area under the velocity profile is 1
-        return when {
-            t < r -> 0.5f * vmax / r * t * t
-            t < 1f - r -> 0.5f * vmax * r + vmax * (t - r)
-            else -> { val u = 1f - t; 1f - 0.5f * vmax / r * u * u }
-        }
     }
 }
