@@ -467,3 +467,43 @@ commit (there is no diff step any more: the editor's file is the only version). 
 The todo list is `TODO.md` at the repo root (since 2026-10-22); the backlog that stood here moved there. The user adds to it
 with the `/todo` command (`.claude/commands/todo.md`, loaded by every Claude Code session on this repository), which writes a
 todo down without implementing it. Move a todo to "Done" with the date and release when you finish it.
+
+## 10. A web version and the listener's own songs (the user's decisions, 2026-11-19)
+
+Nothing of this is built yet; the user was given the answers below and asked to confirm the structure.
+
+- **Decided by the user.** No streaming. The three free songs ship with the app. Other songs (their example: "Like It
+  Is") the listener gets themselves: the options get an "add songs" button that opens a file picker; the chosen file is
+  recognised against the songs whose steps are mapped; if it is not mapped, the listener is told to send it to the
+  user's email, with a button that opens an email saying "hi, please map out the song named *** for me, thanks!". The
+  web app is to be written in Kotlin ("JavaScript will be buggy"), with the music fetched in the background and a
+  loading animation when a file has not arrived yet. They asked whether the project could then still be a native
+  Android app, and whether that app would be less good. They do not want to hear about licences or the beer button
+  unless they ask.
+- **Recognising a song** (`music/tools/song_match_proto.py`, a tested prototype; needs ffmpeg, numpy, scipy). The
+  user proposed something like the file's length, "a hash that compression does not break". Length alone cannot say
+  where extra silence sits, and the feet would be off the beat by that much. The prototype's fingerprint is the song's
+  rhythm of loudness: at 8 kHz mono, the rise of the energy from one 10 ms block to the next over the first 90 s
+  (9 KB a song). A copy is matched by sliding its pattern along each mapped song's (within 15 s) and checking the
+  length. On 24 copies of the three bundled songs (MP3 at 128 and 64 kbit/s, AAC, Opus, WAV, quieter, 0.73 s of
+  silence added, the first 0.40 s cut off) every copy was recognised (score 0.99 to 1.00 against 0.05 to 0.06 for
+  the next best song) and the shift of its start was found to within 0.3 ms. Speed-changed versions of the same tune
+  scored 0.06 to 0.07; the 50 s original of Hot Swing, which starts like the 5 minute loop, scored 0.76 and is told
+  apart by its length. Not tested: a copy from another release or master of a recording.
+- **Kotlin for the browser works in the cloud session** (tried in the scratchpad, not kept): Gradle 8.14.3 with the
+  Kotlin multiplatform plugin 2.4.21 and a `js { browser(); binaries.executable() }` target builds from Maven Central
+  and the Gradle plugin portal (`kotlin.js.yarn=false`; Maven Central answers 429 now and then: run the build again).
+  A page that draws the app's shoes on a canvas and schedules clicks with Web Audio (declared with `external`
+  classes) compiled to 14 KB and ran in the session's headless Chromium at 60 frames a second. So, unlike the Android
+  app, a web build can be run and looked at here. Pitfall: the bundle assigns its module to `globalThis.<project
+  name>` after `main` has run, so a global of that name is overwritten. Google's package site (`dl.google.com`) is
+  not reachable from the session, so neither the Android app nor anything built on Compose can be compiled here.
+- **The structure recommended to the user:** Kotlin Multiplatform with one shared engine (dance data, composing,
+  timeline, the drawing of floor, shoes and arrows behind a small drawing interface, the play logic, song
+  recognition), the Android app's screens and sound as they are, and a web front written in Kotlin/JS (a stable
+  target) on canvas and Web Audio. Changes to the dance logic or the drawing are then made once; a change to a screen
+  is made in both fronts. Not recommended: Compose Multiplatform for one shared set of screens (its web side is still
+  Beta on JetBrains' stability page in November 2026, it needs every Android screen rewritten, and its web page is
+  heavy), or a web page wrapped as the Android app (the sound would go through the web view). Open points put to the
+  user: this structure; switching on the project's GitHub Pages address (only they can); whether added songs get the
+  tempo choice (speed changed on the fly) or play at their own tempo only.
