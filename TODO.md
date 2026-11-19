@@ -65,6 +65,36 @@ down without doing it. When one is finished, move it to "Done" with the date and
 - On-device tempo stretching (`PlaybackParams`) as the small-APK alternative to the shipped tempo variants.
 - Elements not built yet: Charleston, anything from `reversed_side`, the lead underarm pass from side by side.
 
+### A lead-in of two rock triple triples after a jump while playing
+- **Added:** 2026-11-19, by the user.
+- **What:** "if I go back or forwards, like during play, not when it's paused ... and it goes to the next or the previous
+  annotation, then start by adding twice rock triple triple in place." After a swipe while a composition plays, the
+  dancers first dance two rock triple triples on the spot, and only then the part starts. The user asked for an
+  assessment first: "Don't add it now ... This is a future feature that I want you to think about."
+- **Context** (the assessment given on 2026-11-19):
+  - Today a swipe while playing lands 2 beats before the part (`skip()` and `jumpLead` in `DanceFloorActivity`), in the
+    last beats of the element before it.
+  - Checked with `dance/model.py`: every part of both compositions starts with the leader's left foot free. Parts that
+    start side by side (8 of the exercise's 11): two rock triple triples take 12 beats and end exactly where they
+    started. Parts that start face to face (follower underarm pass, lead underarm pass, tak turn): no triple step
+    stays face to face, so there is no rock triple triple there; two of them side by side and then a quiet follower
+    underarm pass (18 beats) can be composed. With the lead-in composed in front, the dance from the part on is the
+    composition's own (the same versions; after one move and turn of the whole, the steps differ by 0.000 cm), so the
+    picture can return to the composition's timeline without a jump.
+  - What it takes in the app: compose the lead-in when a swipe lands (the existing composer); draw those beats from a
+    second timeline, moved and turned onto the part's place, then go back to the main one; rework `skip()` (where each
+    swipe lands, and which part counts as the current one for "back"); small things: the title and the bottom bar
+    during the lead-in, a pause during it, a part with fewer beats before it than the lead-in needs (start from the
+    beginning), the annotation still 2 beats before the part. The music needs nothing: it starts 12 or 18 beats earlier
+    in the song. About one working session and a round of testing on the phone; the jump logic is where mistakes are
+    likeliest.
+  - If the engine moves into shared code for a web version first (handover section 10), write this once, there.
+- **Questions for later:** for parts that start face to face: two rock triple triples side by side and then a quiet
+  follower underarm pass (18 beats), or will the user draw a triple step that stays face to face, so that the rock
+  triple triple can be danced there (12 beats)? Guesses to confirm: only after swipes (not after a tap on a step in the
+  bottom bar, nor when play is pressed on a step); the part's name still not read aloud after a jump; compositions
+  only (elements and building blocks loop and have no annotations).
+
 ## Done
 
 - **2026-11-16, v40:** "Underarm circle: fix the foot placement": placed by the user.
