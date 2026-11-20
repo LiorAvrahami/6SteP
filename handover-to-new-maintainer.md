@@ -510,12 +510,19 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
 - **The build and the address:** `build.yml` (on `main`) runs the tests, builds the APK and the page, and pushes the
   page to the `gh-pages` branch (one commit, replaced each time), which GitHub Pages serves. Pushing a `gh-pages`
   branch switched Pages on by itself; the Pages settings API is not reachable from the cloud session.
-  `check.yml` builds a `claude/**` branch and publishes nothing: push there first when the Android side changes.
+  `check.yml` builds a `claude/**` branch with the same command and publishes nothing: push there first, and to
+  `main` only once it is green.
 - **In the cloud session:** `SIXSTEP_SKIP_ANDROID=1 gradle :shared:jvmTest :web:jsBrowserDistribution` works (Maven
   Central answers 429 now and then: run it again). Google's package site (`dl.google.com`) is not reachable, so the
   Android app cannot be compiled there; GitHub compiles it. `*.github.io` is not reachable either: the published page
   cannot be opened from the session.
-- **Pitfalls met:** a comparison of a `dynamic` value (`out < 1.0`) crashed the Kotlin/JS compiler: convert to a
+- **Pitfalls met:** **the app and the shared engine share the package `org.lior.sixstep`, so no class may exist in
+  both.** Build 58 failed for that (`Arrow`, `Scene` and `FeetPainter` were in `FloorView.kt` and in the new shared
+  `Floor.kt`): the Kotlin compiler says nothing, a debug build passes (and at run time one of the two would win), and
+  only the release build's merging of all classes fails ("Error while merging dex archives"). So there is no v58.
+  Since then `check.yml` runs the release build's own command, and `tools/check_app.py` reports such doubles. The
+  Android painter is `PhoneFeetPainter` until the app draws through the shared `FeetPainter`.
+  A comparison of a `dynamic` value (`out < 1.0`) crashed the Kotlin/JS compiler: convert to a
   Double first. The JavaScript bundle assigns its module to `globalThis.<module name>` after `main` has run. Kotlin
   2.2 no longer takes `kotlinOptions { }` in the Android module (`kotlin { compilerOptions { } }`).
 
