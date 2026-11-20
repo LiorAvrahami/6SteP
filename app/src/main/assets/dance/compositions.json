@@ -60,6 +60,17 @@
    "notes": "Every element once, in the order the user learned them (user 2026-11-16), joined by quiet bridges where one element does not end the way the next one starts. Like the daily exercise it always starts with one rock triple triple (the user's rule, 2026-11-16); here it is announced, being the first element of the list, while the exercise's is quiet. The last bridge brings the couple back to side by side, so the launcher's little floor loops it without a jump.",
    "revision": 3,
    "edited": false
+  },
+  {
+   "name": "Rock Tripple Tripple facing",
+   "start_state": "facing",
+   "repeat": 1,
+   "elements": [
+    "rock step → facing",
+    "triple step",
+    "triple step"
+   ],
+   "notes": ""
   }
  ],
  "sub_compositions": [
