@@ -87,7 +87,13 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         root.add(loadingEl)
 
         // the floor: where the touch went down and where it came up
-        stage.canvas.addEventListener("pointerdown", { e -> e as MouseEvent; isDown = true; downX = e.clientX.toDouble(); downY = e.clientY.toDouble(); App.player.unlock(); closeMenu() })
+        stage.canvas.addEventListener("pointerdown", { e ->
+            e as MouseEvent
+            isDown = true; downX = e.clientX.toDouble(); downY = e.clientY.toDouble()
+            // the floor keeps the touch until it lifts, also when it ends over a bar
+            try { stage.canvas.asDynamic().setPointerCapture(e.asDynamic().pointerId) } catch (t: Throwable) {}
+            App.player.unlock(); closeMenu()
+        })
         stage.canvas.addEventListener("pointerup", { e -> e as MouseEvent; if (isDown) { isDown = false; gesture(e.clientX - downX, e.clientY - downY) } })
         stage.canvas.addEventListener("pointercancel", { isDown = false })
 
