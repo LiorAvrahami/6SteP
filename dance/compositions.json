@@ -97,6 +97,17 @@
    "notes": "Every element once, in the order the user learned them (user 2026-11-16), joined by quiet bridges where one element does not end the way the next one starts; the last bridge brings the couple back to side by side so the launcher's little floor loops it without a jump.",
    "revision": 1,
    "edited": false
+  },
+  {
+   "name": "Rock Tripple Tripple facing",
+   "start_state": "facing",
+   "repeat": 1,
+   "elements": [
+    "rock step → facing",
+    "triple step",
+    "triple step"
+   ],
+   "notes": ""
   }
  ],
  "sub_compositions": [
