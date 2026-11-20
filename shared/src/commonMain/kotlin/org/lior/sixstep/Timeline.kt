@@ -1,6 +1,7 @@
 package org.lior.sixstep
 
 import kotlin.math.abs
+import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
@@ -170,8 +171,8 @@ class Timeline(val composed: Composed, val swing: Double) {
         if (counts.isEmpty()) return ""
         val base = counts.first().trimEnd('&').toInt()
         val rel = t - e.start
-        val n = base + Math.floor(rel).toInt()
-        val frac = rel - Math.floor(rel)
+        val n = base + floor(rel).toInt()
+        val frac = rel - floor(rel)
         return if (frac >= swing - 0.02 && counts.contains("$n&")) "$n&" else "$n"
     }
 

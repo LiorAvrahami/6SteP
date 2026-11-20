@@ -27,16 +27,13 @@ import kotlin.math.roundToInt
  *  what is danced, the current one framed, the annotations pointing at the step where they start, a tap goes there) and
  *  the rows of the explore page (three pictures around the step that stands out most) are both one of these. */
 class StepStrip @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
-    /** one picture: the feet at a stop, their weights once settled, the count */
-    class Cell(val feet: Map<String, Placement>, val weights: Map<Char, Map<Char, Double>>, val count: String)
-
     companion object {
         const val MARGIN = 14.0        // cm around the foot centres in a picture
         const val FOLLOW = 0.15        // how much of the way to the current step the strip glides each frame while playing
     }
 
     private val d = resources.displayMetrics.density
-    var cells: List<Cell> = emptyList()
+    var cells: List<StepCell> = emptyList()
         set(v) { field = v; prepare(); invalidate() }
     /** (stop, text): an annotation that starts at that stop, drawn in the band above the pictures */
     var callouts: List<Pair<Int, String>> = emptyList()

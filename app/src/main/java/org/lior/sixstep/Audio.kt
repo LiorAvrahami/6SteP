@@ -10,7 +10,6 @@ import android.os.Looper
 import android.os.SystemClock
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
-import org.json.JSONObject
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -19,77 +18,6 @@ import java.security.MessageDigest
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.floor
-
-/** The beat grid of a track: when every count happens. */
-class BeatGrid(val bpm: Double, val beat: Double, val swing: Double, val duration: Double, val beats: DoubleArray, val bars: DoubleArray) {
-    /** which beat index (mod 4) is the 1 of the bar; from the analysis, or from the user's taps (Sync music) */
-    var phase: Int = if (bars.isEmpty() || beats.isEmpty()) 0 else { var k = 0; for (i in beats.indices) if (abs(beats[i] - bars[0]) < abs(beats[k] - bars[0])) k = i; k % 4 }
-    /** seconds: the beats as heard sit this much after the measured ones (output latency, analysis bias); from the taps */
-    var offset: Double = 0.0
-    fun beatSeconds(b: Double): Double {
-        val k = floor(b).toInt(); val frac = b - k
-        if (k >= 0 && k + 1 < beats.size) return beats[k] + frac * (beats[k + 1] - beats[k])
-        if (k < 0) return beats[0] + b * beat
-        return beats.last() + (b - (beats.size - 1)) * beat
-    }
-    fun beatAt(s: Double): Double {
-        if (beats.size < 2) return s / beat
-        var j = 0
-        while (j + 1 < beats.size - 1 && beats[j + 1] <= s) j++
-        return j + (s - beats[j]) / (beats[j + 1] - beats[j])
-    }
-    /** the beat index where the dance starts: the first 1 of a bar at or after 3 s */
-    fun startBeatIndex(): Int {
-        for (i in beats.indices) if (beats[i] >= 3.0 && ((i - phase) % 4 + 4) % 4 == 0) return i
-        return 0
-    }
-    /** the same grid for the music time-stretched by `tempo` (1.2 = a fifth faster): every beat lands at beats[i] / tempo.
-     *  The latency offset is in real seconds and stays as it is. */
-    fun scaled(tempo: Double): BeatGrid {
-        val g = BeatGrid(bpm * tempo, beat / tempo, swing, duration / tempo, DoubleArray(beats.size) { beats[it] / tempo }, DoubleArray(bars.size) { bars[it] / tempo })
-        g.phase = phase; g.offset = offset
-        return g
-    }
-    companion object {
-        fun load(ctx: Context, path: String): BeatGrid {
-            val o = JSONObject(ctx.assets.open(path).bufferedReader().readText())
-            val ba = o.getJSONArray("beats"); val beats = DoubleArray(ba.length()) { ba.getDouble(it) }
-            val bb = o.optJSONArray("bars"); val bars = if (bb == null) DoubleArray(0) else DoubleArray(bb.length()) { bb.getDouble(it) }
-            return BeatGrid(o.getDouble("bpm"), o.getDouble("beat"), o.optDouble("swing", 0.67), o.optDouble("duration", beats.last()), beats, bars)
-        }
-        /** the grid of a track (the beats annotated by ear in the beat annotator when that was done) */
-        fun loadFor(ctx: Context, track: Track): BeatGrid = load(ctx, track.gridPath)
-    }
-}
-
-/** A track time-stretched by `tempo` with its pitch kept: `offset` BPM faster (or slower, when negative) than the original. */
-class TrackVariant(val offset: Int, val bpm: Double, val tempo: Double, val file: String)
-
-class Track(val key: String, val title: String, val artist: String, val licence: String, val bpm: Double, val duration: Double, val file: String, val gridPath: String, val difficulty: String = "", val variants: List<TrackVariant> = emptyList()) {
-    /** the variant `offset` BPM away from the original, or the nearest one there is */
-    fun variantFor(offset: Int): TrackVariant = variants.minByOrNull { abs(it.offset - offset) } ?: TrackVariant(0, bpm, 1.0, file)
-
-    companion object {
-        fun loadAll(ctx: Context): List<Track> {
-            val o = JSONObject(ctx.assets.open("dance/tracks.json").bufferedReader().readText())
-            val a = o.getJSONArray("tracks")
-            return (0 until a.length()).map { i ->
-                val t = a.getJSONObject(i)
-                val bpm = t.getDouble("bpm"); val file = t.getString("file")
-                // the tempo variants; older assets without them have just the track itself
-                val variants = ArrayList<TrackVariant>()
-                val va = t.optJSONArray("variants")
-                if (va != null) for (k in 0 until va.length()) {
-                    val v = va.getJSONObject(k); val off = v.getInt("offset")
-                    variants.add(TrackVariant(off, v.optDouble("bpm", bpm + off), v.optDouble("tempo", (bpm + off) / bpm), v.optString("file", file)))
-                }
-                if (variants.none { it.offset == 0 }) variants.add(TrackVariant(0, bpm, 1.0, file))
-                variants.sortBy { it.offset }
-                Track(t.getString("key"), t.getString("title"), t.getString("artist"), t.getString("licence"), bpm, t.getDouble("duration"), file, t.getString("grid"), t.optString("difficulty", ""), variants)
-            }
-        }
-    }
-}
 
 /** Maps the phone's clock to beats. */
 interface BeatClock {

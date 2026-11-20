@@ -3,9 +3,12 @@ name: build
 on:
   push:
     branches: [main]
-    # only changes to the app make a new APK; the PC-side tools and the docs (dance/, music/, tools/, *.md) do not
+    # only changes to the app (its own module, the shared engine, the web front) make a new build; the PC-side tools and
+    # the docs (dance/, music/, tools/, *.md) do not
     paths:
       - 'app/**'
+      - 'shared/**'
+      - 'web/**'
       - '*.gradle.kts'
       - 'gradle.properties'
       - 'gradle/**'
@@ -44,8 +47,9 @@ jobs:
         with:
           gradle-version: "8.7"
 
-      - name: Build the signed release APK
-        run: gradle assembleRelease --no-daemon --stacktrace
+      # the shared engine's tests first: a composition that cannot be danced must not reach a release
+      - name: Test the engine, build the signed release APK and the web front
+        run: gradle :shared:jvmTest assembleRelease :web:jsBrowserDistribution --no-daemon --stacktrace
         env:
           BUILD_NUMBER: ${{ github.run_number }}
 

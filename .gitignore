@@ -25,3 +25,9 @@ reference/lurklurk/
 
 # an editor still running old code may write the old single file; the new server takes its elements and moves it to dance/out/backups
 dance/skeletons.json
+
+# the shared engine and the web front: build output, and the JavaScript tool cache
+shared/build/
+web/build/
+kotlin-js-store/
+.kotlin/

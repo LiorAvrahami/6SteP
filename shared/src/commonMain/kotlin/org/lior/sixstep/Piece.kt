@@ -1,5 +1,6 @@
 package org.lior.sixstep
 
+import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.exp
@@ -43,10 +44,13 @@ fun stopIndex(stops: List<Double>, b: Double): Int {
     return ans
 }
 
+/** one picture of a strip of steps: the feet at a stop, their weights once settled, the count */
+class StepCell(val feet: Map<String, Placement>, val weights: Map<Char, Map<Char, Double>>, val count: String)
+
 /** a picture per stop: the feet where they landed, the weights once they have settled on them, the count */
-fun cellsOf(tl: Timeline, stops: List<Double>, startLabel: String): List<StepStrip.Cell> = stops.map { s ->
+fun cellsOf(tl: Timeline, stops: List<Double>, startLabel: String): List<StepCell> = stops.map { s ->
     val w = tl.settledAfter(s)
-    StepStrip.Cell(tl.feetAt(s), mapOf('L' to tl.weights('L', w), 'F' to tl.weights('F', w)), if (s < 0) startLabel else tl.countLabel(s))
+    StepCell(tl.feetAt(s), mapOf('L' to tl.weights('L', w), 'F' to tl.weights('F', w)), if (s < 0) startLabel else tl.countLabel(s))
 }
 
 /** How unusual a pose is, for the explore page's rows, which open centred on the step of their piece that stands out
@@ -69,7 +73,7 @@ object Rarity {
         for ((i, p) in ps.withIndex()) {
             val dx = p.x - mx; val dy = p.y - my
             out[4 * i] = dx * ca + dy * sa; out[4 * i + 1] = -dx * sa + dy * ca
-            val h = Math.toRadians(90.0 - p.h) - a   // the heading as an angle of the maths kind, relative to his-to-her
+            val h = (90.0 - p.h) * PI / 180.0 - a   // the heading as an angle of the maths kind, relative to his-to-her
             out[4 * i + 2] = TURN * cos(h); out[4 * i + 3] = TURN * sin(h)
         }
         return out
@@ -87,7 +91,7 @@ object Rarity {
 
     /** the picture to centre a row on: the stop that stands out most (the start position aside), kept one away from the
      *  ends so that there is a picture on each side of it */
-    fun centre(cells: List<StepStrip.Cell>, corpus: List<DoubleArray>): Int {
+    fun centre(cells: List<StepCell>, corpus: List<DoubleArray>): Int {
         if (cells.size < 3) return min(1, cells.size - 1)
         var best = 1; var bestD = Double.MAX_VALUE
         for (k in 1 until cells.size) {

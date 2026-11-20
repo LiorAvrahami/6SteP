@@ -1,9 +1,6 @@
 package org.lior.sixstep
 
-import android.content.Context
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.File
+import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -41,8 +38,8 @@ fun countTime(count: String, swing: Double): Double {
     return n - 1 + (if (and) swing else 0.0)
 }
 
-fun fwd(h: Double): Pair<Double, Double> { val r = Math.toRadians(h); return Pair(sin(r), cos(r)) }
-fun right(h: Double): Pair<Double, Double> { val r = Math.toRadians(h); return Pair(cos(r), -sin(r)) }
+fun fwd(h: Double): Pair<Double, Double> { val r = h * PI / 180.0; return Pair(sin(r), cos(r)) }
+fun right(h: Double): Pair<Double, Double> { val r = h * PI / 180.0; return Pair(cos(r), -sin(r)) }
 
 /** A rigid transform: local skeleton coordinates -> world, defined by the leader's left foot in natural stance. */
 class Frame(val x: Double, val y: Double, val h: Double) {
@@ -64,56 +61,48 @@ class DanceData(val states: Map<String, DanceState>, val elements: List<Element>
 
     companion object {
         const val STANCE = 20.0
-        fun load(ctx: Context): DanceData = parse(ctx.assets.open("dance/skeletons.json").bufferedReader().readText())
-
+        /** the dance data from the text of skeletons.json */
         fun parse(text: String): DanceData {
-            val root = JSONObject(text)
+            val root = Json.obj(text)
             val states = LinkedHashMap<String, DanceState>()
-            val sj = root.getJSONObject("states")
-            for (key in sj.keys()) {
-                val o = sj.getJSONObject(key)
+            val sj = root.obj("states")
+            for (key in sj.keys) {
+                val o = sj.obj(key)
                 val feet = LinkedHashMap<String, Placement>()
-                val fj = o.getJSONObject("feet")
-                for (fk in fj.keys()) {
-                    val a = fj.getJSONArray(fk)
-                    feet[fk] = Placement(a.getDouble(0), a.getDouble(1), a.getDouble(2))
+                val fj = o.obj("feet")
+                for (fk in fj.keys) {
+                    val a = fj.arr(fk)
+                    feet[fk] = Placement(a.num(0), a.num(1), a.num(2))
                 }
-                states[key] = DanceState(key, feet, o.optString("leader_free", "L").firstOrNull() ?: 'L', strList(o.optJSONArray("hands")), o.optString("desc", ""))
+                states[key] = DanceState(key, feet, o.optStr("leader_free", "L").firstOrNull() ?: 'L', o.optArr("hands").strings(), o.optStr("desc", ""))
             }
             val elements = ArrayList<Element>()
-            val ej = root.getJSONArray("elements")
-            for (i in 0 until ej.length()) {
-                val e = ej.getJSONObject(i)
+            val ej = root.arr("elements")
+            for (i in 0 until ej.size) {
+                val e = ej.obj(i)
                 val steps = ArrayList<Step>()
-                val stj = e.getJSONArray("steps")
-                for (k in 0 until stj.length()) {
-                    val s = stj.getJSONObject(k)
+                val stj = e.arr("steps")
+                for (k in 0 until stj.size) {
+                    val s = stj.obj(k)
                     val via = ArrayList<Pair<Double, Double>>()
-                    val vj = s.optJSONArray("via")
-                    if (vj != null) for (q in 0 until vj.length()) { val a = vj.getJSONArray(q); via.add(Pair(a.getDouble(0), a.getDouble(1))) }
-                    steps.add(Step(s.getString("count"), s.getString("dancer")[0], s.getString("foot")[0], s.optString("code", ""),
-                        s.getDouble("x"), s.getDouble("y"), s.getDouble("heading"), s.optBoolean("exempt", false), s.optString("note", ""), s.optString("src", ""), via))
+                    val vj = s.optArr("via")
+                    if (vj != null) for (q in 0 until vj.size) { val a = vj.arr(q); via.add(Pair(a.num(0), a.num(1))) }
+                    steps.add(Step(s.str("count"), s.str("dancer")[0], s.str("foot")[0], s.optStr("code", ""),
+                        s.num("x"), s.num("y"), s.num("heading"), s.optBool("exempt", false), s.optStr("note", ""), s.optStr("src", ""), via))
                 }
                 val hands = ArrayList<Pair<String, List<String>>>()
-                val hj = e.optJSONArray("hands")
-                if (hj != null) for (k in 0 until hj.length()) {
-                    val h = hj.getJSONObject(k)
-                    hands.add(Pair(h.get("count").toString(), strList(h.optJSONArray("hands"))))
+                val hj = e.optArr("hands")
+                if (hj != null) for (k in 0 until hj.size) {
+                    val h = hj.obj(k)
+                    hands.add(Pair(h.text("count"), h.optArr("hands").strings()))
                 }
                 // an element still being written in the editor, with no steps yet for one of the dancers, is left out
                 // until it has them (it could not be danced, and its end would be unknown)
                 if (steps.none { it.dancer == 'L' } || steps.none { it.dancer == 'F' }) continue
-                elements.add(Element(e.getString("name"), e.getString("start_state"), e.getString("end_state"), e.getInt("beats"),
-                    e.optString("leader_free_start", "L").firstOrNull() ?: 'L', e.optString("source", ""), e.optString("notes", ""), steps, hands))
+                elements.add(Element(e.str("name"), e.str("start_state"), e.str("end_state"), e.int("beats"),
+                    e.optStr("leader_free_start", "L").firstOrNull() ?: 'L', e.optStr("source", ""), e.optStr("notes", ""), steps, hands))
             }
             return DanceData(states, elements)
-        }
-
-        fun strList(a: JSONArray?): List<String> {
-            if (a == null) return emptyList()
-            val out = ArrayList<String>()
-            for (i in 0 until a.length()) out.add(a.getString(i))
-            return out
         }
     }
 }
@@ -152,10 +141,10 @@ class Composition(
     var revision: Int = 0, var edited: Boolean = false
 ) {
     companion object {
-        fun fromJson(o: JSONObject, isSub: Boolean): Composition = Composition(
-            o.getString("name"), o.optString("start_state", "side"), maxOf(1, o.optInt("repeat", 1)),
-            DanceData.strList(o.optJSONArray("elements")).toMutableList(), o.optString("notes", ""), isSub,
-            o.optInt("revision", 0), o.optBoolean("edited", false))
+        fun fromJson(o: JsonObj, isSub: Boolean): Composition = Composition(
+            o.str("name"), o.optStr("start_state", "side"), maxOf(1, o.optInt("repeat", 1)),
+            o.optArr("elements").strings().toMutableList(), o.optStr("notes", ""), isSub,
+            o.optInt("revision", 0), o.optBool("edited", false))
     }
 }
 
@@ -163,9 +152,10 @@ class Composition(
 data class SeqItem(val name: String, val group: String?, val annotation: String?, val entryIndex: Int, val entryStart: Boolean, val entryLabel: String,
                    val end: String? = null)   // the pinned ending, or null: the composer chooses
 
-/** Compositions and sub-compositions: shipped in the assets (and copies edited on the phone before 2026-10-28, which
- *  still load), plus the quick recap, made here from the daily exercise. */
-class CompositionStore(private val ctx: Context) {
+/** Compositions and sub-compositions: the shipped file (`shippedText`, compositions.json) and, when a phone kept a copy
+ *  from the time it had an editor (before 2026-10-28), that copy (`savedText`), which still loads; plus the quick recap,
+ *  made here from the daily exercise when the shipped file has none. */
+class CompositionStore(private val shippedText: String, private val savedText: String? = null) {
     companion object {
         const val QUICK_RECAP = "Quick recap"
         /** shipped compositions that changed their name: a copy a phone kept under the old name is the same composition, so
@@ -174,21 +164,20 @@ class CompositionStore(private val ctx: Context) {
     }
     val compositions = ArrayList<Composition>()
     val subs = ArrayList<Composition>()
-    private val file: File get() = File(ctx.filesDir, "compositions.json")
 
     init { load() }
 
     fun load() {
         compositions.clear(); subs.clear()
-        val shipped = JSONObject(ctx.assets.open("dance/compositions.json").bufferedReader().readText())
-        val doc = if (file.exists()) JSONObject(file.readText()) else shipped
-        readInto(doc)
+        val shipped = Json.obj(shippedText)
+        val saved = savedText?.let { Json.obj(it) }
+        readInto(saved ?: shipped)
         // shipped compositions the user's file does not know yet are added, so a new release can bring new ones; a shipped
         // composition with a newer revision replaces the phone's copy unless the user edited that copy (theirs stays)
-        if (file.exists()) {
-            val sc = shipped.optJSONArray("compositions"); val ss = shipped.optJSONArray("sub_compositions")
-            if (sc != null) for (i in 0 until sc.length()) merge(compositions, Composition.fromJson(sc.getJSONObject(i), false))
-            if (ss != null) for (i in 0 until ss.length()) merge(subs, Composition.fromJson(ss.getJSONObject(i), true))
+        if (saved != null) {
+            val sc = shipped.optArr("compositions"); val ss = shipped.optArr("sub_compositions")
+            if (sc != null) for (i in 0 until sc.size) merge(compositions, Composition.fromJson(sc.obj(i), false))
+            if (ss != null) for (i in 0 until ss.size) merge(subs, Composition.fromJson(ss.obj(i), true))
         }
         if (find(QUICK_RECAP) == null) quickRecap()?.let { compositions.add(it) }
     }
@@ -209,14 +198,14 @@ class CompositionStore(private val ctx: Context) {
         else if (shipped.revision > into[i].revision && !into[i].edited) into[i] = shipped
     }
 
-    private fun readInto(doc: JSONObject) {
-        val sc = doc.optJSONArray("compositions"); val ss = doc.optJSONArray("sub_compositions")
-        if (sc != null) for (i in 0 until sc.length()) {
-            val c = Composition.fromJson(sc.getJSONObject(i), false)
+    private fun readInto(doc: JsonObj) {
+        val sc = doc.optArr("compositions"); val ss = doc.optArr("sub_compositions")
+        if (sc != null) for (i in 0 until sc.size) {
+            val c = Composition.fromJson(sc.obj(i), false)
             c.name = RENAMED[c.name] ?: c.name   // a copy kept under a name the shipped file has since changed
             compositions.add(c)
         }
-        if (ss != null) for (i in 0 until ss.length()) subs.add(Composition.fromJson(ss.getJSONObject(i), true))
+        if (ss != null) for (i in 0 until ss.size) subs.add(Composition.fromJson(ss.obj(i), true))
     }
 
     fun find(name: String): Composition? = compositions.firstOrNull { it.name == name }
@@ -297,7 +286,7 @@ object Composer {
         val c1x = w.sumOf { real[it]!!.x } / w.size; val c1y = w.sumOf { real[it]!!.y } / w.size
         val l0 = mid(start, 'L'); val f0 = mid(start, 'F'); val l1 = mid(real, 'L'); val f1 = mid(real, 'F')
         if (hypot(f0.first - l0.first, f0.second - l0.second) <= 1.0 || hypot(f1.first - l1.first, f1.second - l1.second) <= 1.0) return fallback
-        val h = Math.toDegrees(atan2(f1.first - l1.first, f1.second - l1.second)) - Math.toDegrees(atan2(f0.first - l0.first, f0.second - l0.second))
+        val h = (atan2(f1.first - l1.first, f1.second - l1.second) - atan2(f0.first - l0.first, f0.second - l0.second)) * 180.0 / PI
         val rc = Frame(0.0, 0.0, h).apply(c0x, c0y, 0.0)
         return Frame(c1x - rc.x, c1y - rc.y, h)
     }

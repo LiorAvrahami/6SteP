@@ -43,7 +43,7 @@ class ExploreActivity : AppCompatActivity() {
     }
 
     /** one way to dance a row's piece: an element from one starting condition, or the one way of a block or composition */
-    private class Version(val piece: Piece, val facing: String, val foot: String, val footShort: String, val cells: List<StepStrip.Cell>,
+    private class Version(val piece: Piece, val facing: String, val foot: String, val footShort: String, val cells: List<StepCell>,
                           val startState: String, val endState: String)
     private class Row(val strip: StepStrip, var centre: Int)
     private val rows = ArrayList<Row>()
