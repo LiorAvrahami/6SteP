@@ -72,3 +72,91 @@ class Track(val key: String, val title: String, val artist: String, val licence:
         }
     }
 }
+
+/** The music laid along the dance, for the song and the tempo chosen (user 2026-10-28: "for every step the app should
+ *  know via a lookup which beat this is in the audio"): the first track's first downbeat (BeatGrid.startBeatIndex) on
+ *  dance beat 0, with four beats of it before (the count-in); each next track on the first element start at least two
+ *  beats after the previous file runs out, the snare and hi-hat in between. A chosen song plays over and over; shuffle
+ *  goes through all of them. So every dance beat has one place in the audio (segmentAt).
+ *  (The web front's player is built on this. The Android app's Playback has the same plan inside it, for now.) */
+class MusicPlan(val tracks: List<Track>, private val gridOf: (Track) -> BeatGrid) {
+    companion object {
+        val BPM_OFFSETS = intArrayOf(-40, -30, -20, -10, 0, 10, 20)
+        const val SHUFFLE = "shuffle"
+        const val COUNT_IN = 4.0             // beats of the first track before the dance starts
+        const val GAP = 2.0                  // a track starts on the first element start at least this many beats after the last one ran out
+        const val END_LEAD = 0.25            // s: a track counts as over this long before its file ends
+        const val DUCK_LEVEL = 0.6           // the music under a spoken annotation
+    }
+
+    /** a track's place in the dance: grid beat k0 of `grid` (the track at the session's tempo) falls on dance beat `from`;
+     *  the music covers the dance from musicFrom (four beats earlier for the first track) to until (the file runs out) */
+    class Segment(val track: Track, val file: String, val grid: BeatGrid, val k0: Int, val from: Double, val musicFrom: Double, val until: Double) {
+        /** where dance beat b is in the file, in seconds */
+        fun seconds(b: Double): Double = grid.beatSeconds(b - from + k0) + grid.offset
+        /** the dance beat at `seconds` into the file */
+        fun beatAt(seconds: Double): Double = grid.beatAt(seconds - grid.offset) - k0 + from
+    }
+
+    /** where a track may start: the first element start at or after a dance beat; null after the end of the piece */
+    var boundaryAfter: (Double) -> Double? = { null }
+        set(v) { field = v; replan() }
+    /** a track's key, or SHUFFLE */
+    var song: String = SHUFFLE
+        set(v) { field = v; reorder() }
+    var bpmOffset = 0
+        set(v) { field = v; replan() }
+    var order: List<Track> = emptyList()
+        private set
+    private val plan = ArrayList<Segment>()
+    private var planDone = false
+
+    init { reorder() }
+
+    /** the chosen song, over and over; or every song, shuffled */
+    fun reorder() {
+        val chosen = tracks.firstOrNull { it.key == song }
+        order = if (chosen != null) listOf(chosen) else tracks.shuffled()
+        replan()
+    }
+
+    fun replan() { plan.clear(); planDone = false }
+
+    /** the segment of the plan that dance beat b is in or after (b is in a gap when it is past its `until`); the plan is
+     *  laid out as far as b needs */
+    fun segmentAt(b: Double): Segment? {
+        while (!planDone && order.isNotEmpty() && (plan.isEmpty() || plan.last().until <= b + 8)) {
+            val first = plan.isEmpty()
+            val from = if (first) 0.0 else boundaryAfter(plan.last().until + GAP)
+            if (from == null) { planDone = true; break }
+            val t = order[plan.size % order.size]
+            val v = t.variantFor(bpmOffset)
+            val g = gridOf(t).scaled(v.tempo)
+            val k0 = g.startBeatIndex()
+            val until = from + g.beatAt(g.duration - END_LEAD - g.offset) - k0
+            plan.add(Segment(t, v.file, g, k0, from, if (first) from - COUNT_IN else from, until))
+        }
+        return plan.lastOrNull { it.musicFrom <= b }
+    }
+
+    /** the first track of the plan that starts after dance beat b, or null */
+    fun nextAfter(b: Double): Segment? { segmentAt(b); return plan.firstOrNull { it.from > b } }
+
+    fun tempoAt(b: Double): Double = segmentAt(b)?.grid?.bpm ?: firstTempo()
+    /** the tempo of the first track at the chosen offset */
+    fun firstTempo(): Double = order.firstOrNull()?.variantFor(bpmOffset)?.bpm ?: 120.0
+    /** every music file a session with these choices could need first: the chosen tempo of each track in the order */
+    fun files(): List<String> = order.map { it.variantFor(bpmOffset).file }
+}
+
+/** The drums: snare on the odd counts (1, 3, 5), closed hi-hat on their swung "&" and on the even counts (2, 4, 6). */
+object DrumPattern {
+    /** the next hit after dance beat b. Hits per two beats starting at an even beat e: e (snare), e + swing (hat), e + 1 (hat) */
+    fun nextAfter(b: Double, swing: Double): Double {
+        val e = floor(b / 2.0) * 2.0
+        val cands = doubleArrayOf(e, e + swing, e + 1.0, e + 2.0, e + 2.0 + swing, e + 3.0)
+        for (c in cands) if (c > b + 1e-9) return c
+        return e + 4.0
+    }
+    fun isSnare(b: Double): Boolean { val r = b - floor(b / 2.0) * 2.0; return abs(r) < 1e-6 }
+}
