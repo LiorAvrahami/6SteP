@@ -47,8 +47,10 @@ notes are "all rights reserved"; see `reference/README.md`), the Rubber Band exe
    load, modify, save; never regenerate from scratch.
 6. **The app release loop.** For every change to the app: edit, commit, push to `main`, watch the GitHub Actions run, fix
    failures, then tell the user the release number. There is no Android SDK on the PC; GitHub is the compiler (about 3 to
-   5 minutes a build). Only pushes that touch `app/`, the Gradle files or the workflow build a release; pushes of
-   `dance/`, `music/`, `tools/`, `design/` or the docs alone do not (the `paths:` filter in `.github/workflows/build.yml`).
+   5 minutes a build). Only pushes that touch `app/`, `shared/`, `web/`, the Gradle files or the workflows build a
+   release (and publish the web page, section 10); pushes of `dance/`, `music/`, `tools/`, `design/` or the docs alone
+   do not (the `paths:` filter in `.github/workflows/build.yml`). A change that could break the Android build goes to
+   a `claude/**` branch first: `check.yml` builds it there and publishes nothing.
    Asset and icon changes reach `app/` through `tools/make_assets.py` and `design/make_icon.py`, so they do build.
    Pull before you push: two agents have pushed to `main` on the same day. Push with `git push https://x-access-token:<token>@github.com/LiorAvrahami/6SteP.git main`.
    Builds of a branch run one at a time, in the order of the pushes (the `concurrency` group in `build.yml`, since
@@ -468,42 +470,68 @@ The todo list is `TODO.md` at the repo root (since 2026-10-22); the backlog that
 with the `/todo` command (`.claude/commands/todo.md`, loaded by every Claude Code session on this repository), which writes a
 todo down without implementing it. Move a todo to "Done" with the date and release when you finish it.
 
-## 10. A web version and the listener's own songs (the user's decisions, 2026-11-19)
+## 10. One engine, two fronts: the web version, and the listener's own songs
 
-Nothing of this is built yet; the user was given the answers below and asked to confirm the structure.
+**Built on 2026-11-20** (the user: "fine, but try to have the shared part cover as much as possible"; "yes, add it to
+github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**. Nobody has tried it on a phone yet.
 
-- **Decided by the user.** No streaming. The three free songs ship with the app. Other songs (their example: "Like It
-  Is") the listener gets themselves: the options get an "add songs" button that opens a file picker; the chosen file is
+- **The structure** (see the README's table): `shared/` is Kotlin Multiplatform with a JVM target (a plain library to
+  the Android app, and what the tests run on) and a JavaScript target; `app/` is the Android app; `web/` is the web
+  front, Kotlin/JS (a stable target). Kotlin 2.2.21 for all three, the plugins on the root build's classpath
+  (`build.gradle.kts`), no Android plugin in `shared/`.
+- **What the Android app takes from `shared/` so far:** the dance data, the compositions, the composer, the timeline,
+  the pieces, the beat grids and the tracks (`app/.../Assets.kt` reads their files from the assets under the old
+  names: `DanceData.load`, `CompositionStore(ctx)`, `BeatGrid.loadFor`, `Track.loadAll`). Its screens, its drawing
+  (`FloorView`, `StepStrip`) and its sound (`Playback`, `Audio.kt`) are still its own code, unchanged.
+- **What is in `shared/` for the web front now, and for the Android app to take over next** (so that a change is made
+  once): `Draw` (the canvas interface), `FeetPainter`, `FloorPicture` (the floor and its camera), `StripPainter`,
+  `DanceFloor` (the dance floor's logic without its screen, talking to a `FloorPlayer` for the sound and a `FloorHost`
+  for the screen), `MusicPlan` (the music laid along the dance) and `DrumPattern`, `ExploreModel`, `Texts`. They are
+  ports of the Android classes as they stood on 2026-11-20 (`FloorView.kt`, `StepStrip.kt`, `DanceFloorActivity.kt`,
+  the plan inside `Playback.kt`, `ExploreActivity.kt`). **Until the Android app is switched over, a change to the
+  dance floor's behaviour or drawing has to be made in both places.** Do that switch soon: the screens first
+  (`FloorView` and `StepStrip` drawing through an Android `Draw`, `DanceFloorActivity` as a `FloorHost`), the sound last
+  and carefully (the Android `Playback` is tuned to `MediaPlayer`; the web player is a separate, simpler class because
+  a browser can start a sound at an exact time).
+- **The web front** (`web/src/jsMain`): `Main.kt` (the screens by the address's "#" part), `Screens.kt` (launcher,
+  explore, settings, the heart page), `FloorScreen.kt` (the dance floor's screen: two canvases, the bars, the gestures;
+  arrow keys and the space bar on a keyboard), `Sound.kt` (`WebAssets`: the files; `WebPlayer`: the sound), `Platform.kt`
+  (the canvas behind `Draw`, the local storage under the Android preferences' names). `web/build.gradle.kts` copies the
+  dance data, the music, the drums, the font and the icons from where the Android app keeps them. The music: the song
+  that is needed is fetched and unpacked first (`loading`, a spinner), the rest is fetched into the browser's Cache
+  API in the background (`6step-music-1`; a changed music file would need a new cache name). `window.sixstep` reports
+  what the floor shows, for tests from outside.
+- **How it was checked:** `tools/check_engine.py` (the Kotlin engine against the Python model: 3 compositions, 5 blocks,
+  23 elements, every step at the same time and place); the page in the cloud session's headless Chromium with
+  Playwright (serve `web/build/dist/js/productionExecutable`, open `#floor/composition/<name>/0`, read
+  `window.sixstep`): stepping, the arrows after the travel, play, the annotations 2 beats ahead, jumps, pause, the
+  menus, an upright and a sideways phone size; the tempo measured against the page's clock equals the track's. Not
+  checked: any real phone, the iPhone's rules for sound and voice, sound through Bluetooth.
+- **The build and the address:** `build.yml` (on `main`) runs the tests, builds the APK and the page, and pushes the
+  page to the `gh-pages` branch (one commit, replaced each time), which GitHub Pages serves. Pushing a `gh-pages`
+  branch switched Pages on by itself; the Pages settings API is not reachable from the cloud session.
+  `check.yml` builds a `claude/**` branch and publishes nothing: push there first when the Android side changes.
+- **In the cloud session:** `SIXSTEP_SKIP_ANDROID=1 gradle :shared:jvmTest :web:jsBrowserDistribution` works (Maven
+  Central answers 429 now and then: run it again). Google's package site (`dl.google.com`) is not reachable, so the
+  Android app cannot be compiled there; GitHub compiles it. `*.github.io` is not reachable either: the published page
+  cannot be opened from the session.
+- **Pitfalls met:** a comparison of a `dynamic` value (`out < 1.0`) crashed the Kotlin/JS compiler: convert to a
+  Double first. The JavaScript bundle assigns its module to `globalThis.<module name>` after `main` has run. Kotlin
+  2.2 no longer takes `kotlinOptions { }` in the Android module (`kotlin { compilerOptions { } }`).
+
+**Still to build** (the user's decisions of 2026-11-19 and 2026-11-20; see `TODO.md`):
+
+- **Adding songs.** No streaming. The three free songs ship with the app; other songs (their example: "Like It Is")
+  the listener gets themselves. The options get an "add songs" button that opens a file picker; the chosen file is
   recognised against the songs whose steps are mapped; if it is not mapped, the listener is told to send it to the
-  user's email, with a button that opens an email saying "hi, please map out the song named *** for me, thanks!". The
-  web app is to be written in Kotlin ("JavaScript will be buggy"), with the music fetched in the background and a
-  loading animation when a file has not arrived yet. They asked whether the project could then still be a native
-  Android app, and whether that app would be less good. They do not want to hear about licences or the beer button
-  unless they ask.
-- **Recognising a song** (`music/tools/song_match_proto.py`, a tested prototype; needs ffmpeg, numpy, scipy). The
-  user proposed something like the file's length, "a hash that compression does not break". Length alone cannot say
-  where extra silence sits, and the feet would be off the beat by that much. The prototype's fingerprint is the song's
-  rhythm of loudness: at 8 kHz mono, the rise of the energy from one 10 ms block to the next over the first 90 s
-  (9 KB a song). A copy is matched by sliding its pattern along each mapped song's (within 15 s) and checking the
-  length. On 24 copies of the three bundled songs (MP3 at 128 and 64 kbit/s, AAC, Opus, WAV, quieter, 0.73 s of
-  silence added, the first 0.40 s cut off) every copy was recognised (score 0.99 to 1.00 against 0.05 to 0.06 for
-  the next best song) and the shift of its start was found to within 0.3 ms. Speed-changed versions of the same tune
-  scored 0.06 to 0.07; the 50 s original of Hot Swing, which starts like the 5 minute loop, scored 0.76 and is told
-  apart by its length. Not tested: a copy from another release or master of a recording.
-- **Kotlin for the browser works in the cloud session** (tried in the scratchpad, not kept): Gradle 8.14.3 with the
-  Kotlin multiplatform plugin 2.4.21 and a `js { browser(); binaries.executable() }` target builds from Maven Central
-  and the Gradle plugin portal (`kotlin.js.yarn=false`; Maven Central answers 429 now and then: run the build again).
-  A page that draws the app's shoes on a canvas and schedules clicks with Web Audio (declared with `external`
-  classes) compiled to 14 KB and ran in the session's headless Chromium at 60 frames a second. So, unlike the Android
-  app, a web build can be run and looked at here. Pitfall: the bundle assigns its module to `globalThis.<project
-  name>` after `main` has run, so a global of that name is overwritten. Google's package site (`dl.google.com`) is
-  not reachable from the session, so neither the Android app nor anything built on Compose can be compiled here.
-- **The structure recommended to the user:** Kotlin Multiplatform with one shared engine (dance data, composing,
-  timeline, the drawing of floor, shoes and arrows behind a small drawing interface, the play logic, song
-  recognition), the Android app's screens and sound as they are, and a web front written in Kotlin/JS (a stable
-  target) on canvas and Web Audio. Changes to the dance logic or the drawing are then made once; a change to a screen
-  is made in both fronts. Not recommended: Compose Multiplatform for one shared set of screens (its web side is still
-  Beta on JetBrains' stability page in November 2026, it needs every Android screen rewritten, and its web page is
-  heavy), or a web page wrapped as the Android app (the sound would go through the web view). Open points put to the
-  user: this structure; switching on the project's GitHub Pages address (only they can); whether added songs get the
-  tempo choice (speed changed on the fly) or play at their own tempo only.
+  user's email, with a button that opens an email saying "hi, please map out the song named *** for me, thanks!".
+  **Added songs do not change tempo** (user 2026-11-20). The recognition is prototyped and tested in
+  `music/tools/song_match_proto.py`: the song's rhythm of loudness (at 8 kHz mono, the rise of the energy from one
+  10 ms block to the next over the first 90 s: 9 KB a song), matched by sliding it along each mapped song's (within
+  15 s), plus the length. 24 re-compressed and shifted copies of the three bundled songs were all recognised and the
+  shift of their start found to within 0.3 ms; speed-changed versions were rejected. Not tested: a copy from another
+  release of a recording. Length alone (the user's first idea) cannot say where extra silence sits.
+- **A lead-in of two rock triple triples after a swipe while playing** (assessed 2026-11-19, the user's answers
+  2026-11-20: only after swipes, the part's name still not read aloud; use their new face-to-face rock and triple
+  steps instead of a bridge). Write it once, in `shared/.../DanceFloor.kt`.
+- The user does not want to hear about licences or the beer button unless they ask.

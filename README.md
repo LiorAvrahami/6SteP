@@ -1,10 +1,29 @@
 # 6SteP
 
-A swing-dance practice app for Android: the daily exercise danced on the music, a top view of both dancers' feet, and
-every element, building block and composition to step through beat by beat.
+A swing-dance practice app, for Android and for the browser: the daily exercise danced on the music, a top view of both
+dancers' feet, and every element, building block and composition to step through beat by beat.
 
-The APK is built by GitHub Actions on every push to `main` and attached to a release:
-**https://github.com/LiorAvrahami/6SteP/releases/latest** — download `6SteP.apk` on the phone and open it.
+- **Android**: the APK is built by GitHub Actions on every push to `main` and attached to a release:
+  **https://github.com/LiorAvrahami/6SteP/releases/latest** — download `6SteP.apk` on the phone and open it.
+- **Web**: the same build publishes the page at **https://lioravrahami.github.io/6SteP/** (any phone or computer).
+
+## One engine, two fronts (since 2026-11-20)
+
+| Module | What it is |
+|---|---|
+| `shared/` | The dance engine, in Kotlin that knows nothing of Android or of the browser: the dance data, the composer, the timeline, the music's beat grids and plan, the drawing (shoes, arrows, the floor's camera, the strip of steps) through a small canvas interface, the dance floor's whole logic (stepping, play, jumps, annotations), the explore list, the texts. |
+| `app/` | The Android app. Its screens and its sound are still its own code; the dance data, the composer, the timeline and the beat grids come from `shared/`. |
+| `web/` | The web front, in Kotlin compiled to JavaScript: screens and sound for the browser, everything else from `shared/`. |
+
+- `gradle :shared:jvmTest` tests the engine: everything shipped can be danced, and the shared texts say what the Android
+  app's say. `python tools/check_engine.py` also compares the engine with the Python model (`dance/model.py`), step by
+  step.
+- `gradle :web:jsBrowserDistribution` writes the page to `web/build/dist/js/productionExecutable` (serve that folder
+  with any static web server to try it).
+- `SIXSTEP_SKIP_ANDROID=1` in the environment leaves the Android app out of the build, where Google's package site and
+  the Android SDK are not at hand; the engine and the web front then still build and test.
+- `.github/workflows/check.yml` builds a working branch (`claude/**`) without publishing anything; `build.yml` builds
+  `main`: the tests, the signed APK as a release, and the web front to the `gh-pages` branch.
 
 The dance data (`app/src/main/assets/dance/`) comes from the Swing5 project's skeletons and compositions. A shipped
 composition carries a `revision`; a newer revision replaces the copy on the phone unless the user edited that copy there

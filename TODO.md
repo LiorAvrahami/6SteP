@@ -89,11 +89,39 @@ down without doing it. When one is finished, move it to "Done" with the date and
     in the song. About one working session and a round of testing on the phone; the jump logic is where mistakes are
     likeliest.
   - If the engine moves into shared code for a web version first (handover section 10), write this once, there.
-- **Questions for later:** for parts that start face to face: two rock triple triples side by side and then a quiet
-  follower underarm pass (18 beats), or will the user draw a triple step that stays face to face, so that the rock
-  triple triple can be danced there (12 beats)? Guesses to confirm: only after swipes (not after a tap on a step in the
-  bottom bar, nor when play is pressed on a step); the part's name still not read aloud after a jump; compositions
-  only (elements and building blocks loop and have no annotations).
+- **Answered by the user, 2026-11-20:** for parts that start face to face, use the rock step and the triple steps
+  from face to face that they added that day ("I added one. its in GitHub. Use it instead"): two rock triple triples
+  face to face compose now, 12 beats, ending face to face with the left foot free, the feet 8.3 cm from where they
+  started. Only after swipes, not after a tap on a step in the bottom bar; the part's name is still not read aloud
+  after a jump ("yes").
+- **Where:** in `shared/src/commonMain/kotlin/org/lior/sixstep/DanceFloor.kt` (`skip()`), once for both fronts; and in
+  `app/.../DanceFloorActivity.kt` too if the Android app has not been switched to the shared dance floor by then.
+- **Still a guess:** compositions only (elements and building blocks loop and have no annotations).
+
+### The Android app takes its screens' drawing and its dance floor from the shared engine
+- **Added:** 2026-11-20, by the maintainer (the user: "try to have the shared part cover as much as possible").
+- **What:** `FloorView`, `StepStrip` and `DanceFloorActivity` still hold their own copies of what `shared/` now has
+  (`FeetPainter`, `FloorPicture`, `StripPainter`, `DanceFloor`, `ExploreModel`), which the web front uses. Switch the
+  Android app over, so that a change is made once: an Android `Draw` on `Canvas`, the views as thin shells, the
+  activity as a `FloorHost`, `Playback` as a `FloorPlayer`. The sound last (handover section 10).
+- **Context:** until this is done, a change to the dance floor has to be made in both places.
+
+### Adding songs: the listener's own files
+- **Added:** 2026-11-19 and 2026-11-20, by the user.
+- **What:** "there will be a button in the options to add songs, when clicked this will open a file selection page and
+  when a song is selected it is hashed and compared to the songs that the app mapped out their steps ... if the song
+  is not mapped then the user is instructed to send it to my email (and write the email and add a button that opens
+  an email with the text "hi, please map out the song named *** for me, thanks!"". "added songs don't change tempo."
+- **Context:** the recognition is prototyped and tested (`music/tools/song_match_proto.py`, handover section 10): the
+  length plus the song's pattern of loudness. Still to do: port it to `shared/`, keep the fingerprints of the mapped
+  songs with their beat grids, the button and the file picker in both fronts, where an added song is kept (the web
+  page can lose it after a week on an iPhone), and how the user maps a song that is sent to them (the beat annotator).
+
+### The web front: what the Android app has and the page does not yet
+- **Added:** 2026-11-20, by the maintainer.
+- **What:** the help view's arrows on the launcher, the heart page's website and beer buttons, an icon and a name for
+  "add to home screen", working without a connection once opened (a service worker), the voice of the Android app
+  (the page uses the browser's own voice).
 
 ## Done
 

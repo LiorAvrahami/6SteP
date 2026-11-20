@@ -130,6 +130,8 @@ class DanceFloor(
     /** the feet under way from one stop to the next: the dance from beat `from` to beat `to`, shown from t0 over ms */
     private class Travel(val from: Double, val to: Double, val stop: Double, val t0: Double, val ms: Double)
     private var travel: Travel? = null
+    /** the feet are on their way to a stop (after a swipe, not playing) */
+    val travelling: Boolean get() = travel != null
     private var frameAsked = false
     private var released = false
 
