@@ -103,10 +103,19 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
   triple step, triple step, renamed "rock triple triple" on 2026-10-29, when "follower pass & back" became "follower
   underarm and back"; "follower pass & back" = follower underarm pass, recapture; pass+circle), either "x N",
   "say: text" annotations (app only), and quiet entries in parentheses, "(recapture underarm pass)", which are danced
-  but never announced and are not swipe stops (since v10; the edit dialog has a "quiet" box). The daily routine is
-  "5 minutes exercise" (582 beats; 4:03 on Hot Swing): 5 RTT quiet, 15 follower passes, 15 lead passes, 10 cutoffs,
-  12 "follower pass & back", 15 lead passes, 10 cutoffs, with quiet bridges where the states do not meet (the cutoff
-  starts side by side, the lead pass starts face to face). The user wants bridges quiet and RTT never announced.
+  but never announced and are not swipe stops (since v10; the edit dialog has a "quiet" box). The daily routine is the
+  composition named "3 minutes exercise" ("5 minutes exercise" until 2026-11-16; the app takes the first one with
+  "exercise" in its name, and `CompositionStore.RENAMED` makes a copy a phone kept under the old name the same
+  composition); the user wants its bridges quiet and RTT never announced.
+- **The daily exercise's philosophy** (the user, 2026-11-16; also in the composition's own notes): **as short as
+  possible, with as many elements as possible packed into it.** It is not aimed at 5 minutes; it is aimed at a good
+  amount of elements in the least time, about 3 minutes now. Its order serves that and is the user's: ordered well,
+  the elements pack better (fewer bridges between them) and the whole makes more sense to the person dancing it, so it
+  feels less chaotic. So it does not follow Explore's order, which is the order the elements were learned in (the
+  quick recap keeps that order too). **It always starts with one rock triple triple** (quiet), and so does the quick
+  recap (there it is announced, being the first element of the list). Few repeats, and the numbers are the user's:
+  three of most things, 8 yoyos, 5 tak turns, never more than 4 underarm circles. When an element is added: find the
+  place where it packs best and makes sense, and show the user the order and the counts before building.
 - **Tools.** `render.py` makes an MP4 on the music (about 40 fps, stops where a short track ends); the editor
   (`dance/editor/server.py`, port 8771) edits skeletons and compositions, plays in the browser with Web Audio and
   autosaves; a Node test with a stubbed DOM covers the page logic: `node dance/editor/test/test_editor.js`.
@@ -210,17 +219,18 @@ commit (there is no diff step any more: the editor's file is the only version). 
   which loop it is in. The old engine's in-place seeks, tempo crossfades and track hand-overs are gone.
 - **The dance floor** (one for everything since 2026-10-28; the old `PlayerActivity` and `FloorActivity` are gone).
   Swipe left or right: the next or previous stop (the start position one beat before count 1, then every instant a foot
-  lands; it wraps round), flow (the feet travel, at twice the beat length, trapezoid easing) or schema (dashed arrows,
-  both dancers at once). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap or a
+  lands; it wraps round): the feet travel there (`step()`: every travel takes `STEP_BEATS`, a third of a beat, and plays
+  that stretch of the dance at an even rate), and once they are there the stop's dashed arrows come, both dancers at
+  once (one way of stepping since 2026-11-17; the flow and schema modes and their button are gone). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap or a
   double tap while playing pauses; a swipe while playing jumps to the next part or back (the old player's 2 s rule,
   `BACK_REPLAY_SECONDS`): a composition's entries, any other piece's elements. Top bar: play/pause, tempo (the 7 offsets
   of the song's variants, the same offset for every song), song (shuffle, or one song over and over), mute (music,
-  drums and voice; a change of any of these while playing is a stop and a play from the same beat), flow/schema (manual stepping only; play always flows), edit (a "not implemented yet" note).
+  drums and voice; a change of any of these while playing is a stop and a play from the same beat), edit (a "not implemented yet" note).
   Bottom bar: every stop, the current one framed and followed while playing, the annotations (a composition's "say:"
   texts and entry names; a building block's element names) as khaki callouts; tap a stop to go there. Compositions play
   once and end on "Done!". Play starts from exactly the picture of the step (the beat where its weight has settled);
   a swipe or a tap on a step while playing starts afresh there too, and shows the part's name without reading it aloud
-  (the music does not dip under the voice: user 2026-10-28). Schema arrows are drawn over the shoes, darker, outlined
+  (the music does not dip under the voice: user 2026-10-28). A stop's arrows are drawn over the shoes, darker, outlined
   in black. Elements and building blocks loop: chained to about 1200 beats when they close on themselves
   (`chainedLoop`), otherwise from the start position again after 2 beats (an even period keeps the music's bars). The
   daily exercise opens playing; everything else opens paused with the bars shown. The system bars are hidden on the floor.
@@ -249,7 +259,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   This was the fix for "the music and the annotations both go dim sometimes" (2026-10-19); the diagnosis also named the
   phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
 - **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on` (the settings page);
-  `bpm_offset`, `song` (a track key or `shuffle`), `muted`, `strategic` (schema mode) (the dance floor's top bar);
+  `bpm_offset`, `song` (a track key or `shuffle`), `muted` (the dance floor's top bar; `strategic`, the schema mode, is no longer read since 2026-11-17);
   `explore_open_elements`, `explore_open_compositions`, `explore_open_blocks`, `explore_version_<kind>_<name>`. Gone with the redesign: the exploration
   floor's free `bpm` slider (the tempo is the song's), the main screen's switches and the player's options bar.
 - **Shipped compositions and the phone's copy.** `CompositionStore` reads the phone's own file when there is one and only
@@ -335,7 +345,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   2026-11-16 (revision 9): a composition's annotations never say how many times an element repeats ("side to side", not
   "side to side, 2 times": the banner, the voice and the bottom bar's labels all come from `DanceFloorActivity.phrases`),
   and each comes up 2 beats before its element starts (`ANNOUNCE_LEAD`; `announce()` goes by the clock itself, so the
-  first can come up during the count-in) and stays 3 beats as before, so until one beat into the element. The
+  first can come up during the count-in) and (the user's answer later the same day) goes away just as its element
+  starts. One that comes up with less than a beat of warning (`LATE_NOTICE`: a jump to that part, play started on its
+  first step) has no "before" to show in and stays 2 beats instead; ask the user if they want nothing shown then. The
   annotations are kept as `cues` (element start, element); after a start or a jump the one already due comes up at once,
   and the part a jump went to is shown but not read. The editor mirrors both (`model.expand_annotations`, `drawNote`
   with `NOTE_LEAD`). The bottom bar's labels still point at the step where their element starts.
@@ -344,6 +356,68 @@ commit (there is no diff step any more: the editor's file is the only version). 
   87c9608), but the two builds ran side by side and v45 was published 18 s after v46, so GitHub named v45 "latest"; both
   tags point at 87c9608, which is wrong for v45. v47 is the same app as v46, built by the push that made the builds run
   one at a time: it is the release named to the user.
+  2026-11-16, later: the user fixed the YOYO in the editor (its last step removed: 12 beats, side to side, ending on the
+  foot it starts with, so it repeats on its own). v48 shipped that with the daily exercise and the quick recap unable to
+  compose: each had a quiet triple step after the yoyo, for the free foot. Exercise revision 11: "say: yoyo", "(YOYO
+  x17)", and tak turn x20 (the time the bridges freed went to the two newest elements; 626 beats, 4:56 at 127 BPM).
+  Quick recap revision 2: no triple step after the yoyo (144 beats). `tools/make_assets.py` now refuses to write
+  anything when a composition cannot be danced, and warns for a building block: run it after every element change.
+  When you compose a composition by hand, pass `ends=model.composition_ends(c)` as the editor does: without the pinned
+  endings a sequence that cannot be danced reports its error at the wrong element.
+  2026-11-16, the schema view's arrows (user): each arrow follows the path its foot really takes (`Arrow.via`, drawn
+  through `Curve.samples`, the same curve the flow view travels), with its head along the end of the path; and a step
+  that turns its foot by more than 90 degrees (`FeetPainter.TURN_MARK`, the raw heading difference, winding kept) gets
+  a turn mark: a small round arrow, clockwise or anticlockwise, no number, in the dancer's own colour as the editor's
+  turn arrows (blue for the leader, pink for the follower; the user asked for that after the first version, darkened
+  and edged in black like the step arrows, did not read as colour coded). `FeetPainter.placeMarks` puts it beside the
+  middle of its arrow, on the side and at the distance with free floor (clear of the shoes, the arrows and other marks)
+  and inside the floor that can be seen between the bars once the camera has settled (`FloorView.sight`), so it never
+  sits under a bar and does not hop while the camera glides. Its size is cm of floor with a minimum on the screen
+  (`MARK_MIN_R_DP`), since the paused view with its bars is zoomed far out. The user found the editor's turn arrow too
+  big and badly placed; the editor's is unchanged (it is a handle there: a click flips the way round). The look was
+  tried first in a throwaway Python picture; nobody has seen it on a phone.
+  2026-11-16, the user's answers on the annotations (in the commit that waits, see the top of this section): a swipe to
+  a part lands `ANNOUNCE_LEAD` beats before it (`jumpLead` in `skip()`; the part's annotation is written for those beats
+  and not read aloud), and nothing is written once a part has started: an annotation that comes up with less than
+  `MIN_NOTICE` beats left (play started on the part's first step) is only read. The voice says how many times an entry
+  repeats ("side to side, 2 times": `said`), the screen never writes it (`phrases` strips `TIMES`, also from a "say:"
+  text that ends in ", N times", which is how a run of quiet entries gets its count spoken). The editor mirrors this
+  (`model.expand_annotations` keeps the count, `drawNote` strips it). The daily exercise (revision 12) has its own
+  order and is about 3 minutes (388 beats: 2:41 on Hot Swing, 3:03 on Sunday Reflection, 3:09 on Slow Your Roll): rock
+  triple triple 1 (quiet), side to side 2, send out and bring back 4, yoyo 8, follower underarm and back 2, follower
+  underarm pass 2, lead underarm pass 2, follower underarm to arrow 2, rock back cutoff 2, circle 2, underarm circle
+  4, tak turn 10; it ends face to face after the last tak turn (no bringback after it). The user confirmed the order
+  and asked for about 3 minutes; see the philosophy in section 3.
+  2026-11-16, later, the user's numbers and the name: "just change it from 5 to 3". The composition is named
+  "3 minutes exercise" (revision 13) and the launcher's help says "Three minutes a day ...". A phone that kept a copy
+  under the old name (a file from the time the phone had an editor) would otherwise hold two exercises and
+  `daily()` would pick the old one, so `CompositionStore.readInto` gives such a copy its new name
+  (`RENAMED`), and the usual rule applies: the newer shipped revision replaces it unless it was edited there. Add a
+  line to `RENAMED` whenever a shipped composition is renamed. The counts: rock triple triple 1 (quiet), side to side
+  3, send out and bring back 3, yoyo 8, follower underarm and back 3, follower underarm pass 3, lead underarm pass 3,
+  follower underarm to arrow 3, rock back cutoff 3, circle 3, underarm circle 4, tak turn 5: 404 beats (2:48 on Hot
+  Swing, 3:11 on Sunday Reflection, 3:17 on Slow Your Roll). The user's rule: the exercise always starts with one
+  rock triple triple, and so does the quick recap. The quick recap already did (revision 3 only says so in its
+  notes); its rock triple triple is still announced, and the user was asked whether it should be quiet there too.
+  2026-11-17, one way of stepping (user: "remove the distinction between these two modes"): the flow and schema modes
+  and their button are gone (`modeBtn`, `ic_flow`, `ic_schema`, their two strings; the `strategic` preference is no
+  longer read; `tools/check_app.py` keeps the names from coming back). A swipe to the next or previous stop: the
+  arrows of the stop on the screen go, the feet travel (`flowScene`), and when the travel ends that stop's arrows
+  come (`stopScene`, set in the animator's `onAnimationEnd` unless another swipe, a tap on a step or play cut the
+  travel short). In v55 the travel was the flow mode's, 75% faster (every time of it divided by 1.75: 2/1.75 times
+  the step's own time in the music, trapezoid easing). The same day the user found that a travel as long as its step
+  made the half steps fast and the whole steps slow, "mostly confusing", and that the travel's speeding up and
+  slowing down felt annoying, and asked how it relates to the play's. So since v56 **every travel takes a third of
+  a beat** at the chosen tempo (`STEP_BEATS`; 0.14 s on Hot Swing, 0.16 s on the two others), whatever the step, and
+  the travel has no easing of its own: it plays the stretch of the dance between the two settled pictures at an even
+  rate (`LinearInterpolator`), so each foot speeds up and slows down exactly as it does in play (`Timeline`: a
+  smoothstep from its release to its landing). Before, the trapezoid eased the travel's time on top of that, so
+  every foot was eased twice (a slow start on a slow start: it seemed to hesitate), and the end of the travel, where
+  only the weight settles, dragged before the arrows came; `TrapezoidInterpolator` is gone. This was the best guess
+  to "maybe they should be the same": the user was told how the two differed and asked whether it feels right now.
+  A tap on a step in the bottom bar, a pause and going round the end stay cuts to the stop at rest, with its arrows.
+  A swipe back plays the travel backwards and then shows the arrows of the stop it arrives at; the user was asked
+  whether they would rather see that step replayed forwards. Nobody has seen it on a phone.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

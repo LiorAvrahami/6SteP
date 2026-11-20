@@ -24,10 +24,22 @@ _unfinished = [f"{e['name']} [from {e['start_state']}, leader free {e.get('leade
                for e in _model.load()['elements'] if _model.element_problem(e)]
 if _unfinished:
     _sys.exit('REFUSING: elements not finished in the editor would reach the app:\n  ' + '\n  '.join(_unfinished))
+# nor must a composition that can no longer be danced: when an element changes under it (the yoyo's last step went on
+# 2026-11-16, so it ended on the other foot) the daily exercise and the launcher's quick recap show nothing on the phone
+_doc = json.load(open(os.path.join(SW, 'dance', 'compositions.json'), encoding='utf-8'))   # fails here on broken JSON
+_subs = _doc.get('sub_compositions', [])
+_data = _model.load()
+def _errors(c):
+    return _model.compose(_data, _model.composition_sequence(c, _subs), c.get('start_state', 'side'), ends=_model.composition_ends(c, _subs))['errors']
+_broken = [f"{c['name']}: " + '; '.join(_errors(c)) for c in _doc.get('compositions', []) if _errors(c)]
+if _broken:
+    _sys.exit('REFUSING: compositions that cannot be danced would reach the app (fix dance/compositions.json, nothing was written):\n  ' + '\n  '.join(_broken))
+for _c in _subs:   # a building block that cannot be danced only loses its row in Explore: say so, and go on
+    if _errors(_c):
+        print(f"  warning: the building block {_c['name']!r} cannot be danced: " + '; '.join(_errors(_c)))
 # the app reads one file: assembled from dance/skeletons/ (one file per element)
 with open(os.path.join(A, 'dance', 'skeletons.json'), 'w', encoding='utf-8') as _f:
     json.dump(_model.load(), _f, indent=1, ensure_ascii=False); _f.write('\n')
-json.load(open(os.path.join(SW, 'dance', 'compositions.json'), encoding='utf-8'))   # fails here on broken JSON
 shutil.copyfile(os.path.join(SW, 'dance', 'compositions.json'), os.path.join(A, 'dance', 'compositions.json'))   # as written: revisions, quiet entries
 
 # ---- music and beat grids

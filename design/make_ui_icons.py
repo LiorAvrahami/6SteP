@@ -31,8 +31,6 @@ ICONS = {
     'ic_pause': ('pause', 2.5, {}),
     'ic_volume': ('volume-2', 2.5, {}),
     'ic_volume_off': ('volume-off', 2.5, {}),
-    'ic_schema': ('drafting-compass', 2.5, {}),
-    'ic_flow': ('arrow-big-right-dash', 2.5, {}),
     'ic_pencil': ('pencil', 2.5, {}),
     'ic_back': ('undo-2', 2.5, {}),          # the dance floor's back button (user 2026-10-28)
     'ic_check': ('check', 3.0, {}),          # the selected version pill in explore (tinted white there)

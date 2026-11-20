@@ -1,5 +1,7 @@
 package org.lior.sixstep
 
+import android.animation.Animator
+import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.graphics.Color
 import android.os.Bundle
@@ -10,6 +12,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
+import android.view.animation.LinearInterpolator
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -27,23 +30,31 @@ import kotlin.math.roundToInt
  *  here, the daily exercise included. Opened with the extras kind, name, variant (see Piece) and autoplay, always on
  *  the first step.
  *
- *  Swipe left or right: the next or previous step, in flow mode (the feet travel there) or schema mode (they are there,
- *  dashed lines show where each foot came from; both dancers at once). Swipe down: the top and bottom bars; a tap on
+ *  Swipe left or right: the next or previous step. There is one way of stepping (user 2026-11-17; before, a button chose
+ *  between a "flow" and a "schema" mode): the feet travel to the step, and once they are there dashed arrows show the
+ *  path each foot that stepped came by, with a small round arrow where a foot turns more than a quarter turn (both
+ *  dancers at once). Swipe down: the top and bottom bars; a tap on
  *  the floor closes them. Double tap or the play button: play (the bars close). A tap while playing pauses; a swipe
  *  while playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
- *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), flow/schema, edit, back. Bottom bar: every step of
+ *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), edit, back. Bottom bar: every step of
  *  the piece, the current one framed, the annotations pointing at where they start; a tap on a step goes there.
- *  While a composition plays, each annotation (a "say:" text, the name of an entry; never how many times it repeats)
- *  comes up at the top, and is read aloud, 2 beats before its element starts, and stays 3 beats.
+ *  While a composition plays, each annotation (a "say:" text, the name of an entry) comes up at the top, and is read
+ *  aloud, 2 beats before its element starts, and goes away just as the element starts. The voice says how many times
+ *  an entry repeats; the screen never does. A swipe to a part lands those 2 beats before it.
  *  Compositions play once to the end; elements and building blocks loop (chained so that the last beat flows into the
  *  first when they close on themselves, otherwise from the start position again after two beats). */
 class DanceFloorActivity : AppCompatActivity() {
     companion object {
-        const val BANNER_BEATS = 3.0          // an annotation stays on the screen this long
-        const val ANNOUNCE_LEAD = 2.0         // and comes up this many beats before its element starts (user 2026-11-16)
+        const val ANNOUNCE_LEAD = 2.0         // an annotation comes up this many beats before its element starts, and goes as it starts (user 2026-11-16)
+        const val MIN_NOTICE = 0.5            // with less time than this left before its element, it is not written at all (too short to read)
+        val TIMES = Regex(",\\s*\\d+\\s+times\\s*$")   // how often an entry repeats, as the voice says it: never written on the screen
         const val BACK_REPLAY_SECONDS = 2.0   // swipe right in the first 2 s of a part goes to the previous one (as in Workout Instructinator)
         const val LOOP_REST = 2.0             // beats of the start position before a piece that does not close is danced again
         const val CHAIN_BEATS = 1200.0        // a piece that closes is chained to about this long for play
+        // stepping by hand: the feet's travel to the next stop takes this long, in beats of the music at the chosen tempo,
+        // whatever the step (user 2026-11-17: a travel as long as its step made the half steps fast and the whole steps
+        // slow, which was mostly confusing)
+        const val STEP_BEATS = 1.0 / 3.0
     }
 
     private lateinit var floor: FloorView
@@ -53,7 +64,6 @@ class DanceFloorActivity : AppCompatActivity() {
     private lateinit var rateBtn: TextView
     private lateinit var songBtn: TextView
     private lateinit var muteBtn: ImageButton
-    private lateinit var modeBtn: ImageButton
     private lateinit var pb: Playback
 
     private var tl: Timeline? = null              // the piece danced once: what the swipes and the strip go through
@@ -64,7 +74,6 @@ class DanceFloorActivity : AppCompatActivity() {
     private var stops: List<Double> = emptyList()
     private var parts: List<Double> = emptyList() // where the swipes jump while playing, in beats of the piece
     private var idx = 0
-    private var schema = true
     private var playing = false
     private var hold = Double.NEGATIVE_INFINITY   // the dancers wait here until the clock reaches it (a count-in)
     private var pausedClock = Double.NaN          // the clock beat of the last pause: only which loop we are in
@@ -74,6 +83,7 @@ class DanceFloorActivity : AppCompatActivity() {
     private var barsAnim: ValueAnimator? = null
     private var cues: List<Pair<Double, CElement>> = emptyList()   // a composition's annotations: (its element's start, the element), in order
     private var lastCue = -1                             // the last annotation that has come up, or whose element is under way
+    private var jumpLead = 0.0                           // a swipe lands this many beats before a part: where its annotation comes up (compositions)
     private var silentUntil = Double.NEGATIVE_INFINITY   // a jump's part (an element starting by this beat) is shown, not read aloud
     private var banner: String? = null
     private var bannerUntil = Double.NEGATIVE_INFINITY
@@ -88,16 +98,14 @@ class DanceFloorActivity : AppCompatActivity() {
         }
         floor = findViewById(R.id.floor); topBar = findViewById(R.id.topBar); strip = findViewById(R.id.strip)
         playBtn = findViewById(R.id.play); rateBtn = findViewById(R.id.rate); songBtn = findViewById(R.id.song)
-        muteBtn = findViewById(R.id.mute); modeBtn = findViewById(R.id.mode)
+        muteBtn = findViewById(R.id.mute)
         val edit = findViewById<ImageButton>(R.id.edit)
         val back = findViewById<ImageButton>(R.id.back)
         topBar.setBackgroundColor(Ui.BAR)
-        for (v in listOf<View>(playBtn, rateBtn, muteBtn, modeBtn, edit, back)) v.background = Ui.box(this, Color.TRANSPARENT, 2.5f, 11f)
+        for (v in listOf<View>(playBtn, rateBtn, muteBtn, edit, back)) v.background = Ui.box(this, Color.TRANSPARENT, 2.5f, 11f)
         songBtn.background = Ui.box(this, Ui.BAR, 1f, 2f, Color.rgb(128, 128, 128))
         strip.barColor = Ui.BAR; strip.calloutBandDp = 32f; strip.cellWidthDp = 64f; strip.gapDp = 8f
 
-        val prefs = getSharedPreferences("6step", MODE_PRIVATE)
-        schema = prefs.getBoolean("strategic", true)
         pb = Playback(this)
         pb.onChange = { updateButtons() }
         pb.onFocusLoss = { pause() }
@@ -106,10 +114,6 @@ class DanceFloorActivity : AppCompatActivity() {
         rateBtn.setOnClickListener { tempoMenu() }
         songBtn.setOnClickListener { songMenu() }
         muteBtn.setOnClickListener { pb.setMuted(!pb.muted); updateButtons() }
-        modeBtn.setOnClickListener {
-            schema = !schema; prefs.edit().putBoolean("strategic", schema).apply(); updateButtons()
-            if (!playing) { anim?.cancel(); show() }
-        }
         edit.setOnClickListener { MaterialAlertDialogBuilder(this).setMessage(R.string.editor_not_ready).setPositiveButton(android.R.string.ok, null).show() }
         back.setOnClickListener { finish() }   // back to where the floor was opened from (user 2026-10-28)
         TooltipCompat.setTooltipText(back, getString(R.string.back))
@@ -138,7 +142,8 @@ class DanceFloorActivity : AppCompatActivity() {
         strip.cells = cellsOf(t, stops, getString(R.string.start))
         strip.callouts = callouts(p, t)
         // a composition plays once, so the clock's beats are its own beats
-        if (p.isComposition) cues = ptl.composed.elements.filter { phrases(it).isNotEmpty() }.map { Pair(it.start, it) }
+        if (p.isComposition) cues = ptl.composed.elements.filter { said(it).isNotEmpty() }.map { Pair(it.start, it) }
+        if (cues.isNotEmpty()) jumpLead = ANNOUNCE_LEAD
         strip.onTap = { k -> tapStop(k) }
         if (p.isComposition) pb.prefetch(composed.elements.mapNotNull { announcement(it) }.distinct())
         val autoplay = intent.getBooleanExtra("autoplay", false)
@@ -250,16 +255,22 @@ class DanceFloorActivity : AppCompatActivity() {
         return minOf(t.settledAfter(b), next - 1e-3)
     }
 
-    /** a stop: the feet and their weights at its settled instant; in schema mode a dashed arrow for every foot that
-     *  landed at the stop, from where it was (both dancers at once) */
+    /** a stop at rest: the feet and their weights at its settled instant, and a dashed arrow for every foot that
+     *  landed at the stop, from where it was and along the path it took (both dancers at once); the floor adds a small
+     *  round arrow beside a step that turns its foot by more than a quarter turn (FeetPainter.arrows) */
     private fun stopScene(t: Timeline, b: Double, banner: String?): Scene {
         val arrows = ArrayList<Arrow>()
-        if (schema) for (d in listOf('L', 'F')) for (f in listOf('L', 'R')) {
+        for (d in listOf('L', 'F')) for (f in listOf('L', 'R')) {
             val track = t.dancers[d]!!.tracks[f]!!
             val (cur, _) = track.around(b)
             if (abs(cur.tLand - b) < 1e-6) {
                 val i = track.landings.indexOf(cur)
-                if (i > 0) { val prev = track.landings[i - 1].p; if (abs(prev.x - cur.p.x) > 0.5 || abs(prev.y - cur.p.y) > 0.5) arrows.add(Arrow(d, prev, cur.p)) }
+                if (i > 0) {
+                    val prev = track.landings[i - 1].p
+                    // a foot that moved, went round by the anchors of its path, or turned a lot on the spot
+                    val moved = abs(prev.x - cur.p.x) > 0.5 || abs(prev.y - cur.p.y) > 0.5
+                    if (moved || cur.via.isNotEmpty() || abs(cur.p.h - prev.h) > FeetPainter.TURN_MARK) arrows.add(Arrow(d, prev, cur.p, cur.via))
+                }
             }
         }
         val el = t.elementAt(b)
@@ -267,7 +278,7 @@ class DanceFloorActivity : AppCompatActivity() {
         return Scene(t.feetAt(s), weightsAt(t, s), titleOf(el, b, false), if (b < 0) "" else t.countLabel(b), arrows, banner, fillerColor(el))
     }
 
-    /** any instant of the dance as it moves */
+    /** any instant of the dance as it moves: while it plays, and while the feet travel to a stop; no arrows */
     private fun flowScene(t: Timeline, b: Double, banner: String?, counting: Boolean): Scene {
         val el = t.elementAt(b)
         return Scene(t.feetAt(b), weightsAt(t, b), titleOf(el, b, counting), if (b < 0) "" else t.countLabel(b), emptyList(), banner, fillerColor(el))
@@ -285,11 +296,17 @@ class DanceFloorActivity : AppCompatActivity() {
         if (barsShown) strip.scrollToCell(idx, true)
     }
 
-    /** an entry's name without how many times it repeats (user 2026-11-16): "side to side x10" -> "side to side" */
-    private fun entryName(label: String): String = Regex("^(.*?)\\s*x(\\d+)$").matchEntire(label)?.groupValues?.get(1) ?: label
-    /** an element's annotation in a composition, shown and said: its "say:" text, and the name of the entry it starts */
-    private fun phrases(e: CElement): List<String> = listOfNotNull(e.annotation, if (e.entryStart) entryName(e.entryLabel) else null)
-    private fun announcement(e: CElement): String? = phrases(e).joinToString(". ").ifEmpty { null }
+    /** an entry as the voice says it, with how often it repeats: "side to side x10" -> "side to side, 10 times" */
+    private fun spokenEntry(label: String): String {
+        val m = Regex("^(.*?)\\s*x(\\d+)$").matchEntire(label)
+        return if (m != null) "${m.groupValues[1]}, ${m.groupValues[2]} times" else label
+    }
+    /** an element's annotation in a composition as the voice says it: its "say:" text, and the entry it starts */
+    private fun said(e: CElement): List<String> = listOfNotNull(e.annotation, if (e.entryStart) spokenEntry(e.entryLabel) else null)
+    /** the same as it is written, on the floor and in the bottom bar: without how many times, be it an entry's "x N" or a
+     *  "say:" text that ends in ", N times" (user 2026-11-16: the voice says the number, the screen does not) */
+    private fun phrases(e: CElement): List<String> = said(e).map { it.replace(TIMES, "") }
+    private fun announcement(e: CElement): String? = said(e).joinToString(". ").ifEmpty { null }
 
     /** the bottom bar's annotations: a composition's "say:" texts and entry names; a building block's element names */
     private fun callouts(p: Piece, t: Timeline): List<Pair<Int, String>> = t.composed.elements.mapNotNull { e ->
@@ -304,9 +321,14 @@ class DanceFloorActivity : AppCompatActivity() {
     // ------------------------------------------------------------------ stepping by hand
 
     /** one stop forward or back; past the last comes the first again, and before the first the last (user 2026-10-19).
-     *  Flow mode plays the transition from the settled state of one stop to the settled state of the next, at twice the
-     *  beat length of the tempo, with a constant acceleration and deceleration of about a sixth of a second at each end;
-     *  going round the end is a cut. */
+     *  The one way of stepping (user 2026-11-17): the arrows of the stop we leave go, the feet travel from its settled
+     *  state to the settled state of the next one, and only when they are there do that stop's arrows come (stopScene):
+     *  where each foot that stepped came from, and by which path. Every travel takes STEP_BEATS of a beat, whatever the
+     *  step, and plays that stretch of the dance at an even rate, so the feet speed up and slow down exactly as they do
+     *  when the dance plays (Timeline: a foot eases out of its place and into its landing). Until 2026-11-17 the travel
+     *  also sped up and slowed down as a whole, which eased every foot twice; the user found that annoying. A swipe
+     *  back is the same travel backwards, to the picture of the stop before, with its own arrows. Going round the end
+     *  is a cut. */
     private fun step(dir: Int) {
         val ptl = playTl ?: return
         if (stops.size < 2) return
@@ -315,19 +337,23 @@ class DanceFloorActivity : AppCompatActivity() {
         if (wrapped) next = if (next < 0) stops.size - 1 else 0
         anim?.cancel()
         val from = playBeat(stopBeat(idx)); val to = playBeat(stopBeat(next)); idx = next
-        if (schema || wrapped) { show(); return }
+        if (wrapped) { show(); return }
         strip.current = idx
         if (barsShown) strip.scrollToCell(idx, true)
         val tFrom = settled(ptl, from); val tTo = settled(ptl, to)
-        val ms = (abs(to - from) * 60.0 / pb.bpm() * 2.0 * 1000.0).coerceIn(250.0, 4000.0)
-        val ramp = (1.0 / 6.0 * 1000.0 / ms).coerceAtMost(0.45)
         val a = ValueAnimator.ofFloat(0f, 1f)
-        a.duration = ms.toLong()
-        a.interpolator = TrapezoidInterpolator(ramp.toFloat())
+        a.duration = (STEP_BEATS * 60.0 / pb.bpm() * 1000.0).coerceIn(60.0, 600.0).toLong()   // the limits only guard against a tempo that makes no sense
+        a.interpolator = LinearInterpolator()   // the dance's own time, at an even rate (an animator's default eases in and out)
         a.addUpdateListener { v -> val u = (v.animatedValue as Float).toDouble(); floor.scene = flowScene(ptl, tFrom + (tTo - tFrom) * u, null, false) }
+        a.addListener(object : AnimatorListenerAdapter() {
+            private var cancelled = false   // cut short by another swipe, a tap on a step, or play: they draw their own picture
+            override fun onAnimationCancel(animation: Animator) { cancelled = true }
+            override fun onAnimationEnd(animation: Animator) { if (!cancelled) floor.scene = stopScene(ptl, to, null) }   // the feet are there: now the arrows
+        })
         a.start(); anim = a
     }
 
+    /** a tap on a step in the bottom bar goes straight there: the stop at rest, with its arrows */
     private fun tapStop(k: Int) {
         if (playing) startAt(k, pb.beatNow(), quiet = true)
         else { anim?.cancel(); idx = k; show() }
@@ -388,10 +414,12 @@ class DanceFloorActivity : AppCompatActivity() {
         show(getString(R.string.done)); updateButtons(); showBars()
     }
 
-    /** while playing: to the next part, or back to the start of this one (the previous one in its first seconds) */
+    /** while playing: to the next part, or back to the start of this one (the previous one in its first seconds). In a
+     *  composition a swipe lands ANNOUNCE_LEAD beats before the part, where its annotation comes up: it is on the screen
+     *  for those beats and gone when the part starts (user 2026-11-16) */
     private fun skip(forward: Boolean) {
         val b = pb.beatNow()
-        val near = partsNear(b)
+        val near = partsNear(b).map { it - jumpLead }   // where a swipe lands for each part
         val target = if (forward) (near.firstOrNull { it > b + 0.05 } ?: return) else {
             val cur = near.lastOrNull { it <= b + 0.05 } ?: 0.0
             if (b - cur > BACK_REPLAY_SECONDS * pb.bpm() / 60.0) cur else (near.lastOrNull { it < cur - 0.05 } ?: 0.0)
@@ -400,7 +428,7 @@ class DanceFloorActivity : AppCompatActivity() {
         if (!pb.playing) { standAt(target); return }
         hold = Double.NEGATIVE_INFINITY; banner = null
         lastCue = cues.indexOfLast { it.first < target - 0.01 }
-        silentUntil = target + 0.05
+        silentUntil = target + jumpLead + 0.05   // the part the swipe went to is written, not read aloud
     }
 
     private val frame = object : Runnable {
@@ -417,13 +445,15 @@ class DanceFloorActivity : AppCompatActivity() {
     }
 
     /** a composition's annotations, by the clock itself (so the first can come up during the count-in): each comes up
-     *  ANNOUNCE_LEAD beats before its element starts (user 2026-11-16), is shown for BANNER_BEATS and read aloud. After a
-     *  start or a jump, one whose time has already come comes up at once; the part a jump went to is shown, not read. */
+     *  ANNOUNCE_LEAD beats before its element starts, is read aloud, and goes away just as the element starts (user
+     *  2026-11-16): once a part has started nothing is written. After a start or a jump, one whose time has already come
+     *  comes up at once, for what is left until its element; with less than MIN_NOTICE beats left (play started on the
+     *  part's first step) it is only read aloud. The part a jump went to is written, not read. */
     private fun announce(b: Double) {
         val next = cues.getOrNull(lastCue + 1)
         if (next != null && b >= next.first - ANNOUNCE_LEAD) {
             lastCue++
-            banner = phrases(next.second).joinToString("\n"); bannerUntil = b + BANNER_BEATS
+            if (next.first - b >= MIN_NOTICE) { banner = phrases(next.second).joinToString("\n"); bannerUntil = next.first }
             if (next.first > silentUntil) announcement(next.second)?.let { pb.speak(it) }
         }
         if (b > bannerUntil) banner = null
@@ -465,9 +495,7 @@ class DanceFloorActivity : AppCompatActivity() {
         playBtn.contentDescription = getString(if (playing) R.string.pause else R.string.play)
         muteBtn.setImageResource(if (pb.muted) R.drawable.ic_volume_off else R.drawable.ic_volume)
         muteBtn.contentDescription = getString(if (pb.muted) R.string.unmute else R.string.mute)
-        modeBtn.setImageResource(if (schema) R.drawable.ic_schema else R.drawable.ic_flow)
-        modeBtn.contentDescription = getString(if (schema) R.string.schema_view else R.string.flow_view)
-        for (v in listOf(playBtn, muteBtn, modeBtn)) TooltipCompat.setTooltipText(v, v.contentDescription)
+        for (v in listOf(playBtn, muteBtn)) TooltipCompat.setTooltipText(v, v.contentDescription)
         val bpm = pb.bpm().roundToInt().toString()
         val s = SpannableString(bpm + "\nBPM")
         s.setSpan(RelativeSizeSpan(0.6f), bpm.length + 1, s.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
@@ -516,18 +544,5 @@ class DanceFloorActivity : AppCompatActivity() {
         super.onDestroy()
         anim?.cancel(); barsAnim?.cancel(); playing = false
         pb.release()
-    }
-}
-
-/** Position with a constant acceleration for the first `ramp` of the time, constant speed, then the mirror image. */
-class TrapezoidInterpolator(private val ramp: Float) : android.view.animation.Interpolator {
-    override fun getInterpolation(t: Float): Float {
-        val r = ramp.coerceIn(0.05f, 0.5f)
-        val vmax = 1f / (1f - r)   // so that the area under the velocity profile is 1
-        return when {
-            t < r -> 0.5f * vmax / r * t * t
-            t < 1f - r -> 0.5f * vmax * r + vmax * (t - r)
-            else -> { val u = 1f - t; 1f - 0.5f * vmax / r * u * u }
-        }
     }
 }

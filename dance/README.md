@@ -2,7 +2,7 @@
 
 Built 2026-10-17, revised 2026-10-18 from the user's feedback. **Since 2026-10-25 the user writes every element by hand in
 the web editor** (`python RunWeb.py`); the lurklurk notes are disconnected (the step codes, source tags and notes are gone
-from the data), and the elements and compositions the 5 minutes exercise does not use are set aside in `old_elements/`.
+from the data), and the elements and compositions the daily exercise did not use then are set aside in `old_elements/`.
 
 ## What is here
 
@@ -33,7 +33,7 @@ Needs Python 3.11 with Pillow, and ffmpeg on the PATH (the video). Nothing else.
 
 ## Elements (2026-10-18; set aside 2026-10-25)
 
-Since 2026-10-25 `skeletons.json` holds only the elements the 5 minutes exercise uses: rock step (side L), triple step
+Since 2026-10-25 `skeletons.json` holds only the elements the daily exercise (then "5 minutes exercise") uses: rock step (side L), triple step
 (side L and R), rock back cutoff, follower underarm pass (side and facing), lead underarm pass, recapture underarm pass. The
 others (rock step side R and facing, triple step facing, circle) are in `old_elements/skeletons.json`. The "built from" column
 below is history: the lurklurk codes it names are no longer in the data.
@@ -169,8 +169,10 @@ any save it refuses). The page warns when the server runs older code than the fi
   named list of elements that other compositions use by name, e.g. RTT = rock step, triple step, triple step; the checkbox
   turns a composition into one) or either "x N". Every row shows the starting and ending condition of the whole entry as
   dictated by the previous one; the add list only offers what can follow. The map strip lists the composed elements with
-  their sub-composition group; the floor and the step flow show the composed timeline, read-only. "5 minutes exercise" is
-  the daily routine (582 beats = 4:03 on Hot Swing); it is the only composition since 2026-10-25.
+  their sub-composition group; the floor and the step flow show the composed timeline, read-only. "3 minutes exercise"
+  ("5 minutes exercise" until 2026-11-16) is the daily routine, about 3 minutes (404 beats): as short as possible with
+  as many elements as possible packed in, in the user's own order (its notes in `compositions.json` say why); "Quick
+  recap" is every element once, in the order they were learned. Both always start with one rock triple triple.
 - **play** (space bar too): the music runs on continuously (the whole track, looped, with a one-bar count-in) and the
   element or composition is danced on it, in the browser, with the same weight and travel model as `render.py`. If the
   dance alone would not loop (ending with the other foot free) the server pads it with triple steps

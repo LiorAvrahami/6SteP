@@ -166,7 +166,12 @@ data class SeqItem(val name: String, val group: String?, val annotation: String?
 /** Compositions and sub-compositions: shipped in the assets (and copies edited on the phone before 2026-10-28, which
  *  still load), plus the quick recap, made here from the daily exercise. */
 class CompositionStore(private val ctx: Context) {
-    companion object { const val QUICK_RECAP = "Quick recap" }
+    companion object {
+        const val QUICK_RECAP = "Quick recap"
+        /** shipped compositions that changed their name: a copy a phone kept under the old name is the same composition, so
+         *  that the newer shipped revision replaces it instead of standing beside it (daily() would pick the old one) */
+        val RENAMED = mapOf("5 minutes exercise" to "3 minutes exercise")   // 2026-11-16: the daily exercise got shorter
+    }
     val compositions = ArrayList<Composition>()
     val subs = ArrayList<Composition>()
     private val file: File get() = File(ctx.filesDir, "compositions.json")
@@ -206,7 +211,11 @@ class CompositionStore(private val ctx: Context) {
 
     private fun readInto(doc: JSONObject) {
         val sc = doc.optJSONArray("compositions"); val ss = doc.optJSONArray("sub_compositions")
-        if (sc != null) for (i in 0 until sc.length()) compositions.add(Composition.fromJson(sc.getJSONObject(i), false))
+        if (sc != null) for (i in 0 until sc.length()) {
+            val c = Composition.fromJson(sc.getJSONObject(i), false)
+            c.name = RENAMED[c.name] ?: c.name   // a copy kept under a name the shipped file has since changed
+            compositions.add(c)
+        }
         if (ss != null) for (i in 0 until ss.length()) subs.add(Composition.fromJson(ss.getJSONObject(i), true))
     }
 

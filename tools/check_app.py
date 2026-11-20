@@ -23,7 +23,8 @@ GONE = ['PlayerActivity', 'FloorActivity', 'optionsBar', 'trackPicker', 'bpmPick
         'voiceToggle', 'exploreHere', 'closeBar', 'mapOverlay', 'mapGrid', 'viewToggle', 'compositionList',
         'startDaily', 'metronomeOverMusic', 'speakAnnotations', 'newComposition', 'ic_strategic', 'ic_map',
         'ic_edit', 'bg_chip', 'Smoother', 'normAngle', 'conditionLabel', 'showHands', 'showBodies', 'R.color.panel',
-        'R.color.ink', 'R.color.muted', '@color/panel', '@color/ink', '@color/muted']
+        'R.color.ink', 'R.color.muted', '@color/panel', '@color/ink', '@color/muted',
+        'modeBtn', 'ic_schema', 'ic_flow', 'schema_view', 'flow_view']   # 2026-11-17: one way of stepping, no mode button
 
 CLASHES = {'finish', 'recreate', 'startActivity', 'setResult', 'getIntent', 'getTitle', 'setTitle', 'getWindow',
            'onBackPressed', 'isFinishing', 'runOnUiThread', 'getResources', 'draw', 'layout', 'measure', 'scrollTo',

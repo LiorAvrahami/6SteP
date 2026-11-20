@@ -7,18 +7,24 @@ import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PointF
+import android.graphics.RectF
 import android.os.SystemClock
 import android.util.AttributeSet
 import android.view.View
 import androidx.core.content.res.ResourcesCompat
 import kotlin.math.abs
+import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.sin
 
-data class Arrow(val dancer: Char, val from: Placement, val to: Placement)
+/** A step's arrow, drawn at a stop once the feet are there: the foot's way from where it stood, through the anchors of
+ *  its path (if it has any), to where it landed. The headings keep their winding, so `to.h - from.h` is the turn the
+ *  foot makes, clockwise when positive. */
+data class Arrow(val dancer: Char, val from: Placement, val to: Placement, val via: List<Pair<Double, Double>> = emptyList())
 
 /** Everything the floor shows at one instant. */
 class Scene(
@@ -35,10 +41,32 @@ fun withAlpha(color: Int, alpha: Double): Int = (color and 0x00FFFFFF) or ((alph
 
 /** The dancers' feet seen from above, through a camera: the world point (cx, cy) in cm is drawn at the screen point
  *  (ox, oy), `scale` px per cm. Shoes are dancing-shoe soles (the dancer's colour with the weight as its opacity, over a
- *  grey silhouette; the pointed toe shows the heading), the schema view's dashed step arrows, the 50 cm grid.
+ *  grey silhouette; the pointed toe shows the heading), a stop's dashed step arrows along the feet's paths with
+ *  their turn marks, the 50 cm grid.
  *  The one drawing of the dancers: the dance floor, the strips of step pictures and the launcher's little floor all use it. */
 class FeetPainter(ctx: Context) {
-    companion object { const val GRID = 50.0 }
+    companion object {
+        const val GRID = 50.0
+        const val TURN_MARK = 90.0        // degrees: a step that turns its foot by more gets a turn mark (user 2026-11-16)
+        // the turn mark: a small round arrow in the dancer's colour, no number. Its sizes are cm of floor; zoomed out it
+        // stops shrinking at MARK_MIN_R_DP, so that it can still be read
+        const val MARK_R = 2.2            // the radius of its arc
+        const val MARK_W = 0.75           // its line
+        const val MARK_HEAD_L = 1.9
+        const val MARK_HEAD_W = 1.2
+        const val MARK_REACH = MARK_R + MARK_HEAD_W   // how far a mark reaches from its centre
+        const val MARK_MIN_R_DP = 7.0     // the arc's radius is never less than this on the screen
+        const val MARK_CLEAR = 1.0        // cm of free floor around a mark that is good enough
+        val MARK_ALONG = doubleArrayOf(0.5, 0.35, 0.65, 0.2, 0.8)     // where along its arrow a mark may sit: the middle first
+        val MARK_BESIDE = doubleArrayOf(5.5, 8.0, 11.0)               // and how far beside it (cm from the path to the mark's centre)
+        val SHOE_SPOTS = doubleArrayOf(-11.0, -5.5, 0.0, 5.5, 11.0)   // a shoe as five discs of 5 cm along its length (the room around a mark)
+    }
+    /** the floor that can be seen once the camera has settled: its edges in cm (y up) and its px per cm. The turn marks
+     *  are placed for it, so that they keep their places while the camera glides. */
+    class Sight(val x0: Double, val y0: Double, val x1: Double, val y1: Double, val scale: Double)
+
+    private val density = ctx.resources.displayMetrics.density
+    private val oval = RectF()
     private val leader = ctx.getColor(R.color.leader)
     private val follower = ctx.getColor(R.color.follower)
     private val grey = Color.rgb(120, 120, 120)
@@ -75,9 +103,116 @@ class FeetPainter(ctx: Context) {
         }
     }
 
-    /** the schema view's dashed arrows, from where each foot was to where it landed */
-    fun arrows(c: Canvas, arrows: List<Arrow>) {
-        for (a in arrows) dashedArrow(c, if (a.dancer == 'L') leader else follower, a.from, a.to)
+    /** a stop's step arrows, over the shoes: each follows the path its foot really takes (through the anchors
+     *  set in the editor), and beside the arrow of a step that turns its foot by more than TURN_MARK degrees a small
+     *  round arrow shows which way the foot turns (user 2026-11-16). `sight`: the floor that can be seen (not under a
+     *  bar), where the turn marks have to be; null when all of it can. */
+    fun arrows(c: Canvas, arrows: List<Arrow>, feet: Map<String, Placement>, sight: Sight? = null) {
+        if (arrows.isEmpty()) return
+        val paths = arrows.map { a -> Curve.samples(listOf(Pair(a.from.x, a.from.y)) + a.via + listOf(Pair(a.to.x, a.to.y))) }
+        for ((k, a) in arrows.withIndex()) dashedArrow(c, colorOf(a.dancer), paths[k])
+        val marks = placeMarks(arrows, paths, feet, sight)
+        for ((k, a) in arrows.withIndex()) {
+            val m = marks[k] ?: continue
+            turnMark(c, colorOf(a.dancer), m.first, m.second, a.to.h - a.from.h > 0)
+        }
+    }
+
+    private fun colorOf(dancer: Char): Int = if (dancer == 'L') leader else follower
+    private fun darker(color: Int): Int = Color.rgb((Color.red(color) * 0.72).toInt(), (Color.green(color) * 0.72).toInt(), (Color.blue(color) * 0.72).toInt())
+    /** how much bigger than its floor size a turn mark is drawn at `pxPerCm`: 1, or more when the floor is zoomed out */
+    private fun markGrow(pxPerCm: Double): Double = max(1.0, MARK_MIN_R_DP * density / (MARK_R * pxPerCm))
+
+    private fun pathLength(p: List<Pair<Double, Double>>): Double {
+        var len = 0.0
+        for (i in 1 until p.size) len += hypot(p[i].first - p[i - 1].first, p[i].second - p[i - 1].second)
+        return len
+    }
+
+    /** the point at fraction f of a path's length and the direction of the path there: x, y, dx, dy */
+    private fun along(p: List<Pair<Double, Double>>, f: Double): DoubleArray {
+        val last = p.last()
+        val total = pathLength(p)
+        if (total < 1e-9) return doubleArrayOf(last.first, last.second, 0.0, 1.0)
+        val want = f * total
+        var run = 0.0
+        for (i in 0 until p.size - 1) {
+            val dx = p[i + 1].first - p[i].first; val dy = p[i + 1].second - p[i].second
+            val len = hypot(dx, dy)
+            if (len > 1e-12 && run + len >= want) {
+                val u = (want - run) / len
+                return doubleArrayOf(p[i].first + dx * u, p[i].second + dy * u, dx / len, dy / len)
+            }
+            run += len
+        }
+        return doubleArrayOf(last.first, last.second, 0.0, 1.0)
+    }
+
+    /** where each turn mark goes (cm of floor), null for an arrow without one: beside the middle of its arrow, on the side
+     *  and at the distance that leave it free floor, clear of the shoes, of every arrow and of the marks already placed,
+     *  and where it can be seen. The places are tried the middle of the arrow and the nearest distance first; the first
+     *  with MARK_CLEAR cm of room around it is taken, and when there is none, the one with the most room. */
+    private fun placeMarks(arrows: List<Arrow>, paths: List<List<Pair<Double, Double>>>, feet: Map<String, Placement>, sight: Sight?): List<Pair<Double, Double>?> {
+        fun turns(a: Arrow): Boolean = abs(a.to.h - a.from.h) > TURN_MARK + 0.01   // more than a quarter turn, not a quarter turn itself
+        if (arrows.none { turns(it) }) return arrows.map { null }
+        val grow = markGrow(sight?.scale ?: scale)
+        val reach = MARK_REACH * grow
+        val obstacles = ArrayList<DoubleArray>()   // x, y, radius (cm)
+        for (p in feet.values) {
+            val f = fwd(p.h)
+            for (o in SHOE_SPOTS) obstacles.add(doubleArrayOf(p.x + f.first * o, p.y + f.second * o, 5.0))
+        }
+        for (pts in paths) {
+            val n = max(1, (pathLength(pts) / 2.0).toInt())
+            for (i in 0..n) { val q = along(pts, i.toDouble() / n); obstacles.add(doubleArrayOf(q[0], q[1], 1.0)) }
+            obstacles.add(doubleArrayOf(pts.last().first, pts.last().second, 2.5))   // the arrow's head
+        }
+        // the free floor around a mark centred at (x, y), in cm; far below zero where it could not be seen
+        fun room(x: Double, y: Double): Double {
+            if (sight != null) {
+                val outside = max(max(sight.x0 - (x - reach), (x + reach) - sight.x1), max(sight.y0 - (y - reach), (y + reach) - sight.y1))
+                if (outside > 0.0) return -1000.0 - outside
+            }
+            var least = Double.MAX_VALUE
+            for (o in obstacles) least = min(least, hypot(x - o[0], y - o[1]) - o[2])
+            return least - reach
+        }
+        val out = ArrayList<Pair<Double, Double>?>()
+        for ((k, a) in arrows.withIndex()) {
+            if (!turns(a)) { out.add(null); continue }
+            val pts = paths[k]
+            // the places to try, in order; the two sides of the arrow are tried together
+            val groups = ArrayList<List<Pair<Double, Double>>>()
+            if (pathLength(pts) < 1.0) {
+                // a turn on the spot: around the foot
+                for (d in doubleArrayOf(12.0, 16.0)) for (deg in 0 until 360 step 45) {
+                    val g = Math.toRadians(deg.toDouble())
+                    groups.add(listOf(Pair(a.to.x + sin(g) * d * grow, a.to.y + cos(g) * d * grow)))
+                }
+            } else {
+                for (f in MARK_ALONG) {
+                    val m = along(pts, f)
+                    for (d0 in MARK_BESIDE) {
+                        val d = d0 * grow
+                        groups.add(listOf(Pair(m[0] - m[3] * d, m[1] + m[2] * d), Pair(m[0] + m[3] * d, m[1] - m[2] * d)))
+                    }
+                }
+            }
+            var best: Pair<Double, Double>? = null
+            var bestRoom = -Double.MAX_VALUE
+            var chosen: Pair<Double, Double>? = null
+            for (group in groups) {
+                var side: Pair<Double, Double>? = null
+                var sideRoom = -Double.MAX_VALUE
+                for (q in group) { val r = room(q.first, q.second); if (r > sideRoom) { sideRoom = r; side = q } }
+                if (sideRoom > bestRoom) { bestRoom = sideRoom; best = side }
+                if (sideRoom >= MARK_CLEAR) { chosen = side; break }
+            }
+            val place = chosen ?: best
+            out.add(place)
+            if (place != null) obstacles.add(doubleArrayOf(place.first, place.second, reach))
+        }
+        return out
     }
 
     /** the sole of a dancing shoe seen from below, in cm, for a LEFT foot: u across (+ towards the inner, big-toe side),
@@ -114,26 +249,66 @@ class FeetPainter(ctx: Context) {
         return path
     }
 
-    /** a step's dashed arrow, drawn over the shoes: the dancer's colour darkened, every dash and the head outlined in
-     *  black, so that it stands apart from the feet (user 2026-10-28) */
-    private fun dashedArrow(c: Canvas, color: Int, from: Placement, to: Placement) {
-        val a = px(from.x, from.y); val b = px(to.x, to.y)
-        val len = hypot((b.x - a.x).toDouble(), (b.y - a.y).toDouble()); if (len < 4) return
-        val dark = Color.rgb((Color.red(color) * 0.72).toInt(), (Color.green(color) * 0.72).toInt(), (Color.blue(color) * 0.72).toInt())
+    /** a step's dashed arrow along the foot's path, drawn over the shoes: the dancer's colour darkened, every dash and the
+     *  head outlined in black, so that it stands apart from the feet (user 2026-10-28). The head points the way the path
+     *  ends. */
+    private fun dashedArrow(c: Canvas, color: Int, pts: List<Pair<Double, Double>>) {
+        val sp = pts.map { px(it.first, it.second) }
+        var len = 0.0
+        for (i in 1 until sp.size) len += hypot((sp[i].x - sp[i - 1].x).toDouble(), (sp[i].y - sp[i - 1].y).toDouble())
+        if (len < 4) return
+        val dark = darker(color)
         val w = max(2.0, scale * 1.2).toFloat()
         val edge = max(1.0, scale * 0.35).toFloat()
+        path.reset(); path.moveTo(sp[0].x, sp[0].y)
+        for (i in 1 until sp.size) path.lineTo(sp[i].x, sp[i].y)
         // the same dashes twice: black and wider, then the colour; the round caps give each dash its border at the ends too
         stroke.pathEffect = DashPathEffect(floatArrayOf((scale * 3).toFloat(), (scale * 2.2).toFloat()), 0f)
-        stroke.color = Color.BLACK; stroke.strokeWidth = w + 2 * edge; c.drawLine(a.x, a.y, b.x, b.y, stroke)
-        stroke.color = dark; stroke.strokeWidth = w; c.drawLine(a.x, a.y, b.x, b.y, stroke)
+        stroke.color = Color.BLACK; stroke.strokeWidth = w + 2 * edge; c.drawPath(path, stroke)
+        stroke.color = dark; stroke.strokeWidth = w; c.drawPath(path, stroke)
         stroke.pathEffect = null
-        val ux = (b.x - a.x) / len; val uy = (b.y - a.y) / len; val s = (scale * 4.5).toFloat()
+        // the head: along the path over the head's own length, so that it sits on a curve as it does on a line
+        val b = sp.last()
+        val s = (scale * 4.5).toFloat()
+        var back = sp[0]
+        for (i in sp.size - 2 downTo 0) {
+            back = sp[i]
+            if (hypot((b.x - back.x).toDouble(), (b.y - back.y).toDouble()) >= s) break
+        }
+        val dl = hypot((b.x - back.x).toDouble(), (b.y - back.y).toDouble())
+        if (dl < 1e-3) return
+        val ux = (b.x - back.x) / dl; val uy = (b.y - back.y) / dl
         path.reset(); path.moveTo(b.x, b.y)
         path.lineTo((b.x - ux * s - uy * s * 0.55).toFloat(), (b.y - uy * s + ux * s * 0.55).toFloat())
         path.lineTo((b.x - ux * s + uy * s * 0.55).toFloat(), (b.y - uy * s - ux * s * 0.55).toFloat())
         path.close()
         fill.color = dark; c.drawPath(path, fill)
         stroke.color = Color.BLACK; stroke.strokeWidth = edge * 1.5f; c.drawPath(path, stroke)
+    }
+
+    /** a turn mark centred at (x, y) cm: a small round arrow, three quarters of a circle from the top, clockwise for a foot
+     *  that turns to the right, in the dancer's own colour as the editor's turn arrows are (blue for the leader, pink for
+     *  the follower; user 2026-11-16): no darkening and no black edge, which hid the colour at this size; no number */
+    private fun turnMark(c: Canvas, color: Int, x: Double, y: Double, clockwise: Boolean) {
+        val k = scale * markGrow(scale)   // px per cm of the mark itself
+        val p = px(x, y)
+        val r = (MARK_R * k).toFloat()
+        val sweep = if (clockwise) 270f else -270f
+        oval.set(p.x - r, p.y - r, p.x + r, p.y + r)
+        stroke.pathEffect = null
+        stroke.color = color; stroke.strokeWidth = (MARK_W * k).toFloat(); c.drawArc(oval, -90f, sweep, false, stroke)
+        // the head at the end of the arc, pointing on round the circle (the screen's angles run clockwise, y down)
+        val end = Math.toRadians(-90.0 + sweep)
+        val way = if (clockwise) 1.0 else -1.0
+        val ex = p.x + cos(end) * r; val ey = p.y + sin(end) * r
+        val tx = -sin(end) * way; val ty = cos(end) * way
+        val hl = MARK_HEAD_L * k; val hw = MARK_HEAD_W * k
+        path.reset()
+        path.moveTo((ex + tx * hl).toFloat(), (ey + ty * hl).toFloat())
+        path.lineTo((ex - ty * hw).toFloat(), (ey + tx * hw).toFloat())
+        path.lineTo((ex + ty * hw).toFloat(), (ey - tx * hw).toFloat())
+        path.close()
+        fill.color = color; c.drawPath(path, fill)
     }
 }
 
@@ -248,8 +423,18 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         painter.grid(c, 0f, 0f, width.toFloat(), height.toFloat())
         if (s == null) return
         painter.feet(c, s.feet, s.weights)
-        painter.arrows(c, s.arrows)   // over the shoes (user 2026-10-28)
+        painter.arrows(c, s.arrows, s.feet, sight())   // over the shoes (user 2026-10-28)
         if (showLabels) labels(c, s)
+    }
+
+    /** the floor between the bars as the camera shows it once it has settled */
+    private fun sight(): FeetPainter.Sight {
+        val ahead = autoCamera && !targetCx.isNaN() && targetScale > 0
+        val sc = if (ahead) targetScale else scale
+        val x = if (ahead) targetCx else cx
+        val y = if (ahead) targetCy else cy
+        val my = midY()
+        return FeetPainter.Sight(x - width / 2.0 / sc, y - (height - insetBottom - my) / sc, x + width / 2.0 / sc, y + (my - insetTop) / sc, sc)
     }
 
     private fun labels(c: Canvas, s: Scene) {
