@@ -67,3 +67,15 @@ jobs:
             Download 6SteP.apk below and open it on the phone. The first time, Android asks to allow installing unknown apps from your browser.
             Each build installs over the previous one.
           files: 6SteP.apk
+
+      # the web front, with the dance data and the music, becomes the gh-pages branch, which GitHub Pages serves at
+      # https://lioravrahami.github.io/6SteP/ (one commit, replaced at every build, so the branch does not grow)
+      - name: Publish the web front
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: web/build/dist/js/productionExecutable
+          force_orphan: true
+          user_name: 'github-actions[bot]'
+          user_email: 'github-actions[bot]@users.noreply.github.com'
+          commit_message: The web front of build ${{ github.run_number }}

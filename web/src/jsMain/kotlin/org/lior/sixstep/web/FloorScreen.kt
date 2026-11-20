@@ -1,0 +1,322 @@
+package org.lior.sixstep.web
+
+import kotlinx.browser.document
+import kotlinx.browser.window
+import org.lior.sixstep.Colors
+import org.lior.sixstep.DanceFloor
+import org.lior.sixstep.FloorHost
+import org.lior.sixstep.FloorPicture
+import org.lior.sixstep.Scene
+import org.lior.sixstep.StepCell
+import org.lior.sixstep.StripPainter
+import org.lior.sixstep.Texts
+import org.w3c.dom.HTMLCanvasElement
+import org.w3c.dom.HTMLElement
+import org.w3c.dom.events.Event
+import org.w3c.dom.events.KeyboardEvent
+import org.w3c.dom.events.MouseEvent
+import kotlin.math.abs
+import kotlin.math.pow
+
+/** The dance floor in a browser: the screen of the shared DanceFloor. It draws what the floor shows (the shared
+ *  FloorPicture and StripPainter on two canvases), slides the bars, and passes on the gestures: a swipe left or right,
+ *  a swipe down or up for the bars, a tap, a double tap; on a keyboard the arrow keys and the space bar. */
+class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) : Screen, FloorHost {
+    companion object {
+        const val TOP_BAR = 64.0
+        const val STRIP = 132.0
+        const val BAND = 32.0            // the strip's upper band, where the annotations are: touches there go to the floor
+        const val SWIPE_X = 60.0
+        const val SWIPE_Y = 80.0
+        const val DOUBLE_TAP_MS = 300
+    }
+
+    override val root: HTMLElement = el("div", "floor")
+    private val stage = Stage(document.createElement("canvas") as HTMLCanvasElement)
+    private val stripStage = Stage(document.createElement("canvas") as HTMLCanvasElement)
+    private val picture = FloorPicture(1.0)
+    private val strip = StripPainter(1.0).apply { barColor = Colors.BAR; calloutBandDp = BAND; cellWidthDp = 64.0; gapDp = 8.0 }
+
+    private val playBtn = iconButton("play", Texts.PLAY) { floor.playPause() }
+    private val rateBtn = el("button", "rate press") { title = Texts.TEMPO; onclick = { it.stopPropagation(); menu(this, floor.tempoChoices()) { i -> floor.chooseTempo(i) }; null } }
+    private val songLabel = el("span")
+    private val songBtn = el("button", "song press") {
+        title = Texts.SONG
+        add(songLabel); add(icon("chevron-down"))
+        onclick = { it.stopPropagation(); menu(this, floor.songChoices()) { i -> floor.chooseSong(i) }; null }
+    }
+    private val muteBtn = iconButton("volume-2", Texts.MUTE) { floor.toggleMute() }
+    private val loadingEl = el("div", "loading") { add(el("div", "spinner")); add(el("span", "", Texts.LOADING_MUSIC)); hidden = true }
+    private var menuEl: HTMLElement? = null
+    private var toastEl: HTMLElement? = null
+
+    private val floor = DanceFloor(App.assets.data, App.assets.store, kind, name, variant, autoplay, App.player, this)
+
+    private var attached = false
+    private val callbacks = ArrayList<() -> Unit>()
+    private var rafAsked = false
+    private var dirty = true
+    private var stripDirty = true
+
+    // the strip's scrolling: a glide to a picture, a fling after a drag
+    private var glideFrom = 0.0; private var glideTo = 0.0; private var glideT0 = 0.0; private var gliding = false
+    private var flingV = 0.0             // px per ms
+    private var lastFrame = 0.0
+    private var stripTouched = -1e9      // when the user last handled the strip
+    private var stripDown = false; private var stripDragging = false
+    private var stripDownX = 0.0; private var stripLastX = 0.0; private var stripLastT = 0.0
+
+    // the floor's gestures
+    private var downX = 0.0; private var downY = 0.0; private var isDown = false
+    private var lastTap = -1e9
+    private var tapTimer: Int? = null
+    private var wakeLock: dynamic = null
+
+    init {
+        stage.canvas.className = "stage"
+        root.add(stage.canvas)
+        val stripBox = el("div", "strip")
+        stripBox.add(stripStage.canvas)
+        val touch = el("div", "touch")
+        stripBox.add(touch)
+        root.add(stripBox)
+        val top = el("div", "topbar")
+        top.add(playBtn); top.add(rateBtn); top.add(songBtn); top.add(muteBtn); top.add(el("div", "space"))
+        top.add(iconButton("undo-2", Texts.BACK) { App.back() })
+        root.add(top)
+        root.add(loadingEl)
+
+        // the floor: where the touch went down and where it came up
+        stage.canvas.addEventListener("pointerdown", { e -> e as MouseEvent; isDown = true; downX = e.clientX.toDouble(); downY = e.clientY.toDouble(); App.player.unlock(); closeMenu() })
+        stage.canvas.addEventListener("pointerup", { e -> e as MouseEvent; if (isDown) { isDown = false; gesture(e.clientX - downX, e.clientY - downY) } })
+        stage.canvas.addEventListener("pointercancel", { isDown = false })
+
+        // the strip under its band: drag it, or tap a step
+        touch.addEventListener("pointerdown", { e ->
+            e as MouseEvent
+            App.player.unlock(); closeMenu()
+            stripDown = true; stripDragging = false; gliding = false; flingV = 0.0
+            stripDownX = e.clientX.toDouble(); stripLastX = stripDownX; stripLastT = nowMs(); stripTouched = stripLastT
+            try { touch.asDynamic().setPointerCapture(e.asDynamic().pointerId) } catch (t: Throwable) {}
+        })
+        touch.addEventListener("pointermove", { e ->
+            e as MouseEvent
+            if (!stripDown) return@addEventListener
+            val x = e.clientX.toDouble(); val now = nowMs()
+            if (!stripDragging && abs(x - stripDownX) > 8) { stripDragging = true; stripLastX = x; stripLastT = now }
+            if (stripDragging) {
+                val dx = x - stripLastX; val dt = (now - stripLastT).coerceAtLeast(1.0)
+                strip.offset = (strip.offset - dx).coerceIn(0.0, strip.maxOffset())
+                flingV = 0.7 * (-dx / dt) + 0.3 * flingV
+                stripLastX = x; stripLastT = now; stripDirty = true; ask()
+            }
+            stripTouched = now
+        })
+        val stripUp = { e: Event ->
+            e as MouseEvent
+            if (stripDown) {
+                stripDown = false; stripTouched = nowMs()
+                if (stripDragging) { stripDragging = false; if (nowMs() - stripLastT > 80) flingV = 0.0; ask() }
+                else {
+                    val k = strip.cellAt(e.clientX - stripStage.canvas.getBoundingClientRect().left)
+                    if (k >= 0) floor.tapStop(k)
+                }
+            }
+        }
+        touch.addEventListener("pointerup", stripUp)
+        touch.addEventListener("pointercancel", { stripDown = false; stripDragging = false })
+    }
+
+    private val onKey = { e: Event ->
+        e as KeyboardEvent
+        var used = true
+        when (e.key) {
+            "ArrowRight" -> floor.swipe(true)
+            "ArrowLeft" -> floor.swipe(false)
+            "ArrowDown" -> floor.swipeDown()
+            "ArrowUp" -> floor.swipeUp()
+            " " -> { App.player.unlock(); floor.playPause() }
+            "Escape" -> App.back()
+            else -> used = false
+        }
+        if (used) e.preventDefault()
+    }
+    private val onResize = { _: Event -> dirty = true; stripDirty = true; ask() }
+    private val onVisibility = { _: Event -> if (document.asDynamic().hidden == true) floor.hidden() else keepAwake() }
+
+    override fun attach() {
+        attached = true
+        window.addEventListener("keydown", onKey)
+        window.addEventListener("resize", onResize)
+        document.addEventListener("visibilitychange", onVisibility)
+        fit()
+        keepAwake()
+        floor.open()
+        ask()
+    }
+
+    override fun detach() {
+        attached = false
+        window.removeEventListener("keydown", onKey)
+        window.removeEventListener("resize", onResize)
+        document.removeEventListener("visibilitychange", onVisibility)
+        tapTimer?.let { window.clearTimeout(it) }
+        try { wakeLock?.release() } catch (e: Throwable) {}
+        wakeLock = null
+        floor.release()
+    }
+
+    /** the screen stays on while the floor is shown, where the browser can do that */
+    private fun keepAwake() {
+        try {
+            val wl = window.navigator.asDynamic().wakeLock
+            if (wl != null && wl != undefined) wl.request("screen").then({ l: dynamic -> wakeLock = l }, { _: dynamic -> })
+        } catch (e: Throwable) {}
+    }
+
+    // ------------------------------------------------------------------ gestures
+
+    private fun gesture(dx: Double, dy: Double) {
+        if (abs(dy) > SWIPE_Y && abs(dy) > abs(dx) * 1.2) { if (dy > 0) floor.swipeDown() else floor.swipeUp(); return }
+        if (abs(dx) > SWIPE_X && abs(dx) > abs(dy) * 1.2) { floor.swipe(dx < 0); return }
+        if (abs(dx) > 12 || abs(dy) > 12) return
+        // a tap: the second of two close together is a double tap, a single one acts once no second has come
+        val now = nowMs()
+        if (now - lastTap < DOUBLE_TAP_MS) {
+            lastTap = -1e9
+            tapTimer?.let { window.clearTimeout(it) }; tapTimer = null
+            floor.doubleTap()
+        } else {
+            lastTap = now
+            tapTimer = window.setTimeout({ tapTimer = null; floor.tap() }, DOUBLE_TAP_MS)
+        }
+    }
+
+    // ------------------------------------------------------------------ the frames
+
+    private fun ask() {
+        if (rafAsked || !attached) return
+        rafAsked = true
+        window.requestAnimationFrame { rafAsked = false; frame() }
+    }
+
+    private fun fit() {
+        if (stage.fit()) { picture.setSize(stage.width, stage.height); dirty = true }
+        if (stripStage.fit()) { strip.setSize(stripStage.width, stripStage.height); stripDirty = true }
+    }
+
+    private fun frame() {
+        if (!attached) return
+        val now = nowMs()
+        val dt = if (lastFrame == 0.0) 16.0 else (now - lastFrame).coerceIn(1.0, 100.0)
+        lastFrame = now
+        val due = callbacks.toList(); callbacks.clear()
+        for (c in due) c()
+        fit()
+        // the strip under way: a glide to a picture, or the rest of a fling
+        if (gliding) {
+            val u = ((now - glideT0) / 350.0).coerceIn(0.0, 1.0)
+            val e = 1 - (1 - u) * (1 - u)
+            strip.offset = (glideFrom + (glideTo - glideFrom) * e).coerceIn(0.0, strip.maxOffset())
+            if (u >= 1.0) gliding = false
+            stripDirty = true
+        } else if (!stripDragging && abs(flingV) > 0.02) {
+            strip.offset = (strip.offset + flingV * dt).coerceIn(0.0, strip.maxOffset())
+            flingV *= 0.996.pow(dt)
+            if (strip.offset <= 0.0 || strip.offset >= strip.maxOffset()) flingV = 0.0
+            stripTouched = now
+            stripDirty = true
+        }
+        if (dirty) { dirty = picture.draw(stage.draw, now) }
+        if (stripDirty) {
+            stripDirty = false
+            stripStage.g.clearRect(0.0, 0.0, stripStage.width, stripStage.height)
+            strip.draw(stripStage.draw)
+        }
+        loadingEl.hidden = !floor.loading
+        report()
+        if (dirty || stripDirty || callbacks.isNotEmpty() || gliding || (!stripDragging && abs(flingV) > 0.02) || floor.loading) ask()
+    }
+
+    /** what the floor shows, for whoever tests the page from outside (window.sixstep) */
+    private fun report() {
+        val sc = picture.scene
+        val o: dynamic = js("({})")
+        o.playing = floor.playing; o.loading = floor.loading; o.beat = App.player.beatNow(); o.bpm = App.player.bpm(); o.t = nowMs()
+        o.title = sc?.title; o.count = sc?.count; o.banner = sc?.banner; o.arrows = sc?.arrows?.size ?: 0
+        o.current = strip.current; o.bars = floor.barsShown; o.song = floor.songLabel()
+        window.asDynamic().sixstep = o
+    }
+
+    // ------------------------------------------------------------------ what the floor asks of its screen
+
+    override fun nowMs(): Double = org.lior.sixstep.web.nowMs()
+    override fun nextFrame(callback: () -> Unit) { callbacks.add(callback); ask() }
+    override fun show(scene: Scene) { picture.setScene(scene, nowMs()); dirty = true; ask() }
+
+    override fun strip(cells: List<StepCell>, callouts: List<Pair<Int, String>>) { strip.cells = cells; strip.callouts = callouts; stripDirty = true; ask() }
+    override fun stripCurrent(k: Int) { if (strip.current != k) { strip.current = k; stripDirty = true; ask() } }
+
+    override fun stripScrollTo(k: Int, animate: Boolean) {
+        fit()
+        val target = strip.targetFor(k)
+        flingV = 0.0
+        if (animate) { gliding = true; glideFrom = strip.offset; glideTo = target; glideT0 = nowMs() }
+        else { gliding = false; strip.offset = target }
+        stripDirty = true; ask()
+    }
+
+    /** the user is handling the strip (or just did): it does not follow the dance meanwhile */
+    private fun stripBusy(): Boolean = stripDown || gliding || abs(flingV) > 0.02 || nowMs() - stripTouched < 2500
+
+    override fun stripFollow(k: Int) {
+        if (stripBusy() || strip.width <= 0) return
+        val target = strip.targetFor(k)
+        if (abs(target - strip.offset) > 0.5) { strip.offset += (target - strip.offset) * StripPainter.FOLLOW; stripDirty = true }
+    }
+
+    override fun bars(shown: Boolean) {
+        if (shown) root.classList.add("bars") else root.classList.remove("bars")
+        if (!shown) closeMenu()
+        picture.setInsets(if (shown) TOP_BAR else 0.0, if (shown) STRIP else 0.0, nowMs())
+        dirty = true; ask()
+    }
+
+    override fun buttons() {
+        val playing = floor.playing
+        (playBtn.firstChild as HTMLElement).setAttribute("src", if (playing) "icons/pause.svg" else "icons/play.svg")
+        playBtn.title = if (playing) Texts.PAUSE else Texts.PLAY
+        playBtn.setAttribute("aria-label", playBtn.title)
+        (muteBtn.firstChild as HTMLElement).setAttribute("src", if (floor.muted) "icons/volume-off.svg" else "icons/volume-2.svg")
+        muteBtn.title = if (floor.muted) Texts.UNMUTE else Texts.MUTE
+        muteBtn.setAttribute("aria-label", muteBtn.title)
+        rateBtn.textContent = floor.tempoLabel()
+        rateBtn.add(el("small", "", "BPM"))
+        songLabel.textContent = floor.songLabel()
+        ask()
+    }
+
+    override fun message(text: String) {
+        toastEl?.remove()
+        val t = el("div", "toast", text)
+        toastEl = t
+        root.add(t)
+        window.setTimeout({ if (toastEl === t) { t.remove(); toastEl = null } }, 3500)
+    }
+
+    // ------------------------------------------------------------------ the tempo and song menus
+
+    private fun closeMenu() { menuEl?.remove(); menuEl = null }
+
+    private fun menu(anchor: HTMLElement, choices: List<DanceFloor.Choice>, pick: (Int) -> Unit) {
+        val open = menuEl != null && menuEl?.getAttribute("data-of") == anchor.className
+        closeMenu()
+        if (open || choices.isEmpty()) return
+        val m = el("div", "menu")
+        m.setAttribute("data-of", anchor.className)
+        m.style.left = "${anchor.offsetLeft}px"
+        for ((i, c) in choices.withIndex()) m.add(el("button", if (c.checked) "on" else "", c.label) { onclick = { it.stopPropagation(); closeMenu(); pick(i); null } })
+        root.add(m)
+        menuEl = m
+    }
+}

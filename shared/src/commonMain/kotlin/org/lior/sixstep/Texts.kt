@@ -50,6 +50,7 @@ object Texts {
     // the heart page (the user's own words, 2026-10-28, with the spelling put right)
     const val HEART_NOTE = "Hi, I'm Lior. I made this app for the community, with the intent to help. Nothing would make me happier than getting a genuine, thoughtful email about how someone used and appreciates this app.\n\nPlease describe with complete genuineness and honesty what about this app you liked, and if it made you feel a connection with me, its creator."
     const val EMAIL_ME = "Email me"
+    const val EMAIL = "lior.2pi+6step@gmail.com"   // the app's own address at the user's mailbox (user 2026-10-29)
     const val CLOSE = "Close"
 
     // settings
