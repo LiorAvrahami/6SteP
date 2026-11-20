@@ -7,6 +7,8 @@ It cannot compile Kotlin. It catches the mistakes that are easy to make by hand:
 - a getString(R.string.x, ...) whose number of arguments differs from the placeholders of the string;
 - an activity in the manifest without its class, a custom view in a layout without its class;
 - names that must not come back (the old activities, ids, helpers);
+- a class in the app with the name of a class in the shared engine (shared/): both are in the package org.lior.sixstep,
+  and a release build refuses two classes of one name (a debug build lets it pass, and then one of them wins);
 - brackets that do not balance in a Kotlin file (outside strings and comments).
 Run: python tools/check_app.py   (exit code 1 when something is wrong)
 """
@@ -163,6 +165,21 @@ def main():
                 for el in ET.parse(os.path.join(RES, d, f)).iter():
                     if el.tag.startswith('org.lior.sixstep.') and el.tag.split('.')[-1] not in classes:
                         bad('res/%s/%s: no class %s' % (d, f, el.tag))
+
+    shared_dir = os.path.join(ROOT, '..', '..', '..', 'shared', 'src', 'commonMain', 'kotlin', 'org', 'lior', 'sixstep')
+    if os.path.isdir(shared_dir):
+        top = r'^(?:(?:public|internal|data|open|abstract|sealed|enum|annotation|value|fun) )*(?:class|object|interface) (\w+)'
+        shared = {}
+        for f in sorted(os.listdir(shared_dir)):
+            if f.endswith('.kt'):
+                for name in re.findall(top, strip_code(open(os.path.join(shared_dir, f), encoding='utf-8').read()), re.M):
+                    shared[name] = f
+                shared[os.path.splitext(f)[0] + 'Kt'] = f   # the class a file's own functions go into
+        for f, src in sources.items():
+            names = re.findall(top, strip_code(src), re.M) + [os.path.splitext(f)[0] + 'Kt']
+            for name in names:
+                if name in shared:
+                    bad('%s: %s is also in the shared engine (shared/.../%s): one of the two has to go or be renamed' % (f, name, shared[name]))
 
     manifest = ET.parse(os.path.join(ROOT, 'AndroidManifest.xml')).getroot()
     for el in manifest.iter('activity'):

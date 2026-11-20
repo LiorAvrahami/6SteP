@@ -21,30 +21,16 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sin
 
-/** A step's arrow, drawn at a stop once the feet are there: the foot's way from where it stood, through the anchors of
- *  its path (if it has any), to where it landed. The headings keep their winding, so `to.h - from.h` is the turn the
- *  foot makes, clockwise when positive. */
-data class Arrow(val dancer: Char, val from: Placement, val to: Placement, val via: List<Pair<Double, Double>> = emptyList())
-
-/** Everything the floor shows at one instant. */
-class Scene(
-    val feet: Map<String, Placement>,
-    val weights: Map<Char, Map<Char, Double>>,
-    val title: String = "",
-    val count: String = "",
-    val arrows: List<Arrow> = emptyList(),
-    val banner: String? = null,
-    val titleColor: Int? = null
-)
-
-fun withAlpha(color: Int, alpha: Double): Int = (color and 0x00FFFFFF) or ((alpha.coerceIn(0.0, 1.0) * 255).toInt() shl 24)
+// Arrow, Scene and withAlpha are the shared engine's (shared/.../Floor.kt, Draw.kt): one definition for both fronts.
+// The painter below is still the Android app's own drawing, under its own name, until the app draws through the shared
+// FeetPainter (TODO.md): two classes of one name in one package cannot both go into an app.
 
 /** The dancers' feet seen from above, through a camera: the world point (cx, cy) in cm is drawn at the screen point
  *  (ox, oy), `scale` px per cm. Shoes are dancing-shoe soles (the dancer's colour with the weight as its opacity, over a
  *  grey silhouette; the pointed toe shows the heading), a stop's dashed step arrows along the feet's paths with
  *  their turn marks, the 50 cm grid.
  *  The one drawing of the dancers: the dance floor, the strips of step pictures and the launcher's little floor all use it. */
-class FeetPainter(ctx: Context) {
+class PhoneFeetPainter(ctx: Context) {
     companion object {
         const val GRID = 50.0
         const val TURN_MARK = 90.0        // degrees: a step that turns its foot by more gets a turn mark (user 2026-11-16)
@@ -312,7 +298,7 @@ class FeetPainter(ctx: Context) {
     }
 }
 
-/** The dance floor from above: the feet (FeetPainter), the title at the top left, the count at the top right, and the
+/** The dance floor from above: the feet (PhoneFeetPainter), the title at the top left, the count at the top right, and the
  *  annotation banner at the top (the dark box, user 2026-10-26).
  *
  *  The camera (user 2026-10-19): the feet of a couple standing side by side fill about half the screen width; when the
@@ -326,7 +312,7 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
         const val BOX_MARGIN = 16.0      // cm around the foot centres for the silhouettes and arrows
         const val CAMERA_TAU = 0.225     // s: how fast the camera glides after the couple (user 2026-10-19: twice as fast as 0.45)
     }
-    private val painter = FeetPainter(context)
+    private val painter = PhoneFeetPainter(context)
     private val floorColor = context.getColor(R.color.floor)
     private val text = Paint(Paint.ANTI_ALIAS_FLAG).apply { typeface = ResourcesCompat.getFont(context, R.font.inter_bold) }
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.FILL }
@@ -428,13 +414,13 @@ class FloorView @JvmOverloads constructor(context: Context, attrs: AttributeSet?
     }
 
     /** the floor between the bars as the camera shows it once it has settled */
-    private fun sight(): FeetPainter.Sight {
+    private fun sight(): PhoneFeetPainter.Sight {
         val ahead = autoCamera && !targetCx.isNaN() && targetScale > 0
         val sc = if (ahead) targetScale else scale
         val x = if (ahead) targetCx else cx
         val y = if (ahead) targetCy else cy
         val my = midY()
-        return FeetPainter.Sight(x - width / 2.0 / sc, y - (height - insetBottom - my) / sc, x + width / 2.0 / sc, y + (my - insetTop) / sc, sc)
+        return PhoneFeetPainter.Sight(x - width / 2.0 / sc, y - (height - insetBottom - my) / sc, x + width / 2.0 / sc, y + (my - insetTop) / sc, sc)
     }
 
     private fun labels(c: Canvas, s: Scene) {

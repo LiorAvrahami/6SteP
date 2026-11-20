@@ -1,7 +1,10 @@
 name: check
 
-# A build of a working branch, to see that everything compiles before it goes to main: the shared engine's tests, the
-# Android app (debug) and the web front. It publishes nothing; the release build is build.yml, on main.
+# A build of a working branch, to see that everything builds before it goes to main: the shared engine's tests, the
+# Android app and the web front, with the very command of the release build (build.yml, on main). The release variant on
+# purpose: only it merges all classes into one, and so only it fails when the app and the shared engine both have a
+# class of the same name (2026-11-20: a debug build passed here and the release build on main then failed). It
+# publishes nothing.
 on:
   push:
     branches: ['claude/**']
@@ -44,4 +47,4 @@ jobs:
           gradle-version: "8.7"
 
       - name: The engine's tests, the Android app and the web front
-        run: gradle :shared:jvmTest assembleDebug :web:jsBrowserDistribution --no-daemon --stacktrace
+        run: gradle :shared:jvmTest assembleRelease :web:jsBrowserDistribution --no-daemon --stacktrace

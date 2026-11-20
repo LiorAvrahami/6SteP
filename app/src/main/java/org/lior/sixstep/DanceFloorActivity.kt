@@ -257,7 +257,7 @@ class DanceFloorActivity : AppCompatActivity() {
 
     /** a stop at rest: the feet and their weights at its settled instant, and a dashed arrow for every foot that
      *  landed at the stop, from where it was and along the path it took (both dancers at once); the floor adds a small
-     *  round arrow beside a step that turns its foot by more than a quarter turn (FeetPainter.arrows) */
+     *  round arrow beside a step that turns its foot by more than a quarter turn (PhoneFeetPainter.arrows) */
     private fun stopScene(t: Timeline, b: Double, banner: String?): Scene {
         val arrows = ArrayList<Arrow>()
         for (d in listOf('L', 'F')) for (f in listOf('L', 'R')) {
@@ -269,7 +269,7 @@ class DanceFloorActivity : AppCompatActivity() {
                     val prev = track.landings[i - 1].p
                     // a foot that moved, went round by the anchors of its path, or turned a lot on the spot
                     val moved = abs(prev.x - cur.p.x) > 0.5 || abs(prev.y - cur.p.y) > 0.5
-                    if (moved || cur.via.isNotEmpty() || abs(cur.p.h - prev.h) > FeetPainter.TURN_MARK) arrows.add(Arrow(d, prev, cur.p, cur.via))
+                    if (moved || cur.via.isNotEmpty() || abs(cur.p.h - prev.h) > PhoneFeetPainter.TURN_MARK) arrows.add(Arrow(d, prev, cur.p, cur.via))
                 }
             }
         }

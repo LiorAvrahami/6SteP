@@ -51,7 +51,7 @@ class StepStrip @JvmOverloads constructor(context: Context, attrs: AttributeSet?
     var onTap: ((Int) -> Unit)? = null
     var onDragStart: (() -> Unit)? = null
 
-    private val painter = FeetPainter(context)
+    private val painter = PhoneFeetPainter(context)
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val label = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
         typeface = ResourcesCompat.getFont(context, R.font.inter_semibold); textSize = 9.5f * d; color = Color.rgb(110, 110, 110)
