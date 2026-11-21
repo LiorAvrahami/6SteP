@@ -1,5 +1,6 @@
 package org.lior.sixstep.web
 
+import kotlinx.browser.document
 import kotlinx.browser.window
 import org.khronos.webgl.ArrayBuffer
 import org.lior.sixstep.BeatGrid
@@ -14,6 +15,7 @@ import org.lior.sixstep.OnsetCurve
 import org.lior.sixstep.Texts
 import org.lior.sixstep.Track
 import org.lior.sixstep.TrackVariant
+import org.w3c.dom.HTMLAudioElement
 import kotlin.math.max
 import kotlin.math.min
 
@@ -290,13 +292,17 @@ class WebAssets {
  *  that is being heard (the clock less the delay of the sound's way out).
  *
  *  A song that is not on the device yet is fetched and unpacked first: `loading` is true meanwhile, and the dance waits
- *  on the step it starts from. Muted: a steady clock, no sound. The voice is the browser's own. */
+ *  on the step it starts from. Muted: a steady clock, no sound. The voice is Google's, as in the Android app (see
+ *  "the voice" below), and the browser's own when Google does not answer. */
 class WebPlayer(private val assets: WebAssets) : FloorPlayer {
     companion object {
         const val START_DELAY = 0.06     // s: a sound is scheduled this far ahead, so that it starts exactly on time
         const val AHEAD = 0.15           // s: the drums are scheduled this far ahead
         const val TICK_MS = 25
         const val KEEP = 2               // unpacked songs kept in memory (about 60 MB each)
+        const val VOICE_WAIT_MS = 1200   // a phrase's clip that has not started by then is left: the browser's own voice reads it (as the app's Speaker)
+        const val CLIP_VOLUME = 0.8      // the clips peak 3 dB under full scale: with the music ducked, music plus voice stays under it (as the app's)
+        const val VOICE_URL = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q="   // the address the Android app's Speaker asks
     }
 
     private val ctx = AudioContext()
@@ -595,28 +601,97 @@ class WebPlayer(private val assets: WebAssets) : FloorPlayer {
 
     // ------------------------------------------------------------------ the voice
 
-    override fun prefetch(texts: Collection<String>) {}   // the browser's voice needs nothing made ready
+    // Annotations are read by the voice the Android app uses (user 2026-11-21: "i think its better that you use the
+    // Google api for the voice"): Google Translate's speech address gives a short clip for a phrase. Every phrase has
+    // an audio element of its own, which fetches its clip ahead (prefetch: when a composition opens) and plays it when
+    // its time comes. A clip that has not started VOICE_WAIT_MS after it was asked for (no connection, Google says
+    // no, a browser that lets no sound start by itself) is left, and the browser's own voice reads the phrase, as the
+    // phone's own voice does in the app. The page tells Google nothing of where the request comes from (index.html:
+    // the referrer policy): a request that names another site is believed to be refused.
+    private val clips = HashMap<String, HTMLAudioElement>()   // by the phrase as it is spoken
+    private var voice: HTMLAudioElement? = null               // the clip that speaks, or is about to
+
+    private fun clip(phrase: String): HTMLAudioElement = clips.getOrPut(phrase) {
+        (document.createElement("audio") as HTMLAudioElement).also { a ->
+            a.preload = "auto"
+            a.volume = CLIP_VOLUME
+            a.src = VOICE_URL + (window.asDynamic().encodeURIComponent(phrase) as String)
+        }
+    }
+
+    override fun prefetch(texts: Collection<String>) {
+        if (muted || !speakOn) return
+        for (t in texts) { val phrase = Texts.spoken(t); if (phrase.isNotBlank()) clip(phrase) }
+    }
 
     override fun speak(text: String) {
         if (muted || !speakOn || !running || text.isBlank()) return
+        val phrase = Texts.spoken(text)
+        silence()
+        val gen = speakGen
+        val a = clip(phrase)
+        var decided = false   // the clip has started, or the phrase was handed to the browser's own voice
+        // the clip will not do: `broken` when it cannot be had at all (it is fetched afresh the next time)
+        fun leave(broken: Boolean) {
+            if (decided) return
+            decided = true
+            if (broken) clips.remove(phrase)
+            try { a.pause() } catch (e: Throwable) {}
+            if (voice === a) voice = null
+            if (gen == speakGen) browserVoice(phrase, gen)
+        }
+        if (a.error != null) { leave(true); return }   // its fetch failed while it waited for its turn
+        val d: dynamic = a
+        d.onplaying = {
+            if (!decided) {
+                decided = true
+                if (gen == speakGen) {
+                    duck(true); told(phrase, "google")
+                    // the music is back at the latest when the clip should be over, whatever becomes of it
+                    val ms = (a.duration.takeIf { it.isFinite() && it > 0 } ?: (phrase.length * 0.09 + 1.5)) * 1000 + 600
+                    window.setTimeout({ if (gen == speakGen) { duck(false) } }, ms.toInt())
+                } else try { a.pause() } catch (e: Throwable) {}
+            }
+        }
+        d.onended = { if (gen == speakGen && voice === a) { voice = null; duck(false) } }
+        d.onerror = { leave(true) }
+        voice = a
+        try {
+            if (a.currentTime > 0.0) a.currentTime = 0.0
+            val p: dynamic = a.play()
+            if (p != null && p != undefined && jsTypeOf(p.then) == "function") p.then({ _: dynamic -> }, { _: dynamic -> leave(a.error != null) })
+        } catch (e: Throwable) { leave(true); return }
+        window.setTimeout({ leave(a.error != null) }, VOICE_WAIT_MS)
+    }
+
+    /** the browser's own voice, the fallback */
+    private fun browserVoice(phrase: String, gen: Int) {
         val synth: dynamic = window.asDynamic().speechSynthesis
-        if (synth == null || synth == undefined) return
-        val gen = ++speakGen
+        if (synth == null || synth == undefined) { told(phrase, "none"); return }
         try {
             synth.cancel()
             val u: dynamic = js("new SpeechSynthesisUtterance()")
-            u.text = Texts.spoken(text); u.lang = "en-US"
+            u.text = phrase; u.lang = "en-US"
             u.onstart = { if (gen == speakGen) duck(true) }
             u.onend = { if (gen == speakGen) duck(false) }
             u.onerror = { if (gen == speakGen) duck(false) }
             synth.speak(u)
+            told(phrase, "browser")
             // the music is back at the latest after about 15 characters a second plus a margin, whatever becomes of the phrase
-            window.setTimeout({ if (gen == speakGen) duck(false) }, text.length * 90 + 2500)
+            window.setTimeout({ if (gen == speakGen) duck(false) }, phrase.length * 90 + 2500)
         } catch (e: Throwable) { duck(false) }
+    }
+
+    /** which voice read the last phrase, for whoever tests the page from outside (window.sixstepVoice) */
+    private fun told(phrase: String, how: String) {
+        val o: dynamic = js("({})")
+        o.phrase = phrase; o.how = how; o.count = (window.asDynamic().sixstepVoice?.count ?: 0) + 1
+        window.asDynamic().sixstepVoice = o
     }
 
     private fun silence() {
         speakGen++
+        voice?.let { try { it.pause() } catch (e: Throwable) {} }; voice = null
         try { val synth: dynamic = window.asDynamic().speechSynthesis; if (synth != null && synth != undefined) synth.cancel() } catch (e: Throwable) {}
     }
 

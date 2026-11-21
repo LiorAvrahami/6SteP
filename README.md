@@ -56,11 +56,10 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   2026-11-17; before, a button chose between a "flow" and a "schema" mode).
   Swipe down: the bars; swipe up: they go. A tap on the floor plays (the bars go), and a tap while it plays pauses, at
   once: every tap is one, there is no double tap. A swipe while it plays jumps to the next part, or back to the start
-  of this one (the previous one in its first 2 s). In a composition the dancers get to the part by a lead-in: two rock
-  triple triples (one where only that much dance comes before the part) on the spot where the part starts, in the
-  position it starts from, side by side or face to face, flowing into the part's first step; the title says
-  what is danced and where it leads ("rock step — lead-in to send out and bring back"). A switch on the settings page
-  turns the lead-in off.
+  of this one (the previous one in its first 2 s). In a composition the dancers get to the part by a lead-in of four
+  beats: they stand where the part starts, no foot moving, and shift their weight from leg to leg in the rhythm of
+  two triple steps; then the part begins. The title says where it leads ("triple step — lead-in to send out and
+  bring back"). A switch on the settings page turns the lead-in off.
   Top bar: play/pause, the tempo (the song's tempo variants), the song ("Play all": the songs in their stored order,
   round and round, which is what plays unless something else is chosen; one song over and over; or "Shuffle play"), mute
   (music, drums and voice), back. Every step has one place in the music (the plan
@@ -69,7 +68,9 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   pointing at where they start; a tap on a step goes there. Compositions play once to the end; elements and building
   blocks loop. While a composition plays, the name of each part comes up 2 beats before the part starts and goes away
   just as it starts; the voice reads it with how many times it repeats, the screen writes only the name. After a
-  swipe the part's name comes up for the last 2 beats of the lead-in, written and not read aloud. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
+  swipe the part's name comes up for the last 2 beats of the lead-in, written and not read aloud. The voice is
+  Google Translate's, fetched as a short clip for every phrase, in the app and on the web page alike; the phone's or
+  the browser's own voice reads when Google does not answer. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
   music dips to 60 percent under a spoken annotation and comes back right after it.
 - **Heart**: upright, as the user drew it (the rest of the app is sideways): the note and the email button. The
   draft's two other buttons, the website and "Buy me a Beer", are built and hidden for now (`Texts.HEART_MORE`).

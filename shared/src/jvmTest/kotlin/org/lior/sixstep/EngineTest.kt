@@ -49,6 +49,53 @@ class EngineTest {
         }
     }
 
+    /** 2026-11-21: the "underarm bringback" became a version of the follower underarm pass (from face to face to side by
+     *  side). The shipped compositions name it so; a composition that a phone kept from the time it had an editor may
+     *  still say "underarm bringback", and must be danced as before. */
+    @Test fun theUnderarmBringbackIsAFollowerUnderarmPassNow() {
+        assertTrue(data.names.none { it == "underarm bringback" }, "the old name is gone from the elements")
+        val back = data.candidates("follower underarm pass", "facing", 'L')
+        assertEquals(listOf("facing", "side"), back.map { it.endState }, "from face to face: the pass that stays face to face first, then the one back to side by side")
+        // an entry under the old name: the new element, ending side by side; quiet and repeated as it was written
+        val e = Entry.parse("(underarm bringback x2)")
+        assertEquals("follower underarm pass", e.name); assertEquals("side", e.end); assertEquals(2, e.times); assertTrue(e.quiet)
+        assertEquals("(follower underarm pass x2 → side)", e.text())
+        // a phone's own copy of the exercise, edited there long ago and still written the old way: the same dance
+        val shipped = File(assets, "compositions.json").readText()
+        assertTrue(shipped.contains("follower underarm pass → side") && !shipped.contains("(underarm bringback)"), "the shipped file names the pass")
+        val old = shipped.replace("(follower underarm pass → side)", "(underarm bringback)").replace("\"follower underarm pass → side\"", "\"underarm bringback\"")
+            .replace("\"repeat\": 1,", "\"repeat\": 1, \"edited\": true,")
+        assertTrue(old.contains("(underarm bringback)") && old.contains("\"underarm bringback\""))
+        val kept = CompositionStore(shipped, old)
+        for (c in store.compositions) {
+            val mine = kept.find(c.name) ?: fail("the phone's copy of ${c.name} is gone")
+            assertTrue(mine.elements.any { it.contains("underarm bringback") } || c.elements.none { it.contains("→ side") }, "${c.name}: the phone's copy is the one in force")
+            val a = Composer.compose(data, store.sequence(c), c.startState, swing)
+            val b = Composer.compose(data, kept.sequence(mine), mine.startState, swing)
+            assertTrue(b.errors.isEmpty(), "${c.name} written the old way: ${b.errors}")
+            assertEquals(a.steps.size, b.steps.size, c.name)
+            for (i in a.steps.indices) assertTrue(a.steps[i] == b.steps[i], "${c.name}: step $i differs: ${a.steps[i]} / ${b.steps[i]}")
+            assertEquals(a.elements.map { it.name }, b.elements.map { it.name })
+        }
+    }
+
+    /** 2026-11-21: "Rock Tripple Tripple facing" is a building block (it was listed with the compositions) */
+    @Test fun theFacingRockTripleTripleIsABuildingBlock() {
+        val name = "Rock Tripple Tripple facing"
+        assertTrue(store.find(name) == null, "not a composition any more")
+        val p = Piece.find(data, store, Piece.BLOCK, name) ?: fail("no building block $name")
+        val r = p.compose(data, swing)
+        assertTrue(r.errors.isEmpty(), "$name: ${r.errors}")
+        assertEquals("facing", r.startState); assertEquals("facing", r.endState)
+        assertEquals(listOf("rock step", "triple step", "triple step"), r.elements.map { it.name })
+        val ex = ExploreModel(data, store)
+        assertTrue(ex.blocks.any { it.name == name }, "it is listed with the building blocks: ${ex.blocks.map { it.name }}")
+        assertTrue(ex.compositions.none { it.name == name })
+        assertTrue(ex.blocks.none { it.name == "underarm bringback" }, "and the underarm bringback has no row of its own")
+        val pass = ex.blocks.firstOrNull { it.name == "follower underarm pass" } ?: fail("no row for the follower underarm pass among the building blocks")
+        assertTrue(pass.versions.any { it.startState == "facing" && it.endState == "side" }, "the pass back to side by side is one of its versions: ${pass.versions.map { it.facing }}")
+    }
+
     @Test fun theTracksAndTheirGridsRead() {
         val tracks = Track.parseAll(File(assets, "tracks.json").readText())
         assertTrue(tracks.isNotEmpty(), "no tracks")

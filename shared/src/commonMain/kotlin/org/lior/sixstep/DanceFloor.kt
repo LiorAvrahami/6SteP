@@ -87,10 +87,11 @@ interface FloorHost {
  *  a step goes there. While a composition plays, each annotation (a "say:" text, the name of an entry) comes up at the
  *  top, and is read aloud, 2 beats before its element starts, and goes away just as the element starts. The voice says
  *  how many times an entry repeats; the screen never does.
- *  A swipe to a part of a composition that plays does not drop the dancers into the part: they first dance two rock
- *  triple triples on the spot where the part starts, in the position it starts from, and go from them into the part
- *  (user 2026-11-19: "if I go back or forwards, like during play ... then start by adding twice rock triple triple in
- *  place"; see LeadIn). The part's name comes up 2 beats before it, as always, and is not read aloud after a swipe.
+ *  A swipe to a part of a composition that plays does not drop the dancers into the part: for four beats they stand
+ *  where the part starts and shift their weight in the rhythm of two triple steps, and then the part begins (user
+ *  2026-11-21: "just 2 triple steps ... completely in place ... more like a pause, and it's connected to the beat";
+ *  see LeadIn; a switch on the settings page turns it off). The part's name comes up 2 beats before it, as always, and
+ *  is not read aloud after a swipe.
  *  Compositions play once to the end; elements and building blocks loop (chained so that the last beat flows into the
  *  first when they close on themselves, otherwise from the start position again after two beats). */
 class DanceFloor(
@@ -110,8 +111,7 @@ class DanceFloor(
         // slow, which was mostly confusing)
         const val STEP_BEATS = 1.0 / 3.0
         const val UPLOAD = "upload"           // the song menu's line that adds a song: not a song
-        const val LEAD_IN_TIMES = 2           // rock triple triples before a part that a swipe went to (user 2026-11-19: "twice")
-        const val ROCK = "rock step"          // a rock triple triple: this, then Composer.FILLER (a triple step) twice
+        const val LEAD_BEATS = 4.0            // the lead-in before a part that a swipe went to: two triple steps on the spot (user 2026-11-21)
     }
 
     /** a line of the tempo or the song menu. `key`: what the line stands for (a song menu's); a line that is not
@@ -154,14 +154,27 @@ class DanceFloor(
     private var released = false
     private var swing = Piece.SWING
 
-    /** The dancers' way into a part that a swipe went to while a composition plays: `beats` beats of rock step, triple
-     *  step, triple step (LEAD_IN_TIMES times; once when the part has only that much dance before it), danced on the
-     *  spot where the part starts, in the position it starts from, flowing into the part's first step.
-     *  `tl` is that little dance with the part's first element behind it, composed on its own from the part's start
-     *  position; `frame` moves and turns it onto the place where the composition has the part, so that the picture
-     *  goes from it into the composition without a jump (the two have the part's first element in common: its steps
-     *  land on the same spots). The clock and the music simply run through the `beats` beats before the part. */
-    private class LeadIn(val tl: Timeline, val frame: Frame, val beats: Double)
+    /** The dancers' way into a part that a swipe went to while a composition plays (user 2026-11-21, in place of the
+     *  rock triple triples of the same morning, which had a bug and did not fit how the dance is built: "the lead in is
+     *  going to be just 2 triple steps ... completely in place. The legs don't need to move at all. So wherever the
+     *  legs are at the beginning of the element that we just swiped to, in place ... You just change the weight from
+     *  one leg to the other ... It's more like a pause, and it's connected to the beat").
+     *  For LEAD_BEATS beats every foot stays where the composition has it just before the part, and each dancer's
+     *  weight goes from one leg to the other in the rhythm of two triple steps (3 & 4, 5 & 6), beginning on the foot
+     *  that is free there, so that the same foot is free again when the part starts.
+     *  `tl` is that: the six weight changes of each dancer written as steps that land where the foot already stands,
+     *  on the clock's own beats and at the composition's own places (so nothing has to be moved or turned), with the
+     *  part's first element behind them, so that the foot of the part's first step is seen leaving for it. Nothing is
+     *  composed: no element is put into the composition. The clock and the music simply run through the four beats
+     *  before the part. */
+    private class LeadIn(val tl: Timeline)
+
+    /** the weight changes of two triple steps: the count as it is written, its beat within the four (`and`: on the
+     *  swung "&" of that beat), whether it goes onto the foot that is free when the lead-in begins, and which of the
+     *  two triple steps it belongs to */
+    private class Shift(val count: String, val beat: Int, val and: Boolean, val onFree: Boolean, val triple: Int)
+    private val shifts = listOf(Shift("3", 0, false, true, 0), Shift("3&", 0, true, false, 0), Shift("4", 1, false, true, 0),
+                                Shift("5", 2, false, false, 1), Shift("5&", 2, true, true, 1), Shift("6", 3, false, false, 1))
 
     /** a swipe's part being approached: part `part` (called `name` on the screen) starts at clock beat `end`; until then
      *  the dancers dance `lead`, or, where there is none (see leadIn), the composition's own last beats before the part */
@@ -580,22 +593,22 @@ class DanceFloor(
     }
 
     /** Go to part `i` of the composition that plays (-1: its very beginning). The dancers get there by the part's
-     *  lead-in (LeadIn): the clock, and the music with it, starts as many beats before the part as the lead-in is long.
-     *  A part that cannot have one (too near the beginning, or starting from a position there is no rock triple triple
-     *  for) is entered as before 2026-11-21: ANNOUNCE_LEAD beats before it, in the composition's own last steps before
-     *  it. Either way the part's annotation is on the screen for the last ANNOUNCE_LEAD beats and gone when the part
-     *  starts (user 2026-11-16), and is not read aloud (2026-10-28: the music does not dip after a swipe). */
+     *  lead-in (LeadIn): the clock, and the music with it, starts LEAD_BEATS beats before the part. A part with less
+     *  than that before it (the music has nothing before the beginning) is entered as before 2026-11-21: ANNOUNCE_LEAD
+     *  beats before it, in the composition's own last steps before it. Either way the part's annotation is on the
+     *  screen for the last ANNOUNCE_LEAD beats and gone when the part starts (user 2026-11-16), and is not read aloud
+     *  (2026-10-28: the music does not dip after a swipe). */
     private fun jumpTo(i: Int) {
         val start = if (i < 0) 0.0 else parts[i]
         val lead = if (i < 0) null else leadIn(i)
-        val target = when { i < 0 -> 0.0; lead != null -> start - lead.beats; else -> start - jumpLead }
+        val target = when { i < 0 -> 0.0; lead != null -> start - LEAD_BEATS; else -> start - jumpLead }
         pb.play(target)   // from scratch, as any start
         if (!pb.playing) { standAt(if (lead != null) start else target); return }   // the sound is busy (a call)
         // what the part is called, for the title of its lead-in: the words of its annotation, as the bottom bar writes them
         val name = cues.firstOrNull { kotlin.math.abs(it.first - start) < 1e-6 }?.let { phrases(it.second).joinToString(" · ") } ?: ""
         approach = if (i < 0) null else Approach(i, start, lead, name)
         hold = Double.NEGATIVE_INFINITY; banner = null
-        // the annotations of what the rock triple triples stand in for are not shown: the next one is the part's own
+        // the annotations of what the lead-in stands in for are not shown: the next one is the part's own
         lastCue = cues.indexOfLast { it.first < (if (lead != null) start else target) - 0.01 }
         silentUntil = (if (i < 0) jumpLead else start) + 0.05   // the part the swipe went to is written, not read aloud
     }
@@ -612,61 +625,41 @@ class DanceFloor(
     private fun makeLeadIn(i: Int): LeadIn? {
         val main = playTl ?: return null
         val start = parts[i]
+        val t0 = start - LEAD_BEATS
+        if (t0 < -1e-6) return null   // the music has nothing before the beginning
         val k = main.composed.elements.indexOfFirst { kotlin.math.abs(it.start - start) < 1e-6 }
         if (k < 0) return null
         val e = main.composed.elements[k]
-        // a rock triple triple that starts and ends in the part's start position, on the leader's free foot of that moment
-        fun item(name: String, end: String) = SeqItem(name, null, null, -1, false, name, end)
-        val rtt = listOf(item(ROCK, e.startState), item(Composer.FILLER, e.startState), item(Composer.FILLER, e.startState))
-        val one = Composer.compose(data, rtt, e.startState, swing, e.free)
-        if (one.errors.isNotEmpty() || one.length <= 0 || one.endState != e.startState || one.endFree != e.free) return null
-        // as many of them as there is dance before the part, LEAD_IN_TIMES at most: the music has nothing before the beginning
-        val times = minOf(LEAD_IN_TIMES, floor((start + 1e-6) / one.length).toInt())
-        if (times < 1) return null
-        val seq = ArrayList<SeqItem>()
-        repeat(times) { seq.addAll(rtt) }
-        seq.add(item(e.name, e.endState))   // the part's first element, the version the composition dances
-        val c = Composer.compose(data, seq, e.startState, swing, e.free)
-        if (c.errors.isNotEmpty()) return null
-        // where the composition has that element, against where this little dance has it: one move and one turn
-        val mine = c.steps.filter { it.element == seq.size - 1 }
-        val theirs = main.composed.steps.filter { it.element == k }
-        if (mine.isEmpty() || mine.size != theirs.size) return null
-        val h = theirs[0].heading - mine[0].heading
-        val turned = Frame(0.0, 0.0, h).apply(mine[0].x, mine[0].y, 0.0)
-        val frame = Frame(theirs[0].x - turned.x, theirs[0].y - turned.y, h)
-        for (n in mine.indices) {
-            val q = frame.apply(mine[n].x, mine[n].y, mine[n].heading)
-            if (kotlin.math.hypot(q.x - theirs[n].x, q.y - theirs[n].y) > 0.05) return null   // not the same steps: no lead-in
+        // where every foot stands just before the part: the place it last landed on
+        val stand = LinkedHashMap<String, Placement>()
+        for (d in listOf('L', 'F')) for (f in listOf('L', 'R')) stand["$d.$f"] = main.dancers[d]!!.tracks[f]!!.around(start - 1e-6).first.p
+        val hands = main.handsAt(start - 1e-6)
+        val steps = ArrayList<CStep>()
+        for (d in listOf('L', 'F')) {
+            // the foot that is free there: the one the dancer takes the first step of the part with
+            val free = main.composed.steps.firstOrNull { it.dancer == d && it.t >= start - 1e-6 }?.foot ?: return null
+            val other = if (free == 'L') 'R' else 'L'
+            for (w in shifts) {
+                val p = stand["$d.${if (w.onFree) free else other}"]!!
+                steps.add(CStep(t0 + w.beat + (if (w.and) swing else 0.0), w.count, d, if (w.onFree) free else other, p.x, p.y, p.h, w.triple, hands, true))
+            }
         }
-        // The dancers must end the lead-in standing exactly as the composition has them before the part (what was danced
-        // before it may have left a foot some centimetres from where a rock triple triple leaves it: up to 8.5 cm in
-        // the daily exercise). So each foot's last step of the lead-in lands where the composition has that foot: it
-        // travels there through the air as any step does, and nothing slides or jumps when the composition takes over.
-        val steps = c.steps.toMutableList()
-        for (d in listOf('L', 'F')) for (f in listOf('L', 'R')) {
-            val n = steps.indexOfLast { it.dancer == d && it.foot == f && it.element < seq.size - 1 }
-            if (n < 0) continue
-            val at = main.dancers[d]!!.tracks[f]!!.around(start - 1e-6).first.p
-            val local = Frame(0.0, 0.0, -frame.h).apply(at.x - frame.x, at.y - frame.y, 0.0)
-            var turn = (at.h - frame.h - steps[n].heading) % 360.0   // the shortest way round to the heading it has there
-            if (turn > 180.0) turn -= 360.0
-            if (turn < -180.0) turn += 360.0
-            steps[n] = steps[n].copy(x = local.x, y = local.y, heading = steps[n].heading + turn)
-        }
-        val fitted = Composed(steps, c.elements, c.start, c.startHands, c.startState, c.startFree, c.endState, c.endFree, c.length, c.errors)
-        return LeadIn(Timeline(fitted, swing), frame, times * one.length)
+        // the part's first element behind them, as the composition has it (the third element of this little timeline)
+        steps.addAll(main.composed.steps.filter { it.element == k }.map { it.copy(element = 2) })
+        steps.sortWith(compareBy({ it.t }, { it.dancer }))
+        val otherFree = if (e.free == 'L') 'R' else 'L'
+        fun triple(n: Int) = CElement(Composer.FILLER, t0 + 2.0 * n, 2, e.startState, e.startState, if (n == 0) e.free else otherFree,
+            if (n == 0) otherFree else e.free, true, null, null, -1, false, Composer.FILLER)
+        val composed = Composed(steps, listOf(triple(0), triple(1), e), stand, hands, e.startState, e.free, e.endState, e.endFree, start + e.beats, emptyList())
+        return LeadIn(Timeline(composed, swing))
     }
 
-    /** the picture while the dancers dance a part's lead-in, at clock beat b: no step of the piece is framed below, and
-     *  the title names the part from the first moment (the part's big annotation only comes for the last two beats, as
-     *  any annotation does, because it covers the dancers) */
+    /** the picture while the dancers stand through a part's lead-in, at clock beat b: no step of the piece is framed
+     *  below, and the title names the part from the first moment (the part's big annotation only comes for the last two
+     *  beats, as any annotation does, because it covers the dancers) */
     private fun leadScene(a: Approach, lead: LeadIn, b: Double): Scene {
-        val u = b - (a.end - lead.beats)   // the beat of the little dance
-        val el = lead.tl.elementAt(u)
-        val feet = LinkedHashMap<String, Placement>()
-        for ((key, p) in lead.tl.feetAt(u)) feet[key] = lead.frame.apply(p)
-        return Scene(feet, weightsAt(lead.tl, u), Texts.leadIn(el?.name ?: "", a.name), if (u < 0) "" else lead.tl.countLabel(u), emptyList(), banner, Colors.FILLER)
+        val el = lead.tl.elementAt(b)
+        return Scene(lead.tl.feetAt(b), weightsAt(lead.tl, b), Texts.leadIn(el?.name ?: Composer.FILLER, a.name), lead.tl.countLabel(b), emptyList(), banner, Colors.FILLER)
     }
 
     /** a composition's annotations, by the clock itself (so the first can come up during the count-in): each comes up

@@ -45,9 +45,9 @@ object Texts {
     const val START_POSITION = "start position"
     const val READY = "ready"
     const val FILLER_SUFFIX = " — triple step filler"
-    const val LEAD_IN_SUFFIX = " — lead-in"   // the rock triple triples before a part that a swipe went to
-    /** the floor's title during those rock triple triples: the element danced, and the part they lead to, so that the
-     *  screen says where a swipe went from its first moment ("rock step — lead-in to send out and bring back") */
+    const val LEAD_IN_SUFFIX = " — lead-in"   // the two triple steps on the spot before a part that a swipe went to
+    /** the floor's title during those triple steps: what is danced, and the part it leads to, so that the screen says
+     *  where a swipe went from its first moment ("triple step — lead-in to send out and bring back") */
     fun leadIn(element: String, part: String): String = element + LEAD_IN_SUFFIX + (if (part.isEmpty()) "" else " to $part")
     const val DONE = "Done!"
     const val NOTHING_TO_SHOW = "nothing to show"
@@ -96,7 +96,7 @@ object Texts {
     const val SET_VOICE = "Read the annotations aloud"
     const val SET_MUTE_NOTE = "The mute button on the dance floor silences everything at once: the music, the drums and the voice."
     // the switch for the lead-in (user 2026-11-21: "make this feature toggleable in the settings"); its words are the maintainer's
-    const val SET_LEAD_IN = "After a swipe while playing: rock triple triples before the part"
+    const val SET_LEAD_IN = "After a swipe while playing: two triple steps in place before the part"
     fun about(version: String): String = "6SteP $version · font: Inter (SIL Open Font License) · icons: Lucide (ISC License)"
 
     private val LEAD = Regex("\\blead\\b", RegexOption.IGNORE_CASE)

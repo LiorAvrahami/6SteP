@@ -99,6 +99,17 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
   side), rock back cutoff (the user placed all 16 steps themselves), follower underarm pass (from side: she turns
   clockwise; from facing: anticlockwise as lurklurk's Changing Places, he follows her round from behind), lead underarm
   pass (facing), recapture underarm pass (facing to side; the user's name), circle (facing, 8 beats).
+  (That list is the handover's of 2026-10-19; the files in `dance/skeletons/elements/` are what exists now, 23 of
+  them.) **The recapture, later "underarm bringback", is since 2026-11-21 a version of the follower underarm pass:
+  from face to face to side by side** (the user: "change underarm bringback to be simply underarm pass from facing
+  to side to side"). Only its name changed (the file is `follower_underarm_pass__facing__L__side.json`, its steps
+  are as the user wrote them, its `order` 7 keeps it after the pass that stays face to face, which the composer
+  therefore still picks first); the entries that used it are written `follower underarm pass → side`, in
+  parentheses where they are quiet bridges; every composition dances the same steps as before (compared step by
+  step with `dance/model.py`: 1032 in the exercise, 376 in the quick recap). A composition that a phone kept from
+  the time it had an editor may still say "underarm bringback": `Entry.RENAMED` reads it as the pass back to side
+  by side (`EngineTest`). This was the maintainer's reading of the user's sentence and was put to them as a
+  question; if they meant new footwork, that is theirs to write in the editor.
 - **Rules** (checked by `check.py`, no exceptions beyond an explicit close hold): a weighted foot never moves or rotates;
   a dancer's feet never more than 70 cm apart; the two dancers' shoe outlines at least 4 cm apart (until 2026-10-19: 20 cm circles) and 20 cm body circles never overlap; hands
   in reach (65 cm, a guess); the end state reached. `check.py --storyboard` draws every skeleton to `dance/out/` and you
@@ -116,7 +127,10 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
   but never announced and are not swipe stops (since v10; the edit dialog has a "quiet" box). The daily routine is the
   composition named "3 minutes exercise" ("5 minutes exercise" until 2026-11-16; the app takes the first one with
   "exercise" in its name, and `CompositionStore.RENAMED` makes a copy a phone kept under the old name the same
-  composition); the user wants its bridges quiet and RTT never announced.
+  composition); the user wants its bridges quiet and RTT never announced. "Rock Tripple Tripple facing" (the user's,
+  2026-11-20: rock step and two triple steps that stay face to face) was listed with the compositions and is a
+  building block since 2026-11-21 ("Move rock triple triple facing from compositions to building blocks"): it is
+  in `sub_compositions` now, starts face to face, and loops when played.
 - **The daily exercise's philosophy** (the user, 2026-11-16; also in the composition's own notes): **as short as
   possible, with as many elements as possible packed into it.** It is not aimed at 5 minutes; it is aimed at a good
   amount of elements in the least time, about 3 minutes now. Its order serves that and is the user's: ordered well,
@@ -267,35 +281,41 @@ commit (there is no diff step any more: the editor's file is the only version). 
   stayed within 20 px), so two quick taps pause and play again. A tap does not close the bars by itself any more:
   playing closes them, and so does a swipe up. A swipe while playing jumps to the next part or back (the old player's
   2 s rule, `BACK_REPLAY_SECONDS`): a composition's entries, any other piece's elements.
-  **In a composition the dancers get to the part by a lead-in** (user 2026-11-19: "if I go back or forwards, like
-  during play, not when it's paused ... then start by adding twice rock triple triple in place"; asked for again on
-  2026-11-21; `jumpTo`, `makeLeadIn` and `leadScene` in `DanceFloor`, since v66). The clock, and the music with it,
-  starts 12 beats before the part, and for those beats the floor shows two rock triple triples (rock step, triple
-  step, triple step) danced on the spot where the part starts, in the position it starts from, side by side or face
-  to face (with the user's face-to-face rock step and triple steps of 2026-11-20), on the leader's free foot of that
-  moment. A part with only one rock triple triple's worth of dance before it (the exercise's first part, at beat 6)
-  gets one. A part with less than that before it, or one that starts where no rock step stays in the position
-  (reversed side by side; the leader's right foot free: none in the shipped compositions), is entered as before:
-  2 beats ahead, in the composition's own last steps. The lead-in is composed on its own from the part's start
-  position with the part's first element behind it, and then moved and turned onto the place where the composition
-  has that element (their steps must agree to 0.05 cm, or there is no lead-in). What was danced before a part may
-  have left a foot elsewhere than a rock triple triple leaves it (up to 8.5 cm in the daily exercise), so each
-  foot's last step of the lead-in lands where the composition has that foot, and nothing jumps at the hand-over
-  (`DanceFloorTest.aLeadInFlowsIntoItsPartWithoutAJump`: every part of the shipped compositions, 0.01 cm at most).
-  During the lead-in the title is the element's name, " — lead-in to " and the part's name (`Texts.leadIn`: "rock
-  step — lead-in to send out and bring back"; since v67, so that the screen says where a swipe went from its first
-  moment, as it did when a swipe landed 2 beats before the part) in the filler colour, no step is framed in the
+  **In a composition the dancers get to the part by a lead-in: two triple steps on the spot** (`jumpTo`,
+  `makeLeadIn` and `leadScene` in `DanceFloor`; this form since v69). The clock, and the music with it, starts 4
+  beats before the part (`LEAD_BEATS`). For those beats every foot stays where the composition has it just before
+  the part (the place each foot last landed on), and each dancer's weight goes from one leg to the other in the
+  rhythm of two triple steps (counted 3 & 4, 5 & 6), beginning on the foot that is free there (the one the dancer
+  takes the part's first step with), so that the same foot is free again when the part starts. The user's words
+  (2026-11-21): "the lead in is going to be just 2 triple steps ... completely in place. The legs don't need to move
+  at all. So wherever the legs are at the beginning of the element that we just swiped to, in place ... You just
+  change the weight from one leg to the other ... It's more like a pause, and it's connected to the beat." It is
+  built without the composer: the six weight changes of each dancer are written as steps that land where the foot
+  already stands, in a small `Timeline` on the clock's own beats and at the composition's own places, with the
+  part's first element behind them (so that the foot of the part's first step is seen leaving for it); nothing is
+  moved or turned, and every part with 4 beats of dance before it has one, whatever position it starts from
+  (`DanceFloorTest`: no foot moves during it, the weights alternate, and at the hand-over nothing jumps: 0.01 cm at
+  most over every part of the shipped compositions). A part nearer the beginning is entered as before v66: 2 beats
+  ahead, in the composition's own last steps.
+  *History, so that nobody builds it again:* v66 to v68 had two rock triple triples instead (the user's first idea,
+  2026-11-19: "start by adding twice rock triple triple in place"): composed on their own from the part's start
+  position, moved and turned onto the part's place, each foot's last step bent to where the composition has it. The
+  user tried it for an hour and wrote: "There's a bug in the lead in rock triple triple. but I guess this lead in
+  rock triple is probably too complicated the way the code is made now, so I have a better idea" (which bug, they
+  did not say; with their face-to-face triple steps the counts read 1, 1&, 2). It is gone.
+  During the lead-in the title is "triple step — lead-in to " and the part's name (`Texts.leadIn`; since v67, so
+  that the screen says where a swipe went from its first moment) in the filler colour, no step is framed in the
   bottom bar, and the part's big annotation comes up for the last 2 beats only, as any annotation does (it covers
-  the dancers), written and not read aloud; a swipe forward goes to the part after the one being approached, a swipe back to the one before it; a
-  pause stands on the part's first step. A tap on a step in the bottom bar goes straight there, without a lead-in
-  (the user, 2026-11-20). Elements and building blocks, which loop, jump as before (a guess: the user spoke of
-  compositions). **The lead-in can be switched off** (user, the same day, once they had it: "make this feature
-  toggleable in the settings so that it's possible to disable it"; v68): the first switch of the settings page,
-  "After a swipe while playing: rock triple triples before the part" (the maintainer's words), on unless switched
-  off (`lead_in` in the preferences; `FloorHost.leadIn`, which the floor asks at every swipe). Off, a swipe is what
-  it was before v66 (`skipStraight`, which is also what elements and building blocks always do): it lands 2 beats
-  before the part, in the composition's own last steps, with the part's name up at once. The switch is first on the
-  page because on a phone the page is a little longer than the screen. Top bar: play/pause, tempo (the 7 offsets
+  the dancers), written and not read aloud; a swipe forward goes to the part after the one being approached, a
+  swipe back to the one before it; a pause stands on the part's first step. A tap on a step in the bottom bar goes
+  straight there, without a lead-in (the user, 2026-11-20). Elements and building blocks, which loop, jump as before
+  (a guess: the user spoke of compositions). **The lead-in can be switched off** (user 2026-11-21: "make this
+  feature toggleable in the settings so that it's possible to disable it"; v68): the first switch of the settings
+  page, "After a swipe while playing: two triple steps in place before the part" (the maintainer's words), on unless
+  switched off (`lead_in` in the preferences; `FloorHost.leadIn`, which the floor asks at every swipe). Off, a swipe
+  is what it was before v66 (`skipStraight`, which is also what elements and building blocks always do): it lands 2
+  beats before the part, in the composition's own last steps, with the part's name up at once. The switch is first
+  on the page because on a phone the page is a little longer than the screen. Top bar: play/pause, tempo (the 7 offsets
   of the song's variants, the same offset for every song), song (the menu: "Play all" first, each song in the stored
   order, "Shuffle play" last; the button shows the song that plays), mute (music,
   drums and voice; a change of any of these while playing is a stop and a play from the same beat), back. (The edit button, which only
@@ -331,6 +351,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   download. Speech plays as media with headroom; the music dips to 60 percent under a phrase and is always restored
   (completion, error, stop, a watchdog). The player holds audio focus for the session with `setWillPauseWhenDucked(true)`
   and ignores "may duck" requests, so the system never dims the whole app; a real loss (a call) pauses the workout.
+  The web page reads with the same Google clips since v69, and with the browser's own voice when Google does not
+  answer (section 10, "The voice").
   This was the fix for "the music and the annotations both go dim sometimes" (2026-10-19); the diagnosis also named the
   phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
 - **Preferences** (`6step`): `lead_in`, `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on` (the settings page);
@@ -511,6 +533,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   (section 10), which is how the tap and the lead-in reached both fronts as one piece of code. The user had written
   that the single tap for play and the lead-in were "not addressed" in v61 to v65 (section 2, rule 10).
   v67: the lead-in's title names the part it leads to. v68: a switch on the settings page turns the lead-in off.
+  2026-11-21, a third round (v69), four points: the web page reads with Google's voice (section 10); the lead-in is
+  two triple steps on the spot instead of rock triple triples ("The dance floor" above); "Rock Tripple Tripple
+  facing" is a building block; the underarm bringback is a version of the follower underarm pass (section 3).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
@@ -655,7 +680,27 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   upright phone: the layout, taps, swipes, the strip, finger scrolling of the list and dragging a row (finger tests
   must start on an element that is on the screen: a first version of the test scrolled its target away and "found"
   two bugs that were not there). A real phone's turning could not be checked here; on the user's phone (2026-11-21) the page had the full screen and stayed upright, so it turned itself.
-- **How it was checked:** `tools/check_engine.py` (the Kotlin engine against the Python model: 3 compositions, 5 blocks,
+- **The voice** (user 2026-11-21: "i think its better that you use the Google api for the voice"; `WebPlayer` in
+  `Sound.kt`, since v69; until then the page read with the browser's own voice). The page reads the annotations
+  with the clips the Android app's `Speaker` plays: Google Translate's speech address (`VOICE_URL`), one short clip
+  for a phrase (after `Texts.spoken`, so "yo-yo" and "leed"). Every phrase has an audio element of its own:
+  `prefetch` (when a composition opens) makes them, so the clips are fetched ahead, each once, and `speak` plays the
+  phrase's element (at 0.8 of full volume, the music ducked from its `playing` to its `ended`, a timer bringing the
+  music back whatever happens). A clip that has not started 1.2 s after it was asked for (`VOICE_WAIT_MS`), or
+  whose fetch failed, is left, and the browser's own voice (`speechSynthesis`) reads the phrase, as the phone's own
+  voice does in the app. The page sends no referrer (`<meta name="referrer" content="no-referrer">` in
+  `index.html`): a request that names another site is believed to be refused there. This is not an API with a key
+  and a contract: it is the public address behind Google Translate's loudspeaker button, which may change or refuse
+  without notice, and that is what the fallback is for. An iPhone's browser lets an audio element start only from a
+  tap, so there the clips are expected to be refused and its own voice to read (not tried, and nothing was built
+  for it). `window.sixstepVoice` says which voice read the last phrase ("google", "browser"), for tests.
+  **How it was checked:** in the headless browser with Google's address answered by the test itself, three ways (a
+  clip; a refusal; no answer): the 11 phrases of the exercise fetched ahead, each once, without a referrer; the
+  first one read by the clip at beat 4; the browser's voice at once after a refusal, and 1.2 s late when nothing
+  answers; nothing asked of Google when reading aloud is off or the floor is muted. **The real address had not been
+  reached from the cloud session when v69 was released:** its network refuses `translate.google.com` (the proxy
+  answers 403), and the user was asked to allow that one host.
+- **How it was checked:** `tools/check_engine.py` (the Kotlin engine against the Python model: 2 compositions, 6 blocks,
   23 elements, every step at the same time and place); the page in the cloud session's headless Chromium with
   Playwright (serve `web/build/dist/js/productionExecutable`, open `#floor/composition/<name>/0`, read
   `window.sixstep`): stepping, the arrows after the travel, play, the annotations 2 beats ahead, jumps, pause, the

@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 
 /** The dance floor's logic on the shipped daily exercise, with a screen and a sound made of nothing but a clock that the
  *  test moves: opening, stepping (the feet travel, then the arrows come), play, the annotations 2 beats ahead, a swipe
- *  to the next part and its lead-in of rock triple triples, a tap that plays and pauses, and the end of a piece. */
+ *  to the next part and its lead-in of two triple steps on the spot, a tap that plays and pauses, and the end of a piece. */
 class DanceFloorTest {
     private val assets = File("../app/src/main/assets/dance")
     private val data = DanceData.parse(File(assets, "skeletons.json").readText())
@@ -26,7 +26,7 @@ class DanceFloorTest {
         var callouts: List<Pair<Int, String>> = emptyList()
         var current = -1
         var bars = false
-        override var leadIn = true   // the settings' switch for the rock triple triples after a swipe
+        override var leadIn = true   // the settings' switch for the lead-in after a swipe
         val banners = ArrayList<Pair<String, Double>>()   // every banner as it came up, with nothing else: filled by the test
         private val frames = ArrayList<() -> Unit>()
         override fun nowMs() = clock.ms
@@ -58,7 +58,8 @@ class DanceFloorTest {
         override fun bpm() = tempo
         override fun currentTrack(): Track? = null
         override fun swing(): Double? = null
-        override fun play(b: Double) { playing = true; beat0 = b; ms0 = clock.ms }
+        var plays = 0   // how often the floor started the sound afresh (a swipe that goes nowhere does not)
+        override fun play(b: Double) { plays++; playing = true; beat0 = b; ms0 = clock.ms }
         override fun stop() { beat0 = beatNow(); playing = false }
         override fun setMuted(m: Boolean) {}
         override fun chooseSong(key: String) {}
@@ -153,30 +154,51 @@ class DanceFloorTest {
         assertEquals(0, r.host.scene!!.arrows.size, "no arrows while the dance plays")
     }
 
-    @Test fun aSwipeWhilePlayingGoesToTheNextPartThroughTwoRockTripleTriples() {
+    /** user 2026-11-21: "the lead in is going to be just 2 triple steps ... completely in place. The legs don't need to
+     *  move at all ... You just change the weight from one leg to the other ... It's more like a pause, and it's
+     *  connected to the beat" */
+    @Test fun aSwipeWhilePlayingLeadsInWithTwoTripleStepsOnTheSpot() {
         val r = rig(exercise)
         r.floor.playPause()
         r.run(5000.0)   // into "side to side" (beat 6 to 30)
         val spokenBefore = r.player.spoken.size
         r.floor.swipe(true)
-        assertTrue(abs(r.player.beatNow() - 18.0) < 0.05, "the swipe lands 12 beats before the part at 30: ${r.player.beatNow()}")
-        // the lead-in: rock step, triple step, triple step, twice, with their own counts; no step of the piece is framed
+        assertTrue(abs(r.player.beatNow() - 26.0) < 0.05, "the swipe lands 4 beats before the part at 30: ${r.player.beatNow()}")
+        r.run(10.0)
+        val stand = r.host.scene!!.feet   // where the dancers stand: where the part starts
+        // four beats in which no foot moves and the weight goes from leg to leg; no step of the piece is framed
         val titles = ArrayList<String>(); val counts = ArrayList<String>()
+        val weights = ArrayList<Triple<Double, Map<Char, Double>, Map<Char, Double>>>()   // (beat, his, hers)
         var bannerUp: Double? = null
-        r.run(5900.0) {   // to beat 29.8
-            val sc = r.host.scene!!
+        r.run(1890.0) {   // to beat 29.8
+            val sc = r.host.scene!!; val b = r.player.beatNow()
             if (titles.lastOrNull() != sc.title) titles.add(sc.title)
             if (counts.lastOrNull() != sc.count) counts.add(sc.count)
-            if (sc.banner != null && bannerUp == null) bannerUp = r.player.beatNow()
+            if (sc.banner != null && bannerUp == null) bannerUp = b
+            weights.add(Triple(b, sc.weights['L']!!, sc.weights['F']!!))
             assertEquals(-1, r.host.current, "during the lead-in no step of the piece is the current one")
             assertEquals(0, sc.arrows.size)
+            // until the foot of the part's first step leaves for it (0.7 of a beat before the part), nothing moves at all
+            if (b < 29.25) for ((foot, p) in sc.feet) {
+                val q = stand[foot]!!
+                assertTrue(abs(p.x - q.x) < 1e-9 && abs(p.y - q.y) < 1e-9 && abs(p.h - q.h) < 1e-9, "at beat $b the foot $foot has moved: $p, it stood at $q")
+            }
         }
-        // each named with the part it leads to, from the first moment on
-        val rock = "rock step — lead-in to send out and bring back"; val triple = "triple step — lead-in to send out and bring back"
-        assertEquals(Texts.leadIn("rock step", "send out and bring back"), rock)
-        assertEquals("rock step — lead-in", Texts.leadIn("rock step", ""), "a part without a name: only that it is a lead-in")
-        assertEquals(listOf(rock, triple, rock, triple), titles, "what the dancers dance on their way in")
-        assertEquals(listOf("1", "2", "3", "3&", "4", "5", "5&", "6", "1", "2", "3", "3&", "4", "5", "5&", "6"), counts)
+        // named with the part it leads to, from the first moment on
+        val triple = "triple step — lead-in to send out and bring back"
+        assertEquals(triple, Texts.leadIn("triple step", "send out and bring back"))
+        assertEquals("triple step — lead-in", Texts.leadIn("triple step", ""), "a part without a name: only that it is a lead-in")
+        assertEquals(listOf(triple), titles, "two triple steps, nothing else")
+        assertEquals(listOf("3", "3&", "4", "5", "5&", "6"), counts, "counted as two triple steps are")
+        // the weight: he starts on his left (the foot the part starts with, free there), she on her right; each ends with that foot free again
+        fun at(beat: Double) = weights.minByOrNull { abs(it.first - beat) }!!
+        val his = listOf(26.45 to 'L', 26.92 to 'R', 27.5 to 'L', 28.5 to 'R', 28.92 to 'L', 29.5 to 'R')
+        for ((beat, foot) in his) {
+            val w = at(beat)
+            val other = if (foot == 'L') 'R' else 'L'
+            assertTrue(w.second[foot]!! > 0.8 && w.second[other]!! < 0.2, "at beat $beat his weight is on his $foot foot: ${w.second}")
+            assertTrue(w.third[other]!! > 0.8 && w.third[foot]!! < 0.2, "at beat $beat her weight is on her $other foot: ${w.third}")
+        }
         assertTrue(abs(bannerUp!! - 28.0) < 0.1, "the part's name comes up 2 beats before the part: at beat $bannerUp")
         assertEquals("send out and bring back", r.host.scene?.banner)
         // the part itself: the composition's own picture again, its name gone, its steps framed below
@@ -196,18 +218,18 @@ class DanceFloorTest {
         r.floor.playPause()
         r.run(5000.0)                       // in "side to side" (6 to 30)
         r.floor.swipe(true); r.run(500.0)   // on the way into "send out and bring back" (30)
-        assertTrue(abs(r.player.beatNow() - 19.0) < 0.1)
+        assertTrue(abs(r.player.beatNow() - 27.0) < 0.1)
         // forward again: the part after it, not the same one once more
         r.floor.swipe(true)
-        val second = r.player.beatNow() + 12.0
+        val second = r.player.beatNow() + DanceFloor.LEAD_BEATS
         assertTrue(second > 31.0, "the next part starts at beat $second")
         r.run(500.0)
         // back, still on the way in: the part before (the one at 30), by its own lead-in
         r.floor.swipe(false)
-        assertTrue(abs(r.player.beatNow() - 18.0) < 0.05, "back from a lead-in goes to the part before: ${r.player.beatNow()}")
-        // and back again: "side to side" at beat 6 has only one rock triple triple of dance before it, so it gets one
+        assertTrue(abs(r.player.beatNow() - 26.0) < 0.05, "back from a lead-in goes to the part before: ${r.player.beatNow()}")
+        // and back again: "side to side" at beat 6
         r.run(300.0); r.floor.swipe(false)
-        assertTrue(abs(r.player.beatNow() - 0.0) < 0.05, "a part 6 beats into the dance is entered from beat 0: ${r.player.beatNow()}")
+        assertTrue(abs(r.player.beatNow() - 2.0) < 0.05, "a part 6 beats into the dance is entered from beat 2: ${r.player.beatNow()}")
         r.run(1000.0)
         assertTrue(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX))
         // and once more: the very beginning
@@ -247,9 +269,9 @@ class DanceFloorTest {
             repeat(1500) { tick() }
             var parts = 0; var worst = 0.0; var worstAt = ""; var withLead = 0
             while (true) {
-                val before = r.player.beatNow()
+                val before = r.player.plays
                 r.floor.swipe(true)
-                if (abs(r.player.beatNow() - before) < 1e-9) break   // no part after the last one
+                if (r.player.plays == before) break   // no part after the last one
                 parts++
                 tick()
                 if (!r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX)) { repeat(600) { tick() }; continue }   // a part without a lead-in
@@ -266,7 +288,8 @@ class DanceFloorTest {
                 repeat(300) { tick() }
             }
             println("lead-ins of \"${c.name}\": $parts parts, $withLead with a lead-in, the largest step of a foot where the piece takes over: ${"%.2f".format(worst)} cm ($worstAt)")
-            assertTrue(parts > 0 || c.name.contains("facing"), "${c.name} has parts to swipe to")
+            assertTrue(parts > 0, "${c.name} has parts to swipe to")
+            assertEquals(parts, withLead, "${c.name}: every part that a swipe goes forward to has four beats before it, and so a lead-in")
             assertTrue(worst < 1.0, "${c.name}: a foot jumps $worst cm where the lead-in hands over to $worstAt")
         }
     }
@@ -304,11 +327,11 @@ class DanceFloorTest {
         r.run(4000.0)   // beat 72.2: more than 2 s after the swipe landed
         r.floor.swipe(false)
         assertTrue(abs(r.player.beatNow() - 64.0) < 0.05, "back, well into the part: its own start again: ${r.player.beatNow()}")
-        // switched on again, the next swipe leads in with rock triple triples
+        // switched on again, the next swipe leads in
         r.run(2000.0)   // into the part
         r.host.leadIn = true
         r.floor.swipe(true)
-        assertTrue(abs(r.player.beatNow() - 150.0) < 0.05, "switched on again, a swipe lands 12 beats before the part at 162: ${r.player.beatNow()}")
+        assertTrue(abs(r.player.beatNow() - 158.0) < 0.05, "switched on again, a swipe lands 4 beats before the part at 162: ${r.player.beatNow()}")
         r.run(50.0)
         assertTrue(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX), "and the dancers lead in: ${r.host.scene?.title}")
     }

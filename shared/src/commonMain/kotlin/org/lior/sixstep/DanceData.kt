@@ -117,6 +117,12 @@ data class Entry(val name: String, val times: Int, val say: String?, val quiet: 
         private val RE = Regex("^(.*?)\\s*(?:[xX×]\\s*(\\d+))?\\s*$")
         /** the pinned ending: "triple step x2 → facing" (since 2026-10-25; model.parse_entry_full, the editor's parseEntryFull) */
         private val END = Regex("\\s*(?:→|->)\\s*([A-Za-z_]+)\\s*$")
+        /** elements that changed their name: an entry under the old name means the new one, with the ending the old
+         *  element had. Only a composition kept on a phone from the time it had an editor can still hold such an entry
+         *  (the shipped file was changed with the element). 2026-11-21: the "underarm bringback" became the follower
+         *  underarm pass from face to face to side by side (the user: "change underarm bringback to be simply
+         *  underarm pass from facing to side to side"). */
+        val RENAMED = mapOf("underarm bringback" to Pair("follower underarm pass", "side"))
         fun parse(entry: String): Entry {
             var t = entry.trim()
             if (t.lowercase().startsWith("say:")) return Entry("", 1, t.substring(4).trim())
@@ -127,7 +133,9 @@ data class Entry(val name: String, val times: Int, val say: String?, val quiet: 
             if (em != null) { end = em.groupValues[1]; t = t.substring(0, em.range.first).trim() }
             val m = RE.matchEntire(t) ?: return Entry(t, 1, null, quiet, end)
             val times = m.groupValues[2].toIntOrNull() ?: 1
-            return Entry(m.groupValues[1].trim(), maxOf(1, times), null, quiet, end)
+            val name = m.groupValues[1].trim()
+            RENAMED[name]?.let { (now, ending) -> return Entry(now, maxOf(1, times), null, quiet, end ?: ending) }
+            return Entry(name, maxOf(1, times), null, quiet, end)
         }
     }
     fun text(): String = if (say != null) "say: $say" else ((if (times > 1) "$name x$times" else name) + (if (end != null) " → $end" else "")).let { if (quiet) "($it)" else it }

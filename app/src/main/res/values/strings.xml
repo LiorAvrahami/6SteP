@@ -53,6 +53,6 @@
     <string name="set_hihat">Hi-hat (between songs, and over the music when that is on)</string>
     <string name="set_voice">Read the annotations aloud</string>
     <string name="set_mute_note">The mute button on the dance floor silences everything at once: the music, the drums and the voice.</string>
-    <string name="set_lead_in">After a swipe while playing: rock triple triples before the part</string>
+    <string name="set_lead_in">After a swipe while playing: two triple steps in place before the part</string>
     <string name="about">6SteP %1$s · font: Inter (SIL Open Font License) · icons: Lucide (ISC License)</string>
 </resources>

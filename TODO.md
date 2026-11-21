@@ -89,8 +89,8 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ### The web front: what the Android app has and the page does not yet
 - **Added:** 2026-11-20, by the maintainer.
-- **What:** working without a connection once opened (a service worker), the voice of the Android app (the page uses
-  the browser's own voice).
+- **What:** working without a connection once opened (a service worker). On an iPhone, the Google voice (its browser
+  starts an audio element only from a tap, so the page falls back to the browser's own voice there; untried).
   (Done 2026-11-21: sideways and full screen, and an icon and a name for "add to home screen"; then the whole look of
   the app, screen by screen, with the help view's arrows.)
 - **The other way round:** the Android app's own menus, switches and messages are Android's plain ones, and the page
@@ -98,6 +98,11 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-21, v69:** the web page reads with Google's voice, as the Android app (the browser's own voice when
+  Google does not answer); the lead-in after a swipe is two triple steps on the spot, four beats, instead of the rock
+  triple triples of v66 (the user: "just 2 triple steps ... completely in place ... more like a pause"); "Rock
+  Tripple Tripple facing" moved from the compositions to the building blocks; the underarm bringback became the
+  follower underarm pass from face to face to side by side (only its name changed).
 - **2026-11-21, v66:** "A lead-in of two rock triple triples after a jump while playing" (asked for on 2026-11-19, the
   user's answers of 2026-11-20, asked for again on 2026-11-21): after a swipe while a composition plays, the dancers
   dance two rock triple triples on the spot where the part starts, in its start position, and flow into it (one
