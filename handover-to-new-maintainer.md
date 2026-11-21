@@ -64,6 +64,14 @@ notes are "all rights reserved"; see `reference/README.md`), the Rubber Band exe
 8. **Ports.** 8765 belongs to another app of the user's (requests silently go there). The skeleton editor is on 8771, the
    beat annotator on 8772. Run `netstat -ano | grep :<port>` before starting a server; never kill a listener that is not yours.
 9. **Report short.** Lead with the outcome, numbers in tables, a numbered list of questions at the end.
+10. **Every point of a message, in that round.** When the user lists several things, build each of them, or say in the
+    report which one waits and why. And when the user answers the questions about something they had asked you to
+    "think about" first, that answer is the go-ahead: build it then. On 2026-11-21 the user had to ask twice ("it looks
+    like you didn't address two of my points"): "a single tap is enough" had been built as one tap to pause and two to
+    play, and the lead-in after a swipe, whose questions they had answered the day before, still sat in `TODO.md`.
+11. **Leave out what they did not ask about.** The user (2026-11-21): "I really don't care about most of the things that
+    you're concerning. Let's focus in on the important things, which is making this work." No licence, copyright or
+    donation commentary unless they bring it up.
 
 **lurklurk is disconnected (2026-10-25).** The user judged the notes unusable for foot placement after a day of trying
 to parse them ("I think this resource is absolute garbage"). Nothing in `dance/`, the editor or the app reads them any
@@ -495,9 +503,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   and "Buy me a Beer" buttons are hidden "for now"; the web page takes the full screen by itself at any tap and its
   launcher has the full-screen button back (section 10); and the Android dance floor now runs the shared `DanceFloor`
   (section 10), which is how the tap and the lead-in reached both fronts as one piece of code. The user had written
-  that the single tap for play and the lead-in were "not addressed" in v61 to v65: the first had been built as "one
-  tap pauses, two taps play", the second had been left in `TODO.md` as "later". When the user lists points, build all
-  of them or say at once which ones wait.
+  that the single tap for play and the lead-in were "not addressed" in v61 to v65 (section 2, rule 10).
+  v67: the lead-in's title names the part it leads to.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
