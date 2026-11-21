@@ -1,10 +1,9 @@
 package org.lior.sixstep
 
-import android.animation.Animator
-import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.graphics.Color
 import android.os.Bundle
+import android.os.SystemClock
 import android.text.SpannableString
 import android.text.Spanned
 import android.text.style.RelativeSizeSpan
@@ -12,7 +11,6 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
-import android.view.animation.LinearInterpolator
 import android.widget.ImageButton
 import android.widget.TextView
 import android.widget.Toast
@@ -21,73 +19,34 @@ import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.TooltipCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import kotlin.math.abs
-import kotlin.math.floor
-import kotlin.math.roundToInt
 
-/** The one dance floor (the user's layout draft, 2026-10-28): every element, building block and composition is danced
- *  here, the daily exercise included. Opened with the extras kind, name, variant (see Piece) and autoplay, always on
- *  the first step.
+/** The one dance floor (the user's layout draft, 2026-10-28), as the Android app shows it: every element, building block
+ *  and composition is danced here, the daily exercise included. Opened with the extras kind, name, variant (see Piece)
+ *  and autoplay, always on the first step.
  *
- *  Swipe left or right: the next or previous step. There is one way of stepping (user 2026-11-17; before, a button chose
- *  between a "flow" and a "schema" mode): the feet travel to the step, and once they are there dashed arrows show the
- *  path each foot that stepped came by, with a small round arrow where a foot turns more than a quarter turn (both
- *  dancers at once). Swipe down: the top and bottom bars; a tap on
- *  the floor closes them. Double tap or the play button: play (the bars close). A tap while playing pauses, at once
- *  (user 2026-11-21: "a single tap is enough"); a swipe while playing jumps to the next part, or back to the start of
- *  this one (the previous one in its first 2 s).
- *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), edit, back. Bottom bar: every step of
- *  the piece, the current one framed, the annotations pointing at where they start; a tap on a step goes there.
- *  While a composition plays, each annotation (a "say:" text, the name of an entry) comes up at the top, and is read
- *  aloud, 2 beats before its element starts, and goes away just as the element starts. The voice says how many times
- *  an entry repeats; the screen never does. A swipe to a part lands those 2 beats before it.
- *  Compositions play once to the end; elements and building blocks loop (chained so that the last beat flows into the
- *  first when they close on themselves, otherwise from the start position again after two beats). */
-class DanceFloorActivity : AppCompatActivity() {
-    companion object {
-        const val ANNOUNCE_LEAD = 2.0         // an annotation comes up this many beats before its element starts, and goes as it starts (user 2026-11-16)
-        const val MIN_NOTICE = 0.5            // with less time than this left before its element, it is not written at all (too short to read)
-        val TIMES = Regex(",\\s*\\d+\\s+times\\s*$")   // how often an entry repeats, as the voice says it: never written on the screen
-        const val BACK_REPLAY_SECONDS = 2.0   // swipe right in the first 2 s of a part goes to the previous one (as in Workout Instructinator)
-        const val LOOP_REST = 2.0             // beats of the start position before a piece that does not close is danced again
-        const val CHAIN_BEATS = 1200.0        // a piece that closes is chained to about this long for play
-        // stepping by hand: the feet's travel to the next stop takes this long, in beats of the music at the chosen tempo,
-        // whatever the step (user 2026-11-17: a travel as long as its step made the half steps fast and the whole steps
-        // slow, which was mostly confusing)
-        const val STEP_BEATS = 1.0 / 3.0
-    }
-
-    private lateinit var floor: FloorView
+ *  What the floor does is the shared DanceFloor's (shared/.../DanceFloor.kt; since 2026-11-21 the very code the web
+ *  page runs): stepping by swipes, play and pause, the annotations, the swipes while it plays with their lead-in of
+ *  rock triple triples, when the bars show. This activity is its screen (FloorHost): it passes on the gestures and the
+ *  buttons, and shows what the floor tells it to: the picture (FloorView), the bottom bar (StepStrip), the bars sliding
+ *  in and out, the buttons' faces, the menus. The sound is Playback, which the floor drives as its FloorPlayer.
+ *
+ *  A tap on the floor plays or pauses (there is no double tap); a swipe left or right is the next or previous step, or
+ *  part while it plays; a swipe down brings the bars, a swipe up sends them away.
+ *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), back. */
+class DanceFloorActivity : AppCompatActivity(), FloorHost {
+    private lateinit var floorView: FloorView
     private lateinit var topBar: View
-    private lateinit var strip: StepStrip
+    private lateinit var stripView: StepStrip
     private lateinit var playBtn: ImageButton
     private lateinit var rateBtn: TextView
     private lateinit var songBtn: TextView
     private lateinit var muteBtn: ImageButton
     private lateinit var pb: Playback
-
-    private var tl: Timeline? = null              // the piece danced once: what the swipes and the strip go through
-    private var playTl: Timeline? = null          // what plays: the piece itself, or chained into a long loop
-    private var loopBeats = 0.0                   // one loop in playTl (the piece and the triple steps that close it); 0: not chained
-    private var period = 0.0                      // a piece that does not close: danced again every `period` beats
-    private var playStarts = DoubleArray(0)       // the element starts of playTl
-    private var stops: List<Double> = emptyList()
-    private var parts: List<Double> = emptyList() // where the swipes jump while playing, in beats of the piece
-    private var idx = 0
-    private var playing = false
-    private var hold = Double.NEGATIVE_INFINITY   // the dancers wait here until the clock reaches it (a count-in)
-    private var pausedClock = Double.NaN          // the clock beat of the last pause: only which loop we are in
-    private var anim: ValueAnimator? = null
-    private var barsShown = false
+    private lateinit var dance: DanceFloor
+    private var barsWanted = false
     private var barsFrac = 0f
     private var barsAnim: ValueAnimator? = null
-    private var cues: List<Pair<Double, CElement>> = emptyList()   // a composition's annotations: (its element's start, the element), in order
-    private var lastCue = -1                             // the last annotation that has come up, or whose element is under way
-    private var jumpLead = 0.0                           // a swipe lands this many beats before a part: where its annotation comes up (compositions)
-    private var silentUntil = Double.NEGATIVE_INFINITY   // a jump's part (an element starting by this beat) is shown, not read aloud
-    private var banner: String? = null
-    private var bannerUntil = Double.NEGATIVE_INFINITY
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -97,399 +56,72 @@ class DanceFloorActivity : AppCompatActivity() {
             it.hide(WindowInsetsCompat.Type.systemBars())
             it.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
-        floor = findViewById(R.id.floor); topBar = findViewById(R.id.topBar); strip = findViewById(R.id.strip)
+        floorView = findViewById(R.id.floor); topBar = findViewById(R.id.topBar); stripView = findViewById(R.id.strip)
         playBtn = findViewById(R.id.play); rateBtn = findViewById(R.id.rate); songBtn = findViewById(R.id.song)
         muteBtn = findViewById(R.id.mute)
-        val edit = findViewById<ImageButton>(R.id.edit)
         val back = findViewById<ImageButton>(R.id.back)
         topBar.setBackgroundColor(Ui.BAR)
-        for (v in listOf<View>(playBtn, rateBtn, muteBtn, edit, back)) v.background = Ui.box(this, Color.TRANSPARENT, 2.5f, 11f)
+        for (v in listOf<View>(playBtn, rateBtn, muteBtn, back)) v.background = Ui.box(this, Color.TRANSPARENT, 2.5f, 11f)
         songBtn.background = Ui.box(this, Ui.BAR, 1f, 2f, Color.rgb(128, 128, 128))
-        strip.barColor = Ui.BAR; strip.calloutBandDp = 32f; strip.cellWidthDp = 64f; strip.gapDp = 8f
+        stripView.barColor = Ui.BAR; stripView.calloutBandDp = 32f; stripView.cellWidthDp = 64f; stripView.gapDp = 8f
 
         pb = Playback(this)
-        pb.onChange = { updateButtons() }
-        pb.onFocusLoss = { pause() }
-        pb.onMessage = { m -> Toast.makeText(this, m, Toast.LENGTH_LONG).show() }
-        playBtn.setOnClickListener { if (playing) pause() else play() }
-        rateBtn.setOnClickListener { tempoMenu() }
-        songBtn.setOnClickListener { songMenu() }
-        muteBtn.setOnClickListener { pb.setMuted(!pb.muted); updateButtons() }
-        edit.setOnClickListener { MaterialAlertDialogBuilder(this).setMessage(R.string.editor_not_ready).setPositiveButton(android.R.string.ok, null).show() }
+        dance = DanceFloor(DanceData.load(this), CompositionStore(this), intent.getStringExtra("kind") ?: Piece.ELEMENT,
+            intent.getStringExtra("name") ?: "", intent.getIntExtra("variant", 0), intent.getBooleanExtra("autoplay", false), pb, this)
+
+        playBtn.setOnClickListener { dance.playPause() }
+        rateBtn.setOnClickListener { menu(rateBtn, dance.tempoChoices()) { key -> dance.chooseTempo(key) } }
+        songBtn.setOnClickListener { menu(songBtn, dance.songChoices()) { key -> dance.chooseSong(key) } }
+        muteBtn.setOnClickListener { dance.toggleMute() }
         back.setOnClickListener { finish() }   // back to where the floor was opened from (user 2026-10-28)
         TooltipCompat.setTooltipText(back, getString(R.string.back))
-        TooltipCompat.setTooltipText(edit, getString(R.string.edit))
         TooltipCompat.setTooltipText(rateBtn, getString(R.string.tempo))
         TooltipCompat.setTooltipText(songBtn, getString(R.string.song))
+        stripView.onTap = { k -> dance.tapStop(k) }
         updateButtons()
 
-        val name = intent.getStringExtra("name") ?: ""
-        val data = DanceData.load(this); val store = CompositionStore(this)
-        val p = Piece.find(data, store, intent.getStringExtra("kind") ?: Piece.ELEMENT, name, intent.getIntExtra("variant", 0))
-        val swing = pb.currentTrack()?.let { BeatGrid.loadFor(this, it).swing } ?: Piece.SWING
-        val composed = p?.compose(data, swing)
-        if (p == null || composed == null || composed.errors.isNotEmpty()) {
-            floor.scene = Scene(emptyMap(), emptyMap(), name, banner = composed?.errors?.joinToString("\n") ?: getString(R.string.nothing_to_show))
-            return
-        }
-        val t = Timeline(composed, swing); tl = t
-        stops = stopsOf(t)
-        val ptl: Timeline = if (p.isComposition) t else chainedLoop(p, data, swing) ?: t.also { period = t.length + LOOP_REST }
-        playTl = ptl
-        playStarts = ptl.composed.elements.map { it.start }.toDoubleArray()
-        parts = (if (p.isComposition) composed.elements.filter { it.entryStart || it.annotation != null } else composed.elements)
-            .map { it.start }.ifEmpty { composed.elements.map { it.start } }
-        pb.boundaryAfter = { b -> boundaryAfter(b) }
-        strip.cells = cellsOf(t, stops, getString(R.string.start))
-        strip.callouts = callouts(p, t)
-        // a composition plays once, so the clock's beats are its own beats
-        if (p.isComposition) cues = ptl.composed.elements.filter { said(it).isNotEmpty() }.map { Pair(it.start, it) }
-        if (cues.isNotEmpty()) jumpLead = ANNOUNCE_LEAD
-        strip.onTap = { k -> tapStop(k) }
-        if (p.isComposition) pb.prefetch(composed.elements.mapNotNull { announcement(it) }.distinct())
-        val autoplay = intent.getBooleanExtra("autoplay", false)
-
         val gestures = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            private var tapPaused = false   // the first tap of a pair paused the dance: the second adds nothing
             override fun onDown(e: MotionEvent): Boolean = true
-            // a tap acts the moment the finger lifts (user 2026-11-21: one tap pauses, without waiting to see whether a
-            // second follows): it closes the bars when they are open, otherwise it pauses the dance when it plays
-            override fun onSingleTapUp(e: MotionEvent): Boolean {
-                tapPaused = false
-                if (barsShown) hideBars() else if (playing) { pause(); tapPaused = true }
-                return true
-            }
-            // a second tap close behind: play, or pause; when the first tap has already paused, nothing more
-            override fun onDoubleTap(e: MotionEvent): Boolean {
-                if (!tapPaused) { if (playing) pause() else play() }
-                tapPaused = false
-                return true
-            }
+            // a tap, the moment the finger lifts: play, or pause (user 2026-11-21: a single tap for both)
+            override fun onSingleTapUp(e: MotionEvent): Boolean { dance.tap(); return true }
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
                 if (e1 == null) return false
                 val dx = e2.x - e1.x; val dy = e2.y - e1.y
-                if (abs(dy) > 80 && abs(dy) > abs(dx) * 1.2f) { if (dy > 0) showBars() else hideBars(); return true }
-                if (abs(dx) > 60 && abs(dx) > abs(dy) * 1.2f) { if (playing) skip(dx < 0) else step(if (dx < 0) 1 else -1); return true }
+                if (abs(dy) > 80 && abs(dy) > abs(dx) * 1.2f) { if (dy > 0) dance.swipeDown() else dance.swipeUp(); return true }
+                if (abs(dx) > 60 && abs(dx) > abs(dy) * 1.2f) { dance.swipe(dx < 0); return true }
                 return false
             }
         })
-        floor.setOnTouchListener { v, ev -> gestures.onTouchEvent(ev); if (ev.action == MotionEvent.ACTION_UP) v.performClick(); true }
-        floor.post {
+        // every tap is a tap of its own: no waiting for a second one, and a finger that rests a while still taps
+        gestures.setOnDoubleTapListener(null)
+        gestures.setIsLongpressEnabled(false)
+        floorView.setOnTouchListener { v, ev -> gestures.onTouchEvent(ev); if (ev.action == MotionEvent.ACTION_UP) v.performClick(); true }
+        // once the views have their sizes: the bars out of sight, then the first picture (playing at once for the daily
+        // exercise, otherwise with the bars shown)
+        floorView.post {
             applyBars(0f)
-            show()
-            if (autoplay) play() else showBars()
+            dance.open()
         }
     }
 
-    // ------------------------------------------------------------------ beats: the clock's, the playing timeline's, the piece's
+    // ------------------------------------------------------------------ what the floor asks of its screen (FloorHost)
 
-    /** the length of one loop in clock beats; 0 for a composition, which plays once */
-    private fun cycle(): Double = if (loopBeats > 0) loopBeats else period
-
-    /** the beat of playTl shown at clock beat b */
-    private fun playBeat(b: Double): Double {
-        val ptl = playTl ?: return b
-        return when {
-            b < 0 -> b
-            loopBeats > 0 -> b % ptl.length
-            period > 0 -> { val m = b % period; if (m < ptl.length) m else m - period }
-            else -> b
-        }
-    }
-
-    /** the beat of the piece (danced once) at clock beat b; NaN in the triple steps that close a loop */
-    private fun pieceBeat(b: Double): Double {
-        val t = tl ?: return b
-        if (b < 0 || cycle() <= 0) return b
-        if (loopBeats > 0) { val x = b % loopBeats; return if (x < t.length) x else Double.NaN }
-        return playBeat(b)
-    }
-
-    /** the clock beat of beat p of the piece, in the loop that clock beat `near` is in (the first when there is none) */
-    private fun clockBeat(p: Double, near: Double): Double {
-        val c = cycle()
-        if (c <= 0 || near.isNaN() || near < 0) return p
-        return floor(near / c) * c + p
-    }
-
-    /** where a new track may start: the first element start at or after clock beat b; null after a composition's end */
-    private fun boundaryAfter(b: Double): Double? {
-        val ptl = playTl ?: return null
-        val wrap = if (loopBeats > 0) ptl.length else period
-        if (wrap <= 0) return playStarts.firstOrNull { it >= b }
-        val base = if (b < 0) 0.0 else floor(b / wrap) * wrap
-        for (k in 0..1) for (s in playStarts) { val x = base + k * wrap + s; if (x >= b) return x }
-        return null
-    }
-
-    /** the starts of the parts in clock beats, around clock beat b */
-    private fun partsNear(b: Double): List<Double> {
-        val c = cycle()
-        if (c <= 0) return parts
-        val base = if (b < 0) 0.0 else floor(b / c) * c
-        return listOf(base - c, base, base + c).filter { it >= 0 }.flatMap { s -> parts.map { s + it } }
-    }
-
-    /** the piece padded with triple steps until it closes, then chained to about CHAIN_BEATS: the loop that plays, so
-     *  that the last beat flows into the first. Null when the piece does not close on itself. */
-    private fun chainedLoop(p: Piece, data: DanceData, swing: Double): Timeline? {
-        val one = p.compose(data, swing, padToLoop = true)
-        if (one.errors.isNotEmpty() || !one.closes) return null
-        val names = one.elements.map { SeqItem(it.name, it.group, null, it.entryIndex, it.entryStart, it.entryLabel, it.endState) }   // the versions the first loop chose
-        val n = (CHAIN_BEATS / one.length).toInt().coerceIn(2, 600)
-        val chain = ArrayList<SeqItem>(); repeat(n) { chain.addAll(names) }
-        val c = Composer.compose(data, chain, p.startState, swing, p.free)
-        if (c.errors.isNotEmpty()) return null
-        val m = one.elements.size
-        val elements = c.elements.mapIndexed { k, e -> e.copy(filler = one.elements[k % m].filler) }
-        val steps = c.steps.map { s -> s.copy(filler = elements[s.element].filler) }
-        loopBeats = one.length
-        return Timeline(Composed(steps, elements, c.start, c.startHands, c.startState, c.startFree, c.endState, c.endFree, c.length, c.errors), swing)
-    }
-
-    // ------------------------------------------------------------------ what the floor shows
-
-    private fun weightsAt(t: Timeline, b: Double) = mapOf('L' to t.weights('L', b), 'F' to t.weights('F', b))
-    private fun fillerColor(el: CElement?): Int? = if (el?.filler == true) getColor(R.color.filler) else null
-
-    private fun titleOf(el: CElement?, b: Double, counting: Boolean): String = when {
-        b < 0 -> getString(if (counting) R.string.ready else R.string.start_position)
-        el == null -> ""
-        el.filler -> el.name + getString(R.string.filler_suffix)
-        el.group != null -> el.name + "   (" + el.group + ")"
-        else -> el.name
-    }
-
-    /** the instant a stop is shown at, and play starts from: the weight settled on what landed at b, but before anything
-     *  lands next; one instant for the feet and the weights, so that the first frame of play is this very picture */
-    private fun settled(t: Timeline, b: Double): Double {
-        var next = Double.POSITIVE_INFINITY
-        for (d in t.dancers.values) for (track in d.tracks.values) { val n = track.around(b).second; if (n != null && n.tLand > b + 1e-6) next = minOf(next, n.tLand) }
-        return minOf(t.settledAfter(b), next - 1e-3)
-    }
-
-    /** a stop at rest: the feet and their weights at its settled instant, and a dashed arrow for every foot that
-     *  landed at the stop, from where it was and along the path it took (both dancers at once); the floor adds a small
-     *  round arrow beside a step that turns its foot by more than a quarter turn (PhoneFeetPainter.arrows) */
-    private fun stopScene(t: Timeline, b: Double, banner: String?): Scene {
-        val arrows = ArrayList<Arrow>()
-        for (d in listOf('L', 'F')) for (f in listOf('L', 'R')) {
-            val track = t.dancers[d]!!.tracks[f]!!
-            val (cur, _) = track.around(b)
-            if (abs(cur.tLand - b) < 1e-6) {
-                val i = track.landings.indexOf(cur)
-                if (i > 0) {
-                    val prev = track.landings[i - 1].p
-                    // a foot that moved, went round by the anchors of its path, or turned a lot on the spot
-                    val moved = abs(prev.x - cur.p.x) > 0.5 || abs(prev.y - cur.p.y) > 0.5
-                    if (moved || cur.via.isNotEmpty() || abs(cur.p.h - prev.h) > PhoneFeetPainter.TURN_MARK) arrows.add(Arrow(d, prev, cur.p, cur.via))
-                }
-            }
-        }
-        val el = t.elementAt(b)
-        val s = settled(t, b)
-        return Scene(t.feetAt(s), weightsAt(t, s), titleOf(el, b, false), if (b < 0) "" else t.countLabel(b), arrows, banner, fillerColor(el))
-    }
-
-    /** any instant of the dance as it moves: while it plays, and while the feet travel to a stop; no arrows */
-    private fun flowScene(t: Timeline, b: Double, banner: String?, counting: Boolean): Scene {
-        val el = t.elementAt(b)
-        return Scene(t.feetAt(b), weightsAt(t, b), titleOf(el, b, counting), if (b < 0) "" else t.countLabel(b), emptyList(), banner, fillerColor(el))
-    }
-
-    /** stop k as a beat of the clock: in the loop of the last pause (the first loop before any) */
-    private fun stopBeat(k: Int): Double = clockBeat(stops[k], pausedClock)
-
-    /** the stop we are on, drawn from the timeline that plays, in the loop of the last pause, so that play starts from
-     *  exactly this picture */
-    private fun show(banner: String? = null) {
-        val ptl = playTl ?: return
-        floor.scene = stopScene(ptl, playBeat(stopBeat(idx)), banner)
-        strip.current = idx
-        if (barsShown) strip.scrollToCell(idx, true)
-    }
-
-    /** an entry as the voice says it, with how often it repeats: "side to side x10" -> "side to side, 10 times" */
-    private fun spokenEntry(label: String): String {
-        val m = Regex("^(.*?)\\s*x(\\d+)$").matchEntire(label)
-        return if (m != null) "${m.groupValues[1]}, ${m.groupValues[2]} times" else label
-    }
-    /** an element's annotation in a composition as the voice says it: its "say:" text, and the entry it starts */
-    private fun said(e: CElement): List<String> = listOfNotNull(e.annotation, if (e.entryStart) spokenEntry(e.entryLabel) else null)
-    /** the same as it is written, on the floor and in the bottom bar: without how many times, be it an entry's "x N" or a
-     *  "say:" text that ends in ", N times" (user 2026-11-16: the voice says the number, the screen does not) */
-    private fun phrases(e: CElement): List<String> = said(e).map { it.replace(TIMES, "") }
-    private fun announcement(e: CElement): String? = said(e).joinToString(". ").ifEmpty { null }
-
-    /** the bottom bar's annotations: a composition's "say:" texts and entry names; a building block's element names */
-    private fun callouts(p: Piece, t: Timeline): List<Pair<Int, String>> = t.composed.elements.mapNotNull { e ->
-        val text = when (p.kind) {
-            Piece.COMPOSITION -> phrases(e).joinToString(" · ")
-            Piece.BLOCK -> e.name
-            else -> ""
-        }
-        if (text.isEmpty()) null else Pair(stopIndex(stops, e.start), text)
-    }
-
-    // ------------------------------------------------------------------ stepping by hand
-
-    /** one stop forward or back; past the last comes the first again, and before the first the last (user 2026-10-19).
-     *  The one way of stepping (user 2026-11-17): the arrows of the stop we leave go, the feet travel from its settled
-     *  state to the settled state of the next one, and only when they are there do that stop's arrows come (stopScene):
-     *  where each foot that stepped came from, and by which path. Every travel takes STEP_BEATS of a beat, whatever the
-     *  step, and plays that stretch of the dance at an even rate, so the feet speed up and slow down exactly as they do
-     *  when the dance plays (Timeline: a foot eases out of its place and into its landing). Until 2026-11-17 the travel
-     *  also sped up and slowed down as a whole, which eased every foot twice; the user found that annoying. A swipe
-     *  back is the same travel backwards, to the picture of the stop before, with its own arrows. Going round the end
-     *  is a cut. */
-    private fun step(dir: Int) {
-        val ptl = playTl ?: return
-        if (stops.size < 2) return
-        var next = idx + dir
-        val wrapped = next < 0 || next >= stops.size
-        if (wrapped) next = if (next < 0) stops.size - 1 else 0
-        anim?.cancel()
-        val from = playBeat(stopBeat(idx)); val to = playBeat(stopBeat(next)); idx = next
-        if (wrapped) { show(); return }
-        strip.current = idx
-        if (barsShown) strip.scrollToCell(idx, true)
-        val tFrom = settled(ptl, from); val tTo = settled(ptl, to)
-        val a = ValueAnimator.ofFloat(0f, 1f)
-        a.duration = (STEP_BEATS * 60.0 / pb.bpm() * 1000.0).coerceIn(60.0, 600.0).toLong()   // the limits only guard against a tempo that makes no sense
-        a.interpolator = LinearInterpolator()   // the dance's own time, at an even rate (an animator's default eases in and out)
-        a.addUpdateListener { v -> val u = (v.animatedValue as Float).toDouble(); floor.scene = flowScene(ptl, tFrom + (tTo - tFrom) * u, null, false) }
-        a.addListener(object : AnimatorListenerAdapter() {
-            private var cancelled = false   // cut short by another swipe, a tap on a step, or play: they draw their own picture
-            override fun onAnimationCancel(animation: Animator) { cancelled = true }
-            override fun onAnimationEnd(animation: Animator) { if (!cancelled) floor.scene = stopScene(ptl, to, null) }   // the feet are there: now the arrows
-        })
-        a.start(); anim = a
-    }
-
-    /** a tap on a step in the bottom bar goes straight there: the stop at rest, with its arrows */
-    private fun tapStop(k: Int) {
-        if (playing) startAt(k, pb.beatNow(), quiet = true)
-        else { anim?.cancel(); idx = k; show() }
-    }
-
-    // ------------------------------------------------------------------ playing: everything made afresh from a step
-
-    private fun play() {
-        if (playing || tl == null) return
-        if (cycle() <= 0 && idx >= stops.size - 1) idx = 0   // a composition at its end starts again
-        startAt(idx, pausedClock, quiet = false)
-    }
-
-    /** play from stop k, in the loop of clock beat `near`, with nothing kept from before (user 2026-10-28): the music
-     *  from that step's place in the plan, the dance from exactly the picture of the step, the weight settled on what
-     *  landed there. From the start position (unmuted), a count-in of four beats of music first, the dancers waiting.
-     *  quiet: a jump while playing, whose part is shown but not read aloud (so that the music does not dip). */
-    private fun startAt(k: Int, near: Double, quiet: Boolean) {
-        val ptl = playTl ?: return
-        anim?.cancel()
-        val wasPlaying = playing
-        val b = clockBeat(stops[k], near)
-        val countIn = k == 0 && !pb.muted
-        val from = if (countIn) b - (Playback.COUNT_IN - Piece.LEAD_IN) else b + (settled(ptl, playBeat(b)) - playBeat(b))
-        pb.play(from)
-        if (!pb.playing) { standAt(from); return }   // the sound is busy (a call)
-        playing = true
-        hold = if (countIn) b else Double.NEGATIVE_INFINITY
-        lastCue = cues.indexOfLast { it.first < b - 0.01 }   // an element starting on this step is announced, one under way is not
-        silentUntil = if (quiet) b + 0.05 else Double.NEGATIVE_INFINITY
-        banner = null
-        hideBars(); updateButtons()
-        if (!wasPlaying) floor.postOnAnimation(frame)
-    }
-
-    /** pause: everything that played is let go (players, clock, drums, voice); what stays is the step we are on */
-    private fun pause() {
-        if (!playing) return
-        val b = pb.beatNow()
-        pb.stop()
-        standAt(if (b < hold) hold else b)
-    }
-
-    /** not playing, standing on the stop at clock beat b (in the triple steps that close a loop: its start) */
-    private fun standAt(b: Double) {
-        playing = false
-        pausedClock = b
-        val p = pieceBeat(b)
-        idx = if (p.isNaN()) 0 else stopIndex(stops, p)
-        banner = null
-        show(); updateButtons()
-    }
-
-    /** a composition danced to its end */
-    private fun endOfPiece() {
-        playing = false; pb.stop(); pausedClock = Double.NaN
-        idx = stops.size - 1
-        show(getString(R.string.done)); updateButtons(); showBars()
-    }
-
-    /** while playing: to the next part, or back to the start of this one (the previous one in its first seconds). In a
-     *  composition a swipe lands ANNOUNCE_LEAD beats before the part, where its annotation comes up: it is on the screen
-     *  for those beats and gone when the part starts (user 2026-11-16) */
-    private fun skip(forward: Boolean) {
-        val b = pb.beatNow()
-        val near = partsNear(b).map { it - jumpLead }   // where a swipe lands for each part
-        val target = if (forward) (near.firstOrNull { it > b + 0.05 } ?: return) else {
-            val cur = near.lastOrNull { it <= b + 0.05 } ?: 0.0
-            if (b - cur > BACK_REPLAY_SECONDS * pb.bpm() / 60.0) cur else (near.lastOrNull { it < cur - 0.05 } ?: 0.0)
-        }
-        pb.play(target)   // from scratch, as any start
-        if (!pb.playing) { standAt(target); return }
-        hold = Double.NEGATIVE_INFINITY; banner = null
-        lastCue = cues.indexOfLast { it.first < target - 0.01 }
-        silentUntil = target + jumpLead + 0.05   // the part the swipe went to is written, not read aloud
-    }
-
-    private val frame = object : Runnable {
-        override fun run() {
-            if (!playing) return
-            val ptl = playTl ?: return
-            val b = pb.beatNow()
-            if (cycle() <= 0 && b >= ptl.length) { endOfPiece(); return }
-            if (b >= hold) hold = Double.NEGATIVE_INFINITY
-            announce(b)
-            drawPlaying(if (b < hold) hold else b)
-            floor.postOnAnimation(this)
-        }
-    }
-
-    /** a composition's annotations, by the clock itself (so the first can come up during the count-in): each comes up
-     *  ANNOUNCE_LEAD beats before its element starts, is read aloud, and goes away just as the element starts (user
-     *  2026-11-16): once a part has started nothing is written. After a start or a jump, one whose time has already come
-     *  comes up at once, for what is left until its element; with less than MIN_NOTICE beats left (play started on the
-     *  part's first step) it is only read aloud. The part a jump went to is written, not read. */
-    private fun announce(b: Double) {
-        val next = cues.getOrNull(lastCue + 1)
-        if (next != null && b >= next.first - ANNOUNCE_LEAD) {
-            lastCue++
-            if (next.first - b >= MIN_NOTICE) { banner = phrases(next.second).joinToString("\n"); bannerUntil = next.first }
-            if (next.first > silentUntil) announcement(next.second)?.let { pb.speak(it) }
-        }
-        if (b > bannerUntil) banner = null
-    }
-
-    private fun drawPlaying(b: Double) {
-        val ptl = playTl ?: return
-        val x = playBeat(b)
-        floor.scene = flowScene(ptl, x, banner, true)
-        val p = pieceBeat(b)
-        val k = if (p.isNaN()) -1 else stopIndex(stops, p)
-        strip.current = k
-        if (barsShown && k >= 0) strip.follow(k)
-    }
+    override fun nowMs(): Double = SystemClock.uptimeMillis().toDouble()
+    override fun nextFrame(callback: () -> Unit) { floorView.postOnAnimation { callback() } }
+    override fun show(scene: Scene) { floorView.scene = scene }
+    override fun strip(cells: List<StepCell>, callouts: List<Pair<Int, String>>) { stripView.cells = cells; stripView.callouts = callouts }
+    override fun stripCurrent(k: Int) { stripView.current = k }
+    override fun stripScrollTo(k: Int, animate: Boolean) { stripView.scrollToCell(k, animate) }
+    override fun stripFollow(k: Int) { stripView.follow(k) }
+    override fun bars(shown: Boolean) { barsWanted = shown; moveBars() }
+    override fun buttons() { updateButtons() }
+    override fun message(text: String) { Toast.makeText(this, text, Toast.LENGTH_LONG).show() }
 
     // ------------------------------------------------------------------ the bars
 
-    private fun showBars() { if (barsShown) return; barsShown = true; strip.scrollToCell(maxOf(strip.current, 0), false); moveBars() }
-    private fun hideBars() { if (!barsShown) return; barsShown = false; moveBars() }
-
     private fun moveBars() {
         barsAnim?.cancel()
-        val a = ValueAnimator.ofFloat(barsFrac, if (barsShown) 1f else 0f)
+        val a = ValueAnimator.ofFloat(barsFrac, if (barsWanted) 1f else 0f)
         a.duration = 200
         a.addUpdateListener { applyBars(it.animatedValue as Float) }
         a.start(); barsAnim = a
@@ -498,64 +130,45 @@ class DanceFloorActivity : AppCompatActivity() {
     /** the bars slid in by `f` (0 hidden, 1 shown); the camera keeps the dancers between them */
     private fun applyBars(f: Float) {
         barsFrac = f
-        val th = topBar.height.toFloat(); val bh = strip.height.toFloat()
-        topBar.translationY = -th * (1 - f); strip.translationY = bh * (1 - f)
-        floor.insetTop = th * f; floor.insetBottom = bh * f
+        val th = topBar.height.toFloat(); val bh = stripView.height.toFloat()
+        topBar.translationY = -th * (1 - f); stripView.translationY = bh * (1 - f)
+        floorView.insetTop = th * f; floorView.insetBottom = bh * f
     }
 
+    // ------------------------------------------------------------------ the buttons and their menus
+
     private fun updateButtons() {
+        val playing = dance.playing
         playBtn.setImageResource(if (playing) R.drawable.ic_pause else R.drawable.ic_play)
         playBtn.contentDescription = getString(if (playing) R.string.pause else R.string.play)
-        muteBtn.setImageResource(if (pb.muted) R.drawable.ic_volume_off else R.drawable.ic_volume)
-        muteBtn.contentDescription = getString(if (pb.muted) R.string.unmute else R.string.mute)
+        muteBtn.setImageResource(if (dance.muted) R.drawable.ic_volume_off else R.drawable.ic_volume)
+        muteBtn.contentDescription = getString(if (dance.muted) R.string.unmute else R.string.mute)
         for (v in listOf(playBtn, muteBtn)) TooltipCompat.setTooltipText(v, v.contentDescription)
-        val bpm = pb.bpm().roundToInt().toString()
+        val bpm = dance.tempoLabel()
         val s = SpannableString(bpm + "\nBPM")
         s.setSpan(RelativeSizeSpan(0.6f), bpm.length + 1, s.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         rateBtn.text = s
-        val title = pb.currentTrack()?.title ?: ""   // the song that plays, or would play first
-        songBtn.text = if (pb.song == Playback.SHUFFLE) getString(R.string.shuffle_now, title) else title
+        songBtn.text = dance.songLabel()
     }
 
-    /** the tempo: the song's tempo variants, from 40 BPM slower to 20 BPM faster (the same offset for every song) */
-    private fun tempoMenu() {
-        val t = pb.currentTrack() ?: return
-        val m = PopupMenu(this, rateBtn)
-        for ((i, off) in Playback.BPM_OFFSETS.withIndex()) {
-            val bpm = t.variantFor(off).bpm.roundToInt()
-            val item = m.menu.add(0, i, i, if (off == 0) getString(R.string.bpm_original, bpm) else getString(R.string.bpm, bpm))
-            item.isCheckable = true
-            item.isChecked = off == pb.bpmOffset
-        }
+    /** a menu under one of the bar's buttons: the floor's choices (the tempos of the song; "Play all", the songs,
+     *  "Shuffle play"), the one in force marked; `pick` gets the key of the line that was chosen */
+    private fun menu(anchor: View, choices: List<DanceFloor.Choice>, pick: (String) -> Unit) {
+        if (choices.isEmpty()) return
+        val m = PopupMenu(this, anchor)
+        for ((i, c) in choices.withIndex()) m.menu.add(if (c.checkable) 0 else 1, i, i, c.label)
         m.menu.setGroupCheckable(0, true, true)
-        m.setOnMenuItemClickListener { item -> pb.setBpmOffset(Playback.BPM_OFFSETS[item.itemId]); updateButtons(); true }
-        m.show()
-    }
-
-    /** the song menu (user 2026-11-21): first "Play all", which is what plays unless something else is chosen: the songs
-     *  in the order they are stored, the first one first, round and round. Then each song by itself, in that order, and
-     *  last "Shuffle play". Nothing says which song is the best: it is simply the first. */
-    private fun songMenu() {
-        val m = PopupMenu(this, songBtn)
-        val keys = listOf(Playback.ALL) + pb.tracks.map { it.key } + listOf(Playback.SHUFFLE)
-        m.menu.add(0, 0, 0, getString(R.string.play_all)).isCheckable = true
-        for ((i, t) in pb.tracks.withIndex()) {
-            val hint = t.difficulty.substringBefore(":").substringBefore(",").trim()
-            val label = getString(R.string.bpm, t.bpm.roundToInt()).let { b -> if (hint.isEmpty()) "${t.title} · $b" else "${t.title} · $b · $hint" }
-            m.menu.add(0, i + 1, i + 1, label).isCheckable = true
-        }
-        m.menu.add(0, keys.size - 1, keys.size - 1, getString(R.string.shuffle_play)).isCheckable = true
-        m.menu.setGroupCheckable(0, true, true)
-        m.menu.findItem(keys.indexOf(pb.song).coerceAtLeast(0))?.isChecked = true   // a choice that is not there any more: all
-        m.setOnMenuItemClickListener { item -> pb.chooseSong(keys[item.itemId]); updateButtons(); true }
+        val on = choices.indexOfFirst { it.checked && it.checkable }
+        if (on >= 0) m.menu.findItem(on)?.isChecked = true
+        m.setOnMenuItemClickListener { item -> pick(choices[item.itemId].key); true }
         m.show()
     }
 
     override fun onResume() { super.onResume(); pb.readSettings() }
-    override fun onPause() { super.onPause(); if (playing) pause() }
+    override fun onPause() { super.onPause(); dance.hidden() }
     override fun onDestroy() {
         super.onDestroy()
-        anim?.cancel(); barsAnim?.cancel(); playing = false
-        pb.release()
+        barsAnim?.cancel()
+        dance.release()
     }
 }

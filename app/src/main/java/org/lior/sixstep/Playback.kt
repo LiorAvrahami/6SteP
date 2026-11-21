@@ -23,8 +23,10 @@ import android.os.SystemClock
  *  play(b) opens a new player, seeks it to exactly that place and starts it there; stop() releases everything. A change
  *  of song, tempo or mute while playing is a stop and a play from the beat it is at. Muted: a steady clock, no sound.
  *  The voice reads the annotations with the music ducked under it; the snare and hi-hat go over the music when the
- *  settings say so. */
-class Playback(private val ctx: Context) {
+ *  settings say so.
+ *  It is the Android app's FloorPlayer: the shared DanceFloor (the dance floor's logic, the same for the web page)
+ *  drives it. */
+class Playback(private val ctx: Context) : FloorPlayer {
     companion object {
         val BPM_OFFSETS = intArrayOf(-40, -30, -20, -10, 0, 10, 20)
         const val ALL = MusicPlan.ALL        // every song, in the order they are stored
@@ -57,7 +59,7 @@ class Playback(private val ctx: Context) {
     private val ui = Handler(Looper.getMainLooper())      // the voice's duck and the audio focus
     private val sched = Handler(Looper.getMainLooper())   // everything a play schedules; stop() drops all of it
     private val prefs = ctx.getSharedPreferences("6step", Context.MODE_PRIVATE)
-    val tracks: List<Track> = Track.loadAll(ctx)
+    override val tracks: List<Track> = Track.loadAll(ctx)
     private val grids = HashMap<String, BeatGrid>()
     private val music = MusicPlayer(ctx)
     private val metronome = Metronome(ctx)
@@ -68,21 +70,25 @@ class Playback(private val ctx: Context) {
     private var duckRamp: Runnable? = null
 
     /** where a track may start: the first element start at or after a dance beat; null after the end of the piece */
-    var boundaryAfter: (Double) -> Double? = { null }
+    override var boundaryAfter: (Double) -> Double? = { null }
         set(v) { field = v; replan() }
     /** the song or the tempo changed */
-    var onChange: (() -> Unit)? = null
+    override var onChange: (() -> Unit)? = null
     /** another app took the sound (a call): the floor pauses */
-    var onFocusLoss: (() -> Unit)? = null
-    var onMessage: ((String) -> Unit)? = null
+    override var onFocusLoss: (() -> Unit)? = null
+    override var onMessage: ((String) -> Unit)? = null
 
-    var muted = prefs.getBoolean("muted", false)
-        private set
+    // what is chosen, each kept in a field of its own: the floor reads them (muted, song, bpmOffset) and changes them
+    // through setMuted, chooseSong and setBpmOffset, which must not be mistaken for these properties' own setters
+    private var mutedNow = prefs.getBoolean("muted", false)
+    private var songNow: String = storedSong(prefs)
+    private var offsetNow = prefs.getInt("bpm_offset", 0)
+    override val muted: Boolean get() = mutedNow
     /** a track's key, ALL or SHUFFLE */
-    var song: String = storedSong(prefs)
-        private set
-    var bpmOffset = prefs.getInt("bpm_offset", 0)
-        private set
+    override val song: String get() = songNow
+    override val bpmOffset: Int get() = offsetNow
+    /** the music is in the app: nothing has to arrive before it can play */
+    override val loading: Boolean get() = false
     private var overlay = false
     private var speakOn = true
     private var order: List<Track> = emptyList()
@@ -99,21 +105,23 @@ class Playback(private val ctx: Context) {
 
     init { readSettings(); reorder() }
 
-    val playing: Boolean get() = running
+    override val playing: Boolean get() = running
     /** the dance beat now; until the music has really started, the beat it starts from */
-    fun beatNow(): Double = clock?.beatNow() ?: startBeat
+    override fun beatNow(): Double = clock?.beatNow() ?: startBeat
     /** the track playing, or the first one of the plan */
-    fun currentTrack(): Track? = segment?.track ?: order.firstOrNull()
+    override fun currentTrack(): Track? = segment?.track ?: order.firstOrNull()
+    /** where the "&" falls in that track */
+    override fun swing(): Double? = currentTrack()?.let { gridOf(it).swing }
 
     /** the tempo danced (BPM): what plays, or the first track's at the chosen offset */
-    fun bpm(): Double {
+    override fun bpm(): Double {
         (clock as? TempoClock)?.let { return it.bpm }
         segment?.let { return it.grid.bpm }
         return order.firstOrNull()?.variantFor(bpmOffset)?.bpm ?: 120.0
     }
 
     /** the settings page may have changed these since */
-    fun readSettings() {
+    override fun readSettings() {
         overlay = prefs.getBoolean("metronome_over_music", false); speakOn = prefs.getBoolean("speak_annotations", true)
         metronome.snareOn = prefs.getBoolean("snare_on", true); metronome.hatOn = prefs.getBoolean("hihat_on", true)
         if (running && segment != null) metronome.enabled = overlay   // between two tracks the drums play anyway
@@ -156,7 +164,7 @@ class Playback(private val ctx: Context) {
 
     /** play from dance beat b, everything new: the clock, a player opened and sought to b's place in the plan, the drums,
      *  the next track's start. Muted: a steady clock from b at once. */
-    fun play(b: Double) {
+    override fun play(b: Double) {
         if (released) return
         stop()
         readSettings()
@@ -171,7 +179,7 @@ class Playback(private val ctx: Context) {
     }
 
     /** stop and forget: the players released; the clock, the drums, the voice and everything scheduled gone */
-    fun stop() {
+    override fun stop() {
         generation++
         sched.removeCallbacksAndMessages(null)
         music.releaseAll()
@@ -255,22 +263,22 @@ class Playback(private val ctx: Context) {
 
     // ------------------------------------------------------------------ the song, the tempo, mute
 
-    fun chooseSong(key: String) {
-        song = key; prefs.edit().putString("song", key).apply()
+    override fun chooseSong(key: String) {
+        songNow = key; prefs.edit().putString("song", key).apply()
         reorder(); again()
     }
 
     /** the tempo offset (the shipped tempo variants), the same for every song */
-    fun setBpmOffset(off: Int) {
+    override fun setBpmOffset(off: Int) {
         if (off == bpmOffset) return
-        bpmOffset = off; prefs.edit().putInt("bpm_offset", off).apply()
+        offsetNow = off; prefs.edit().putInt("bpm_offset", off).apply()
         replan(); again()
     }
 
     /** mute: no music, no drums, no voice */
-    fun setMuted(m: Boolean) {
+    override fun setMuted(m: Boolean) {
         if (m == muted) return
-        muted = m; prefs.edit().putBoolean("muted", m).apply()
+        mutedNow = m; prefs.edit().putBoolean("muted", m).apply()
         again()
     }
 
@@ -279,8 +287,8 @@ class Playback(private val ctx: Context) {
 
     // ------------------------------------------------------------------ the voice
 
-    fun prefetch(texts: Collection<String>) { if (!muted && speakOn && texts.isNotEmpty()) speaker.prefetch(texts) }
-    fun speak(text: String) { if (!muted && speakOn && running) speaker.speak(text) }
+    override fun prefetch(texts: Collection<String>) { if (!muted && speakOn && texts.isNotEmpty()) speaker.prefetch(texts) }
+    override fun speak(text: String) { if (!muted && speakOn && running) speaker.speak(text) }
     fun silence() { if (speakerLazy.isInitialized()) speaker.stop() }
 
     /** another app took the sound (a call, a prompt that wants it all): pause; the user presses play to go on. A loss
@@ -322,7 +330,7 @@ class Playback(private val ctx: Context) {
         duckRamp = r; r.run()
     }
 
-    fun release() {
+    override fun release() {
         stop(); released = true
         ui.removeCallbacksAndMessages(null); duckRamp = null
         metronome.release()

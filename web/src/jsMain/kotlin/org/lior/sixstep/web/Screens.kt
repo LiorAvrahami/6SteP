@@ -26,7 +26,7 @@ import kotlin.math.roundToInt
  *  The screens look as the Android app's do (user 2026-11-21: "the web app looks slightly different from the app"): each
  *  is laid out from the app's own layout file, with its sizes (a dp there is a px here), its fonts and its icons. What
  *  the page has and the app has not: a back button on explore, settings and the heart page (a phone's own back button
- *  leaves the full screen first), and the settings page's full-screen switch. */
+ *  leaves the full screen first), and the launcher's fourth button, which leaves and takes the full screen. */
 interface Screen {
     val root: HTMLElement
     /** sideways, as the Android app's screens are; the heart page is upright */
@@ -62,6 +62,15 @@ class Launcher : Screen {
     private val exploreIcon = icon("telescope")
     private val arrows: Element = document.createElementNS("http://www.w3.org/2000/svg", "svg").also { it.setAttribute("class", "arrows"); it.setAttribute("hidden", "") }
     private val onResize = { _: Event -> if (helpOn) layoutHelp() }
+    // the page's own fourth button: out of the full screen and back into it (user 2026-11-21: "it's fine that you
+    // bring it back"). On a phone the page takes the full screen by itself at any tap (Display); this is the way out.
+    private val fullBtn = iconButton("maximize", Texts.FULL_SCREEN, "box press") { Display.toggle() }.also { it.style.background = "#fff" }
+    private val showFull: () -> Unit = {
+        val on = Display.isFullscreen()
+        (fullBtn.firstChild as HTMLElement).setAttribute("src", if (on) "icons/minimize.svg" else "icons/maximize.svg")
+        fullBtn.title = if (on) Texts.LEAVE_FULL_SCREEN else Texts.FULL_SCREEN
+        fullBtn.setAttribute("aria-label", fullBtn.title)
+    }
 
     init {
         val store = App.assets.store; val data = App.assets.data
@@ -90,6 +99,8 @@ class Launcher : Screen {
         small.add(iconButton("heart", Texts.HEART, "box press") { App.go("heart") }.also { it.style.background = "var(--heart)" })
         small.add(iconButton("settings", Texts.SETTINGS, "box press") { App.go("settings") }.also { it.style.background = "var(--gear)" })
         small.add(iconButton("help", Texts.HELP, "box press") { setHelp(!helpOn) }.also { it.style.background = "var(--help)" })
+        // an iPhone's browser has no full screen to give: there the page goes on the home screen
+        if (Display.canFullscreen()) small.add(fullBtn)
         side.add(small)
         root.add(side)
 
@@ -178,8 +189,8 @@ class Launcher : Screen {
         window.requestAnimationFrame { tick() }
     }
 
-    override fun attach() { window.addEventListener("resize", onResize); start() }
-    override fun detach() { window.removeEventListener("resize", onResize); running = false }
+    override fun attach() { window.addEventListener("resize", onResize); Display.onFullscreenChange(showFull); showFull(); start() }
+    override fun detach() { window.removeEventListener("resize", onResize); Display.removeListener(showFull); running = false }
 }
 
 // ------------------------------------------------------------------ explore
@@ -364,11 +375,9 @@ class Explore : Screen {
 
 // ------------------------------------------------------------------ settings and the heart page
 
-/** Settings (the app's activity_settings.xml): what is heard when the dance floor's mute button is off. The page has
- *  one switch more than the app: the full screen, where the browser has one to give. */
+/** Settings (the app's activity_settings.xml): what is heard when the dance floor's mute button is off. */
 class Settings : Screen {
     override val root: HTMLElement = el("div", "settings")
-    private var showFull: (() -> Unit)? = null
 
     init {
         val head = el("div", "head")
@@ -393,8 +402,6 @@ class Settings : Screen {
         bind(Texts.SET_SNARE, "snare_on", true)
         bind(Texts.SET_HIHAT, "hihat_on", true)
         bind(Texts.SET_VOICE, "speak_annotations", true)
-        // an iPhone's browser has no full screen to give: there the page goes on the home screen
-        if (Display.canFullscreen()) showFull = switch(Texts.FULL_SCREEN, { Display.isFullscreen() }) { Display.toggle() }
         root.add(el("div", "note", Texts.SET_MUTE_NOTE))
         val about = el("div", "about", Texts.about("web"))
         root.add(about)
@@ -402,13 +409,12 @@ class Settings : Screen {
         window.fetch("version.txt").then({ r -> if (r.ok) r.text().then({ v -> about.textContent = Texts.about("web " + v.trim()) }) })
     }
 
-    override fun attach() { showFull?.let { Display.onFullscreenChange(it) } }
-    override fun detach() { showFull?.let { Display.removeListener(it) } }
 }
 
-/** The heart page (the user's layout draft, revised 2026-10-28; the app's HeartActivity): a note from the user, and
- *  three links: an email to them, their website, and a beer (5, 15 or 30 dollars). Upright, as the user drew it (the
- *  rest is sideways). The website and the beer are not set up yet: a tap says so. */
+/** The heart page (the user's layout draft, revised 2026-10-28; the app's HeartActivity): a note from the user and a
+ *  button that writes them an email. Upright, as the user drew it (the rest is sideways). The draft's two other
+ *  buttons, the user's website and a beer (5, 15 or 30 dollars), are out for now (user 2026-11-21; Texts.HEART_MORE
+ *  brings them back: neither is set up yet, and a tap says so). */
 class Heart : Screen {
     override val root: HTMLElement = el("div", "heart")
     override val sideways: Boolean get() = false
@@ -427,16 +433,18 @@ class Heart : Screen {
             setAttribute("href", "mailto:" + enc(Texts.EMAIL) + "?subject=" + enc(Texts.APP_NAME))   // the "+" of the address encoded, so that no mail app reads it as a space
             add(icon("at"))
         })
-        links.add(el("button", "link press") {
-            title = Texts.MY_WEBSITE; setAttribute("aria-label", Texts.MY_WEBSITE)
-            add(icon("globe"))
-            onclick = { if (Texts.WEBSITE.isEmpty()) toast(Texts.LINK_NOT_SET) else window.open(Texts.WEBSITE, "_blank"); null }
-        })
-        links.add(el("button", "link press") {
-            title = Texts.BUY_BEER; setAttribute("aria-label", Texts.BUY_BEER)
-            add(icon("dollar"))
-            onclick = { beer(); null }
-        })
+        if (Texts.HEART_MORE) {
+            links.add(el("button", "link press") {
+                title = Texts.MY_WEBSITE; setAttribute("aria-label", Texts.MY_WEBSITE)
+                add(icon("globe"))
+                onclick = { if (Texts.WEBSITE.isEmpty()) toast(Texts.LINK_NOT_SET) else window.open(Texts.WEBSITE, "_blank"); null }
+            })
+            links.add(el("button", "link press") {
+                title = Texts.BUY_BEER; setAttribute("aria-label", Texts.BUY_BEER)
+                add(icon("dollar"))
+                onclick = { beer(); null }
+            })
+        } else links.classList.add("one")   // the email button alone, in the middle
         root.add(links)
     }
 

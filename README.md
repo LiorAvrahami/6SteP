@@ -6,15 +6,17 @@ dancers' feet, and every element, building block and composition to step through
 - **Android**: the APK is built by GitHub Actions on every push to `main` and attached to a release:
   **https://github.com/LiorAvrahami/6SteP/releases/latest** — download `6SteP.apk` on the phone and open it.
 - **Web**: the same build publishes the page at **https://lioravrahami.github.io/6SteP/** (any phone or computer). On a
-  phone it is sideways and, after the first tap, full screen where the browser allows; "Add to Home screen" in the
-  browser's menu makes it open like an app.
+  phone it is sideways and takes the full screen at the first tap, wherever that tap lands (a browser gives a page the
+  full screen only at a tap, never when it loads), and again at the next tap whenever it lost it; the launcher's
+  fourth small button leaves the full screen for good, or takes it back. "Add to Home screen" in the browser's menu
+  makes it open like an app, full screen from the first moment.
 
 ## One engine, two fronts (since 2026-11-20)
 
 | Module | What it is |
 |---|---|
 | `shared/` | The dance engine, in Kotlin that knows nothing of Android or of the browser: the dance data, the composer, the timeline, the music's beat grids and plan, the drawing (shoes, arrows, the floor's camera, the strip of steps) through a small canvas interface, the dance floor's whole logic (stepping, play, jumps, annotations), the explore list, the texts. |
-| `app/` | The Android app. Its screens and its sound are still its own code; the dance data, the composer, the timeline and the beat grids come from `shared/`. |
+| `app/` | The Android app. Its drawing, its sound and its screens around the dance floor are still its own code; the dance data, the composer, the timeline, the beat grids and (since 2026-11-21) the dance floor's whole logic come from `shared/`. |
 | `web/` | The web front, in Kotlin compiled to JavaScript: screens and sound for the browser, everything else from `shared/`. |
 
 - `gradle :shared:jvmTest` tests the engine: everything shipped can be danced, and the shared texts say what the Android
@@ -38,7 +40,7 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
 
 - **Launcher**: the daily exercise (with how long it takes at the chosen song and tempo), explore, and a little floor that
   dances the "quick recap" (every element once, in the order they were learned) at 1.5 times its speed; the heart (thanks and links), settings, and help (two explanations
-  with arrows where the little floor is).
+  with arrows where the little floor is); on the web page a fourth small button, the full screen.
 - **Explore**: three groups that fold. Elements: the user's own list, in their order, whether each is an element or a
   building block underneath (rock step, rock triple triple, triple step, side to side, follower underarm and back,
   follower underarm pass, rock back cutoff, lead underarm pass, circle, follower underarm to arrow); Compositions, with
@@ -52,21 +54,24 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   are there a dashed arrow shows the path each foot that stepped came by, with a small round arrow in the dancer's
   colour beside it when the foot turns more than a quarter turn, showing which way (one way of stepping since
   2026-11-17; before, a button chose between a "flow" and a "schema" mode).
-  Swipe down: the bars; a tap on the floor closes them. Double tap or play: play (the bars close); a tap while playing
-  pauses, at once; a swipe while
-  playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
+  Swipe down: the bars; swipe up: they go. A tap on the floor plays (the bars go), and a tap while it plays pauses, at
+  once: every tap is one, there is no double tap. A swipe while it plays jumps to the next part, or back to the start
+  of this one (the previous one in its first 2 s). In a composition the dancers get to the part by a lead-in: two rock
+  triple triples (one where only that much dance comes before the part) on the spot where the part starts, in the
+  position it starts from, side by side or face to face, flowing into the part's first step; the title says
+  "rock step — lead-in", "triple step — lead-in".
   Top bar: play/pause, the tempo (the song's tempo variants), the song ("Play all": the songs in their stored order,
   round and round, which is what plays unless something else is chosen; one song over and over; or "Shuffle play"), mute
-  (music, drums and voice), edit (not on the phone yet). Every step has one place in the music (the plan
+  (music, drums and voice), back. Every step has one place in the music (the plan
   of the songs along the dance), and play always starts afresh from the step on the screen: a new player sought to that
   place. Bottom bar: every step, the current one framed, the annotations
   pointing at where they start; a tap on a step goes there. Compositions play once to the end; elements and building
   blocks loop. While a composition plays, the name of each part comes up 2 beats before the part starts and goes away
-  just as it starts; the voice reads it with how many times it repeats, the screen writes only the name. A swipe to a
-  part lands those 2 beats before it. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
+  just as it starts; the voice reads it with how many times it repeats, the screen writes only the name. After a
+  swipe the part's name comes up for the last 2 beats of the lead-in, written and not read aloud. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
   music dips to 60 percent under a spoken annotation and comes back right after it.
-- **Heart**: upright, as the user drew it (the rest of the app is sideways): the note, and the email, website and beer
-  links; the $ button opens "Buy me a Beer" (its words and the amounts) in the same look.
+- **Heart**: upright, as the user drew it (the rest of the app is sideways): the note and the email button. The
+  draft's two other buttons, the website and "Buy me a Beer", are built and hidden for now (`Texts.HEART_MORE`).
 - **Settings**: the snare and hi-hat over the music, the snare, the hi-hat, reading the annotations aloud.
 
 Icons: [Lucide](https://lucide.dev) (ISC licence), converted by `design/make_ui_icons.py` from `design/lucide/`, for the

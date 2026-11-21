@@ -77,14 +77,6 @@ class Modal(boxClass: String) {
     fun close() { if (isOpen) { shade.parentNode?.removeChild(shade); onClose?.invoke() } }
 }
 
-/** a small window with a message and an OK, as an Android alert */
-fun alertBox(text: String) {
-    val m = Modal("alert")
-    m.box.add(el("div", "msg", text))
-    m.box.add(el("button", "ok", org.lior.sixstep.Texts.OK) { onclick = { m.close(); null } })
-    m.open()
-}
-
 /** the largest whole text size from `max` down to `min` at which `inner` is no taller (and no wider) than the room
  *  inside `outer`, as an Android text that sizes itself. The sizes are the app's "sp": px times the phone's text size
  *  setting where the browser tells it (--sp in style.css). */
@@ -107,9 +99,15 @@ fun fitText(outer: HTMLElement, inner: HTMLElement, min: Int, max: Int) {
 /** The page lies the way the Android app's screens do (user 2026-11-21): sideways, all but the heart page, which is
  *  upright as the user drew it; and full screen where the browser allows it.
  *
- *  A page cannot simply tell a phone to turn. What it can do: on the first tap of a visit it asks for the full screen,
- *  and with that for the way the screen should lie (Android's Chrome grants both; put on the home screen, the page gets
- *  them without asking). Wherever the phone still shows the page the other way (the browser refuses, or the phone's
+ *  The full screen comes by itself, as far as a browser lets it (user 2026-11-21: "why can't you just make it happen
+ *  without pressing a button?"). No browser gives a page the full screen when it loads or after a wait: only while a
+ *  tap is being handled. So on a phone or tablet every tap anywhere on the page, whenever the page does not have the
+ *  full screen, takes it: the first tap of a visit, and any tap after the browser has taken it away (the phone's back
+ *  gesture, the file chooser). The launcher's fourth button leaves it for good, and takes it back (`wanted`,
+ *  remembered). Put on the home screen, the page has the full screen from the start, without any tap.
+ *
+ *  A page cannot simply tell a phone to turn either. With the full screen it asks for the way the screen should lie
+ *  (Android's Chrome grants that to a full-screen page; from the home screen the page gets it without asking). Wherever the phone still shows the page the other way (the browser refuses, or the phone's
  *  rotation is locked), the page turns itself: its one box (#app) is laid out the way the screen wants it and drawn
  *  turned a quarter. A sideways page on an upright phone is then right for whoever holds the phone sideways, top to
  *  the left, as an Android app in landscape is held. A computer's window is left as it is.
@@ -121,9 +119,12 @@ object Display {
     var quarter = 0
         private set
     private var sideways = true
-    private var tapped = false
-    private var regain = false   // the page lent the screen to something else while it had the full screen: the next tap takes it back
     private val listeners = ArrayList<() -> Unit>()
+    /** on a phone or tablet the page takes the full screen at every tap that finds it without; the launcher's button
+     *  switches that off and on, and the browser remembers it */
+    var wanted: Boolean
+        get() = Prefs.bool("full_screen", true)
+        private set(v) = Prefs.put("full_screen", v)
 
     fun start() {
         update()
@@ -213,7 +214,7 @@ object Display {
     }
 
     /** the full screen, and the right way round with it; only from a tap */
-    fun enter() {
+    private fun enter() {
         val el: dynamic = document.documentElement
         try {
             val p: dynamic = if (jsTypeOf(el.requestFullscreen) == "function") el.requestFullscreen(js("({ navigationUI: 'hide' })")) else el.webkitRequestFullscreen()
@@ -222,29 +223,20 @@ object Display {
         lock()
     }
 
-    fun leave() {
-        regain = false
+    private fun leave() {
         val d: dynamic = document
         try { if (jsTypeOf(d.exitFullscreen) == "function") d.exitFullscreen() else if (jsTypeOf(d.webkitExitFullscreen) == "function") d.webkitExitFullscreen() } catch (e: Throwable) {}
     }
 
-    fun toggle() { if (isFullscreen()) leave() else enter() }
-
-    /** The page is about to hand the screen to something else for a moment (the device's file chooser). A browser may
-     *  take the full screen away over that; when it does, the next tap on the page takes it back. */
-    fun lending() { if (isFullscreen()) regain = true }
-
-    private fun onTap() {
-        if (regain && !isFullscreen()) { regain = false; if (canFullscreen()) enter(); return }
-        firstTap()
+    /** the launcher's button: out of the full screen, to stay out; or into it, to stay in */
+    fun toggle() {
+        if (isFullscreen()) { wanted = false; leave() } else { wanted = true; enter() }
     }
 
-    /** the first tap of a visit on a phone: the full screen and the right way round, once. Left again, it stays left
-     *  until the settings page's switch is used (a page that kept going back to the full screen could not be got out of). */
-    private fun firstTap() {
-        if (tapped) return
-        tapped = true
-        if (!handheld()) return
+    /** a tap anywhere on the page: on a phone or tablet it takes the full screen and the right way round, whenever the
+     *  page does not have them and has not been told to stay out */
+    private fun onTap() {
+        if (!handheld() || !wanted) return
         if (installed()) lock() else if (canFullscreen() && !isFullscreen()) enter()
     }
 }

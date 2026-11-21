@@ -1,6 +1,6 @@
 <!-- @license lucide-static v1.63.0 - ISC -->
 <svg
-  class="lucide lucide-pencil"
+  class="lucide lucide-maximize"
   xmlns="http://www.w3.org/2000/svg"
   width="24"
   height="24"
@@ -11,6 +11,8 @@
   stroke-linecap="round"
   stroke-linejoin="round"
 >
-  <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
-  <path d="m15 5 4 4" />
+  <path d="M8 3H5a2 2 0 0 0-2 2v3" />
+  <path d="M21 8V5a2 2 0 0 0-2-2h-3" />
+  <path d="M3 16v3a2 2 0 0 0 2 2h3" />
+  <path d="M16 21h3a2 2 0 0 0 2-2v-3" />
 </svg>

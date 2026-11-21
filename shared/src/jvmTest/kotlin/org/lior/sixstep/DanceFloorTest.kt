@@ -10,8 +10,8 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /** The dance floor's logic on the shipped daily exercise, with a screen and a sound made of nothing but a clock that the
- *  test moves: opening, stepping (the feet travel, then the arrows come), play, the annotations 2 beats ahead, a jump to
- *  the next part, a pause, and the end of a piece. */
+ *  test moves: opening, stepping (the feet travel, then the arrows come), play, the annotations 2 beats ahead, a swipe
+ *  to the next part and its lead-in of rock triple triples, a tap that plays and pauses, and the end of a piece. */
 class DanceFloorTest {
     private val assets = File("../app/src/main/assets/dance")
     private val data = DanceData.parse(File(assets, "skeletons.json").readText())
@@ -152,17 +152,34 @@ class DanceFloorTest {
         assertEquals(0, r.host.scene!!.arrows.size, "no arrows while the dance plays")
     }
 
-    @Test fun aSwipeWhilePlayingLandsTwoBeatsBeforeTheNextPartAndDoesNotReadIt() {
+    @Test fun aSwipeWhilePlayingGoesToTheNextPartThroughTwoRockTripleTriples() {
         val r = rig(exercise)
         r.floor.playPause()
         r.run(5000.0)   // into "side to side" (beat 6 to 30)
         val spokenBefore = r.player.spoken.size
         r.floor.swipe(true)
-        assertTrue(abs(r.player.beatNow() - 28.0) < 0.05, "the jump lands at beat 28, 2 beats before the part at 30: ${r.player.beatNow()}")
-        r.run(100.0)
-        assertEquals("send out and bring back", r.host.scene?.banner, "the part's name is on the screen")
-        r.run(1500.0)
-        assertNull(r.host.scene?.banner, "and gone once the part has started")
+        assertTrue(abs(r.player.beatNow() - 18.0) < 0.05, "the swipe lands 12 beats before the part at 30: ${r.player.beatNow()}")
+        // the lead-in: rock step, triple step, triple step, twice, with their own counts; no step of the piece is framed
+        val titles = ArrayList<String>(); val counts = ArrayList<String>()
+        var bannerUp: Double? = null
+        r.run(5900.0) {   // to beat 29.8
+            val sc = r.host.scene!!
+            if (titles.lastOrNull() != sc.title) titles.add(sc.title)
+            if (counts.lastOrNull() != sc.count) counts.add(sc.count)
+            if (sc.banner != null && bannerUp == null) bannerUp = r.player.beatNow()
+            assertEquals(-1, r.host.current, "during the lead-in no step of the piece is the current one")
+            assertEquals(0, sc.arrows.size)
+        }
+        val rock = "rock step" + Texts.LEAD_IN_SUFFIX; val triple = "triple step" + Texts.LEAD_IN_SUFFIX
+        assertEquals(listOf(rock, triple, rock, triple), titles, "what the dancers dance on their way in")
+        assertEquals(listOf("1", "2", "3", "3&", "4", "5", "5&", "6", "1", "2", "3", "3&", "4", "5", "5&", "6"), counts)
+        assertTrue(abs(bannerUp!! - 28.0) < 0.1, "the part's name comes up 2 beats before the part: at beat $bannerUp")
+        assertEquals("send out and bring back", r.host.scene?.banner)
+        // the part itself: the composition's own picture again, its name gone, its steps framed below
+        r.run(200.0)
+        assertFalse(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX), "at beat ${r.player.beatNow()} the part is danced: ${r.host.scene?.title}")
+        assertNull(r.host.scene?.banner, "the name is gone once the part has started")
+        assertTrue(r.host.current > 0)
         assertEquals(spokenBefore, r.player.spoken.size, "the part a swipe went to is not read aloud")
         // a tap pauses: the stop at rest, with its arrows
         r.floor.tap()
@@ -170,40 +187,107 @@ class DanceFloorTest {
         assertTrue(r.host.current > 0)
     }
 
-    @Test fun oneTapPausesAtOnceAndTwoTapsPlay() {
+    @Test fun swipesDuringALeadInGoOnePartFurtherAndAPauseStandsAtThePart() {
         val r = rig(exercise)
-        // the bars are open: a tap closes them, and does not start anything
+        r.floor.playPause()
+        r.run(5000.0)                       // in "side to side" (6 to 30)
+        r.floor.swipe(true); r.run(500.0)   // on the way into "send out and bring back" (30)
+        assertTrue(abs(r.player.beatNow() - 19.0) < 0.1)
+        // forward again: the part after it, not the same one once more
+        r.floor.swipe(true)
+        val second = r.player.beatNow() + 12.0
+        assertTrue(second > 31.0, "the next part starts at beat $second")
+        r.run(500.0)
+        // back, still on the way in: the part before (the one at 30), by its own lead-in
+        r.floor.swipe(false)
+        assertTrue(abs(r.player.beatNow() - 18.0) < 0.05, "back from a lead-in goes to the part before: ${r.player.beatNow()}")
+        // and back again: "side to side" at beat 6 has only one rock triple triple of dance before it, so it gets one
+        r.run(300.0); r.floor.swipe(false)
+        assertTrue(abs(r.player.beatNow() - 0.0) < 0.05, "a part 6 beats into the dance is entered from beat 0: ${r.player.beatNow()}")
+        r.run(1000.0)
+        assertTrue(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX))
+        // and once more: the very beginning
+        r.floor.swipe(false)
+        assertTrue(abs(r.player.beatNow() - 0.0) < 0.05)
+        r.run(500.0)
+        assertFalse(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX), "the beginning is the piece itself: ${r.host.scene?.title}")
+        // a pause in a lead-in: the dance stands on the first step of the part it was going to
+        r.floor.swipe(true); r.run(1000.0)                     // towards "side to side" again
+        assertTrue(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX))
         r.floor.tap()
-        assertFalse(r.host.bars, "a tap closes the bars")
         assertFalse(r.floor.playing)
-        r.run(1000.0)
-        // two taps close together: play
-        r.floor.tap(); r.run(120.0)
-        assertFalse(r.floor.playing, "one tap alone does not start the dance")
+        val stood = r.host.current
+        assertTrue(r.host.scene!!.title.contains("side to side"), "paused in a lead-in, the dance stands on the part's first step: ${r.host.scene?.title}")
+        assertEquals("3", r.host.scene?.count, "which is the first step of side to side's triple step")
+        assertFalse(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX))
+        // play from there: the part, announced as from any start
+        val spoken = r.player.spoken.size
         r.floor.tap()
-        assertTrue(r.floor.playing, "the second tap, 120 ms after the first, starts it")
-        r.run(3000.0)
-        // one tap: paused there and then, with nothing to wait for
-        r.floor.tap()
-        assertFalse(r.floor.playing, "a single tap pauses at once")
-        // a second tap right behind it (the old habit of tapping twice to pause) leaves the dance paused
-        r.run(150.0); r.floor.tap()
-        assertFalse(r.floor.playing, "the second tap of a double tap does not start the dance again")
-        // after that pair, two taps are a double tap again
-        r.run(1000.0)
-        r.floor.tap(); r.run(100.0); r.floor.tap()
         assertTrue(r.floor.playing)
-        // the bars brought up while it plays: a tap closes them and the dance goes on; a second one close behind pauses
+        r.run(300.0)
+        assertTrue(r.host.current >= stood)
+        assertTrue(r.player.spoken.size > spoken, "started on a part's first step by hand, its name is read")
+        // a tap on a step of the bottom bar while it plays goes straight there, without a lead-in
+        r.floor.tapStop(60); r.run(100.0)
+        assertFalse(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX))
+        assertTrue(r.host.current >= 60)
+    }
+
+    /** every part of every shipped composition, reached by swipes: the lead-in ends in the very picture the part
+     *  starts with (no foot jumps when the composition's own steps take over) */
+    @Test fun aLeadInFlowsIntoItsPartWithoutAJump() {
+        for (c in store.compositions) {
+            val r = rig(c.name, tempo = 240.0)
+            r.floor.playPause()
+            fun tick() { r.clock.ms += 1.0; r.host.frame() }   // a frame every millisecond: 0.004 beats
+            repeat(1500) { tick() }
+            var parts = 0; var worst = 0.0; var worstAt = ""; var withLead = 0
+            while (true) {
+                val before = r.player.beatNow()
+                r.floor.swipe(true)
+                if (abs(r.player.beatNow() - before) < 1e-9) break   // no part after the last one
+                parts++
+                tick()
+                if (!r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX)) { repeat(600) { tick() }; continue }   // a part without a lead-in
+                withLead++
+                var last = r.host.scene!!
+                var guard = 0
+                while (r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX) && guard++ < 20000) { last = r.host.scene!!; tick() }
+                val first = r.host.scene!!
+                for ((foot, p) in first.feet) {
+                    val q = last.feet[foot]!!
+                    val d = kotlin.math.hypot(p.x - q.x, p.y - q.y)
+                    if (d > worst) { worst = d; worstAt = "${first.title}, foot $foot" }
+                }
+                repeat(300) { tick() }
+            }
+            println("lead-ins of \"${c.name}\": $parts parts, $withLead with a lead-in, the largest step of a foot where the piece takes over: ${"%.2f".format(worst)} cm ($worstAt)")
+            assertTrue(parts > 0 || c.name.contains("facing"), "${c.name} has parts to swipe to")
+            assertTrue(worst < 1.0, "${c.name}: a foot jumps $worst cm where the lead-in hands over to $worstAt")
+        }
+    }
+
+    @Test fun aTapPlaysAndATapPauses() {
+        val r = rig(exercise)
+        assertTrue(r.host.bars, "opened standing, with the bars")
+        r.floor.tap()
+        assertTrue(r.floor.playing, "a tap starts the dance")
+        assertFalse(r.host.bars, "and play closes the bars")
+        r.run(3000.0)
+        r.floor.tap()
+        assertFalse(r.floor.playing, "a tap pauses, at once")
+        r.run(150.0)
+        r.floor.tap()
+        assertTrue(r.floor.playing, "and the next tap, however soon, continues the dance: there is no double tap")
+        // the bars brought up while it plays: a tap still pauses; a swipe up closes them
         r.run(1000.0)
         r.floor.swipeDown()
         assertTrue(r.host.bars)
         r.floor.tap()
-        assertFalse(r.host.bars); assertTrue(r.floor.playing, "the tap that closes the bars does not pause")
-        r.run(100.0); r.floor.tap()
-        assertFalse(r.floor.playing, "tapped twice with the bars open: paused")
-        // two taps far apart are two single taps: neither starts the dance
-        r.run(1000.0); r.floor.tap(); r.run(600.0); r.floor.tap()
         assertFalse(r.floor.playing)
+        assertTrue(r.host.bars, "a tap does not close the bars")
+        r.floor.swipeUp()
+        assertFalse(r.host.bars)
     }
 
     @Test fun theSongMenuHasPlayAllFirstAndShufflePlayLast() {

@@ -220,8 +220,11 @@ commit (there is no diff step any more: the editor's file is the only version). 
   and `TrackVariant`, the clocks, `Metronome`, `Speaker`, `MusicPlayer`), `Playback.kt` (the music plan and the playing: made
   from scratch at every play, see Clocks), `Ui.kt` (the draft's colours, outlined boxes), and the activities: `MainActivity`
   (the launcher; keep the class name, home-screen shortcuts point at it), `DanceFloorActivity` (extras `kind`
-  element|block|composition, `name`, `variant`, `autoplay`; it always opens on the first step), `ExploreActivity`, `HeartActivity` (the email, the
-  website and the beer links: `WEBSITE` and `PAY_URL` are still empty, the user has to give them), `SettingsActivity`.
+  element|block|composition, `name`, `variant`, `autoplay`; it always opens on the first step; since 2026-11-21 it is
+  only the screen of the shared `DanceFloor`, see section 10), `ExploreActivity`, `HeartActivity` (the note and the
+  email button; the website and the beer buttons are built but hidden since 2026-11-21, when the user wanted them
+  out "for now": `Texts.HEART_MORE` shows them again in both fronts; `WEBSITE` and `PAY_URL` are still empty),
+  `SettingsActivity`.
   `tools/check_app.py` checks resources, ids, string arguments and leftovers before a push.
 - **Clocks and the music plan** (`Playback.kt`, rewritten 2026-10-28 after the user found the dance jittering on play
   after a pause and a few steps: "when pausing there should be no memory of the animation left over, playing should
@@ -241,21 +244,47 @@ commit (there is no diff step any more: the editor's file is the only version). 
   `stop()` releases every player and forgets the clock, the drums, the voice and everything scheduled. A change of song,
   tempo or mute while playing is a stop and a play from the same beat (so unmute picks the music up where the dance is).
   The clock never wraps: the floor maps a looping piece onto its timeline (`playBeat`, `pieceBeat`, `clockBeat` in
-  `DanceFloorActivity`) and tells `Playback` where elements start (`boundaryAfter`); a pause keeps only the step and
+  the shared `DanceFloor`) and tells `Playback` where elements start (`boundaryAfter`); a pause keeps only the step and
   which loop it is in. The old engine's in-place seeks, tempo crossfades and track hand-overs are gone.
 - **The dance floor** (one for everything since 2026-10-28; the old `PlayerActivity` and `FloorActivity` are gone).
   Swipe left or right: the next or previous stop (the start position one beat before count 1, then every instant a foot
   lands; it wraps round): the feet travel there (`step()`: every travel takes `STEP_BEATS`, a third of a beat, and plays
   that stretch of the dance at an even rate), and once they are there the stop's dashed arrows come, both dancers at
-  once (one way of stepping since 2026-11-17; the flow and schema modes and their button are gone). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap while
-  playing pauses at once, the moment the finger lifts (user 2026-11-21: "you don't need to double tap in order to
-  pause. A single tap is enough": until then a tap waited 0.3 s to see whether a second one followed, which felt as if
-  nothing had happened; now a tap acts at once and a second one close behind makes a double tap, which adds nothing
-  when the first has already paused: `DanceFloor.tap()`, and `onSingleTapUp` in the activity); a swipe while playing jumps to the next part or back (the old player's 2 s rule,
-  `BACK_REPLAY_SECONDS`): a composition's entries, any other piece's elements. Top bar: play/pause, tempo (the 7 offsets
+  once (one way of stepping since 2026-11-17; the flow and schema modes and their button are gone). Swipe down: the
+  bars; swipe up: they go. **A tap on the floor plays, and a tap while it plays pauses**, at once, the moment the
+  finger lifts (user 2026-11-21, twice: first "you don't need to double tap in order to pause. A single tap is
+  enough", then, the same day, "I want a single tap in the dance screen to continue playing the dance instead of a
+  double tap"). There is no double tap any more: `DanceFloor.tap()` is play/pause and every tap is one (in the
+  activity `onSingleTapUp` of a detector whose double-tap listener is taken away; on the page every `pointerup` that
+  stayed within 20 px), so two quick taps pause and play again. A tap does not close the bars by itself any more:
+  playing closes them, and so does a swipe up. A swipe while playing jumps to the next part or back (the old player's
+  2 s rule, `BACK_REPLAY_SECONDS`): a composition's entries, any other piece's elements.
+  **In a composition the dancers get to the part by a lead-in** (user 2026-11-19: "if I go back or forwards, like
+  during play, not when it's paused ... then start by adding twice rock triple triple in place"; asked for again on
+  2026-11-21; `jumpTo`, `makeLeadIn` and `leadScene` in `DanceFloor`, since v66). The clock, and the music with it,
+  starts 12 beats before the part, and for those beats the floor shows two rock triple triples (rock step, triple
+  step, triple step) danced on the spot where the part starts, in the position it starts from, side by side or face
+  to face (with the user's face-to-face rock step and triple steps of 2026-11-20), on the leader's free foot of that
+  moment. A part with only one rock triple triple's worth of dance before it (the exercise's first part, at beat 6)
+  gets one. A part with less than that before it, or one that starts where no rock step stays in the position
+  (reversed side by side; the leader's right foot free: none in the shipped compositions), is entered as before:
+  2 beats ahead, in the composition's own last steps. The lead-in is composed on its own from the part's start
+  position with the part's first element behind it, and then moved and turned onto the place where the composition
+  has that element (their steps must agree to 0.05 cm, or there is no lead-in). What was danced before a part may
+  have left a foot elsewhere than a rock triple triple leaves it (up to 8.5 cm in the daily exercise), so each
+  foot's last step of the lead-in lands where the composition has that foot, and nothing jumps at the hand-over
+  (`DanceFloorTest.aLeadInFlowsIntoItsPartWithoutAJump`: every part of the shipped compositions, 0.01 cm at most).
+  During the lead-in the title is the element's name with " — lead-in" (`Texts.LEAD_IN_SUFFIX`) in the filler
+  colour, no step is framed in the bottom bar, and the part's name comes up for the last 2 beats, written and not
+  read aloud; a swipe forward goes to the part after the one being approached, a swipe back to the one before it; a
+  pause stands on the part's first step. A tap on a step in the bottom bar goes straight there, without a lead-in
+  (the user, 2026-11-20). Elements and building blocks, which loop, jump as before (a guess: the user spoke of
+  compositions). Top bar: play/pause, tempo (the 7 offsets
   of the song's variants, the same offset for every song), song (the menu: "Play all" first, each song in the stored
   order, "Shuffle play" last; the button shows the song that plays), mute (music,
-  drums and voice; a change of any of these while playing is a stop and a play from the same beat), edit (a "not implemented yet" note).
+  drums and voice; a change of any of these while playing is a stop and a play from the same beat), back. (The edit button, which only
+  said "not implemented yet", went on 2026-11-21: "we're not going to be editing dances via the phone, only on the
+  web app on my computer".)
   Bottom bar: every stop, the current one framed and followed while playing, the annotations (a composition's "say:"
   texts and entry names; a building block's element names) as khaki callouts; tap a stop to go there. Compositions play
   once and end on "Done!". Play starts from exactly the picture of the step (the beat where its weight has settled);
@@ -457,6 +486,16 @@ commit (there is no diff step any more: the editor's file is the only version). 
   and "Shuffle play" its last (see Playback above). Whoever had chosen a song or the shuffle before that day
   starts with "Play all" once (the stored flag `play_all_first`, in both fronts: the user's phone had an earlier
   choice stored, so the new default would not have shown); what is chosen from then on stays. In the web page only: every screen laid out as the app's (section 10).
+  2026-11-21, a second round the same day (v66), after the user had looked again: a tap also plays (no double tap
+  left anywhere); a swipe while a composition plays goes to the part through its lead-in of rock triple triples (both
+  under "The dance floor" above); the dance floor's edit button is gone; the heart note lost its second paragraph
+  ("Please describe with complete genuineness and honesty ...": the user: "also delete this part"), and the website
+  and "Buy me a Beer" buttons are hidden "for now"; the web page takes the full screen by itself at any tap and its
+  launcher has the full-screen button back (section 10); and the Android dance floor now runs the shared `DanceFloor`
+  (section 10), which is how the tap and the lead-in reached both fronts as one piece of code. The user had written
+  that the single tap for play and the lead-in were "not addressed" in v61 to v65: the first had been built as "one
+  tap pauses, two taps play", the second had been left in `TODO.md` as "later". When the user lists points, build all
+  of them or say at once which ones wait.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
@@ -501,18 +540,24 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   (`build.gradle.kts`), no Android plugin in `shared/`.
 - **What the Android app takes from `shared/` so far:** the dance data, the compositions, the composer, the timeline,
   the pieces, the beat grids and the tracks (`app/.../Assets.kt` reads their files from the assets under the old
-  names: `DanceData.load`, `CompositionStore(ctx)`, `BeatGrid.loadFor`, `Track.loadAll`). Its screens, its drawing
-  (`FloorView`, `StepStrip`) and its sound (`Playback`, `Audio.kt`) are still its own code, unchanged.
+  names: `DanceData.load`, `CompositionStore(ctx)`, `BeatGrid.loadFor`, `Track.loadAll`); and, **since 2026-11-21 (v66), the
+  dance floor's whole logic**: `DanceFloorActivity` is the shared `DanceFloor`'s screen (a `FloorHost`: it passes on
+  the gestures and the buttons and shows what it is told to: the picture, the bottom bar, the bars sliding, the
+  buttons' faces, the menus from `tempoChoices()` and `songChoices()`), and `Playback` is its `FloorPlayer`. So
+  stepping, play and pause, the annotations, the jumps with their lead-in and every word the floor says are one code
+  for both fronts; the app's own copies of the floor's words left `strings.xml` (`TextsTest` still compares the words
+  that both have). **This switch was compiled on GitHub and read through line by line, but the maintainer could not
+  run it on a phone** (the cloud session has no Android SDK): if the user reports the Android dance floor behaving
+  oddly from v66 on, look there first. Still the app's own code: its drawing (`FloorView`, `StepStrip`), its sound
+  (`Playback`, `Audio.kt`) and its other screens.
 - **What is in `shared/` for the web front now, and for the Android app to take over next** (so that a change is made
   once): `Draw` (the canvas interface), `FeetPainter`, `FloorPicture` (the floor and its camera), `StripPainter`,
-  `DanceFloor` (the dance floor's logic without its screen, talking to a `FloorPlayer` for the sound and a `FloorHost`
-  for the screen), `MusicPlan` (the music laid along the dance) and `DrumPattern`, `ExploreModel`, `Texts`. They are
-  ports of the Android classes as they stood on 2026-11-20 (`FloorView.kt`, `StepStrip.kt`, `DanceFloorActivity.kt`,
-  the plan inside `Playback.kt`, `ExploreActivity.kt`). **Until the Android app is switched over, a change to the
-  dance floor's behaviour or drawing has to be made in both places.** Do that switch soon: the screens first
-  (`FloorView` and `StepStrip` drawing through an Android `Draw`, `DanceFloorActivity` as a `FloorHost`), the sound last
-  and carefully (the Android `Playback` is tuned to `MediaPlayer`; the web player is a separate, simpler class because
-  a browser can start a sound at an exact time).
+  `MusicPlan` (the music laid along the dance) and `DrumPattern`, `ExploreModel`, `Texts`. They are ports of the
+  Android classes as they stood on 2026-11-20 (`FloorView.kt`, `StepStrip.kt`, the plan inside `Playback.kt`,
+  `ExploreActivity.kt`). **Until the Android app is switched over, a change to the dance floor's drawing, to the
+  explore list or to the music plan has to be made in both places.** Next: `FloorView` and `StepStrip` drawing
+  through an Android `Draw`; the sound last and carefully (the Android `Playback` is tuned to `MediaPlayer`; the web
+  player is a separate, simpler class because a browser can start a sound at an exact time).
 - **The web front** (`web/src/jsMain`): `Main.kt` (the screens by the address's "#" part), `Screens.kt` (launcher,
   explore, settings, the heart page), `FloorScreen.kt` (the dance floor's screen: two canvases, the bars, the gestures;
   arrow keys and the space bar on a keyboard), `Sound.kt` (`WebAssets`: the files; `WebPlayer`: the sound), `Platform.kt`
@@ -538,8 +583,8 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   the "Quick recap" label at the top left, the help view's two coloured explanations with dark blue arrows to the
   tiles' icons), explore (`explore_header.xml`, `explore_row.xml`: the triangle after the heading, rows 92 high, the
   pictures 300 wide, the versions as pills or, when they do not fit, the raised button with its count and list, the
-  always-shown scroll bar), settings (the switch at the right, Android's own), the heart page (upright, the three
-  square buttons, "Buy me a Beer"), the dance floor's bar (with the edit button) and its menus (as Android's own popup
+  always-shown scroll bar), settings (the switch at the right, Android's own), the heart page (upright, the
+  square email button; the website and beer buttons hidden as in the app), the dance floor's bar and its menus (as Android's own popup
   menus: a plain sheet, a round mark at the end of each line). The floor's grid lines are one screen pixel wide, as
   on Android (`FeetPainter.pixel`: the few sizes that are plain screen pixels in the Android drawing are measured in
   it; on a web page it is `1 / devicePixelRatio`, and `CanvasDraw.line` puts such a line exactly on a row of pixels).
@@ -561,20 +606,28 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   icon within 4 px (1.5 dp), the ink of every word and icon within 5 %. The other screens have no picture to measure
   against.
   **What the page has and the app has not:** a back button on explore, settings and the heart page (on a phone the
-  system's back button leaves the full screen first), and the settings page's "Full screen" switch (it was a fourth
-  button on the launcher for a day). Checked against the user's picture of the Android launcher and against the
+  system's back button leaves the full screen first), and the launcher's fourth small button, the full screen (see below).
+  Checked against the user's picture of the Android launcher and against the
   layout files, in the headless browser at the phone's size (914 x 411 px, 2.625 screen pixels per px); the Android
   screens other than the launcher were not seen here, only their layout files.
 - **Sideways and full screen** (user 2026-11-21: "it's not in landscape ... can we make it full screen?"; `Display` in
-  `Platform.kt`). A page cannot simply tell a phone to turn. On the first tap of a visit on a phone or tablet
-  (`(pointer: coarse)`) it asks for the full screen and, with it, for landscape (`screen.orientation.lock`, which
-  Android's Chrome grants to a full-screen page; on the user's phone the page stayed upright and turned itself, see
-  below). The heart page is upright, as in the app: `Screen.sideways` is false for it, `Display.want()` asks the phone
-  for portrait, and where the screen stays sideways the box is turned a quarter the other way (the class
-  `turned-back`). The device's file chooser (the song menu's "Upload…") may cost the page the full screen: the
-  page notes that it had it (`Display.lending`) and the next tap takes it back; the settings page's switch leaves it
-  for good. The first tap's full screen, the switch and this were tried in the headless browser, which does give a
-  page the full screen; the phone's turning could not be. Put on the home screen, the page gets both from `manifest.webmanifest` (`display: fullscreen`,
+  `Platform.kt`). A page cannot simply tell a phone to turn, and **a browser gives a page the full screen only while
+  it is handling a tap, never when the page loads or a second later** (the user, the same day: "why can't you just
+  make it happen without pressing a button?": a request made at load is refused by every browser, so that no page can
+  take the screen unasked). So on a phone or tablet (`(pointer: coarse)`) the page takes it **at every tap that finds
+  it without** (`Display.onTap`: a click listener on the document, in the capture phase, so that it runs before
+  whatever the tap was for): at the first tap of a visit, anywhere, and again after something took it away (the
+  browser's back gesture, or the device's file chooser of the song menu's "Upload…"). With the full screen it asks
+  for landscape (`screen.orientation.lock`, which Android's Chrome grants to a full-screen page; on the user's phone
+  the page stayed upright and turned itself, see below). **The launcher's fourth small button** (back on 2026-11-21
+  at the user's word, "it's fine that you bring it back"; for a day it had been a switch on the settings page) is the
+  way out: it leaves the full screen, and from then on taps leave it alone (`full_screen` is false in the page's
+  storage: `Display.wanted`); pressed again it takes the full screen, and taps keep it again. On a computer a click
+  never takes it; the button works there too. The heart page is upright, as in the app: `Screen.sideways` is false
+  for it, `Display.want()` asks the phone for portrait, and where the screen stays sideways the box is turned a
+  quarter the other way (the class `turned-back`). All of this was tried in the headless browser, which does give a
+  page the full screen; the phone's turning could not be. Put on the home screen, the page has both from its first
+  moment, with no tap, from `manifest.webmanifest` (`display: fullscreen`,
   `orientation: landscape`; the icons are written by `design/make_icon.py`). Wherever the phone still shows the page
   upright (the browser refuses, as an iPhone's is believed to, or the phone's rotation is locked), the page turns
   itself: its one box, `#app`, is laid out sideways and drawn turned a quarter (the class `turned`; held with the
@@ -692,7 +745,4 @@ first and only option for now will be like it is".
 - **Adding songs on Android.** The web page has it (above); the Android app's song menu has no "Upload…" yet. It
   needs a file picker, the file's sound as numbers (`MediaExtractor` and `MediaCodec`, resampled to 48 kHz), a copy of
   the file in the app's storage, and `Playback` taking tracks from there; the recognition itself is shared code.
-- **A lead-in of two rock triple triples after a swipe while playing** (assessed 2026-11-19, the user's answers
-  2026-11-20: only after swipes, the part's name still not read aloud; use their new face-to-face rock and triple
-  steps instead of a bridge). Write it once, in `shared/.../DanceFloor.kt`.
 - The user does not want to hear about licences or the beer button unless they ask.

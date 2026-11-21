@@ -38,9 +38,6 @@ object Texts {
     const val SHUFFLE_PLAY = "Shuffle play"
     const val UPLOAD = "Upload…"
     fun shuffleNow(title: String): String = "Shuffle · $title"
-    const val EDIT = "Edit"
-    const val EDITOR_NOT_READY = "Choreography editor for phone not implemented yet."
-    const val OK = "OK"
     const val MUTE = "Mute the music and the voice"
     const val UNMUTE = "Turn the music and the voice back on"
     const val BACK = "Back"
@@ -48,14 +45,19 @@ object Texts {
     const val START_POSITION = "start position"
     const val READY = "ready"
     const val FILLER_SUFFIX = " — triple step filler"
+    const val LEAD_IN_SUFFIX = " — lead-in"   // the rock triple triples before a part that a swipe went to
     const val DONE = "Done!"
     const val NOTHING_TO_SHOW = "nothing to show"
     const val LOADING_MUSIC = "Loading the music…"   // the web front only: a song that has not arrived yet
     const val FULL_SCREEN = "Full screen"            // the web front only
     const val LEAVE_FULL_SCREEN = "Leave the full screen"
 
-    // the heart page (the user's own words, 2026-10-28, with the spelling put right)
-    const val HEART_NOTE = "Hi, I'm Lior. I made this app for the community, with the intent to help. Nothing would make me happier than getting a genuine, thoughtful email about how someone used and appreciates this app.\n\nPlease describe with complete genuineness and honesty what about this app you liked, and if it made you feel a connection with me, its creator."
+    // the heart page (the user's own words, 2026-10-28, with the spelling put right; its second paragraph, which asked
+    // what the reader liked about the app, was taken out by the user on 2026-11-21)
+    const val HEART_NOTE = "Hi, I'm Lior. I made this app for the community, with the intent to help. Nothing would make me happier than getting a genuine, thoughtful email about how someone used and appreciates this app."
+    /** the heart page's website and beer buttons: out for now (user 2026-11-21: "remove the buy me a beer button and
+     *  the link to my website button for now"). True brings them back, in the Android app and on the web page. */
+    const val HEART_MORE = false
     const val HEART_BEER = "Also, putting apps in the Play Store costs me money. If you feel generous, you can buy me a beer (IRL or via the app)."
     const val EMAIL_ME = "Email me"
     const val MY_WEBSITE = "My website"

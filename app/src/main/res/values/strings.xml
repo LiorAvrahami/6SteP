@@ -24,32 +24,21 @@
     <string name="right_free_short">right free</string>
     <string name="choose_version">Choose the version</string>
 
-    <!-- the dance floor -->
+    <!-- the dance floor: only what its buttons are called. Everything the floor itself says (the tempo and song menus,
+         "start position", "Done!" ...) is the shared engine's (shared/.../Texts.kt), the same for the web page. -->
     <string name="play">Play</string>
     <string name="pause">Pause</string>
     <string name="tempo">Tempo</string>
-    <string name="bpm">%1$d BPM</string>
-    <string name="bpm_original">%1$d BPM · original</string>
     <string name="song">Song</string>
-    <string name="play_all">Play all</string>
-    <string name="shuffle_play">Shuffle play</string>
-    <string name="shuffle_now">Shuffle · %1$s</string>
     <string name="mute">Mute the music and the voice</string>
     <string name="unmute">Turn the music and the voice back on</string>
-    <string name="edit">Edit</string>
     <string name="back">Back</string>
-    <string name="editor_not_ready">Choreography editor for phone not implemented yet.</string>
     <string name="start">start</string>
-    <string name="start_position">start position</string>
-    <string name="ready">ready</string>
-    <string name="filler_suffix">" — triple step filler"</string>
-    <string name="done">Done!</string>
-    <string name="nothing_to_show">nothing to show</string>
     <string name="audio_busy">The sound is busy (a call?). Press play again.</string>
-    <string name="tempo_next_track">%1$d BPM from the next song</string>
 
-    <!-- the heart page (the user's own words, 2026-10-28, with the spelling put right) -->
-    <string name="heart_note">Hi, I\'m Lior. I made this app for the community, with the intent to help. Nothing would make me happier than getting a genuine, thoughtful email about how someone used and appreciates this app.\n\nPlease describe with complete genuineness and honesty what about this app you liked, and if it made you feel a connection with me, its creator.</string>
+    <!-- the heart page (the user's own words, 2026-10-28, with the spelling put right; the user took its second
+         paragraph out on 2026-11-21) -->
+    <string name="heart_note">Hi, I\'m Lior. I made this app for the community, with the intent to help. Nothing would make me happier than getting a genuine, thoughtful email about how someone used and appreciates this app.</string>
     <string name="heart_beer">Also, putting apps in the Play Store costs me money. If you feel generous, you can buy me a beer (IRL or via the app).</string>
     <string name="email_me">Email me</string>
     <string name="my_website">My website</string>

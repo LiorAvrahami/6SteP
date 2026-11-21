@@ -16,8 +16,10 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.TooltipCompat
 
-/** The heart page (the user's layout draft, revised 2026-10-28): a note from the user, and three links: an email to
- *  them, their website, and a beer (5, 15 or 30 dollars). Upright, as the user drew it (the rest of the app is sideways). */
+/** The heart page (the user's layout draft, revised 2026-10-28): a note from the user and a button that writes them an
+ *  email. Upright, as the user drew it (the rest of the app is sideways). The draft's two other buttons, the user's
+ *  website and a beer (5, 15 or 30 dollars), are out for now (user 2026-11-21: "remove the buy me a beer button and
+ *  the link to my website button for now"): Texts.HEART_MORE brings them back, here and on the web page. */
 class HeartActivity : AppCompatActivity() {
     companion object {
         const val EMAIL = "lior.2pi+6step@gmail.com"   // the app's own address at the user's mailbox (user 2026-10-29)
@@ -45,6 +47,8 @@ class HeartActivity : AppCompatActivity() {
         }
         web.setOnClickListener { if (WEBSITE.isEmpty()) notYet() else open(Intent(Intent.ACTION_VIEW, Uri.parse(WEBSITE))) }
         money.setOnClickListener { beer() }
+        // without them (and the room between the three), the email button stands alone in the middle of its row
+        if (!Texts.HEART_MORE) for (id in listOf(R.id.web, R.id.money, R.id.gapMailWeb, R.id.gapWebMoney)) findViewById<View>(id).visibility = View.GONE
     }
 
     /** "Buy me a Beer" (user 2026-10-29): the title, the beer's words, the amounts, in the heart page's look */

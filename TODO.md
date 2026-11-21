@@ -65,46 +65,17 @@ down without doing it. When one is finished, move it to "Done" with the date and
 - On-device tempo stretching (`PlaybackParams`) as the small-APK alternative to the shipped tempo variants.
 - Elements not built yet: Charleston, anything from `reversed_side`, the lead underarm pass from side by side.
 
-### A lead-in of two rock triple triples after a jump while playing
-- **Added:** 2026-11-19, by the user.
-- **What:** "if I go back or forwards, like during play, not when it's paused ... and it goes to the next or the previous
-  annotation, then start by adding twice rock triple triple in place." After a swipe while a composition plays, the
-  dancers first dance two rock triple triples on the spot, and only then the part starts. The user asked for an
-  assessment first: "Don't add it now ... This is a future feature that I want you to think about."
-- **Context** (the assessment given on 2026-11-19):
-  - Today a swipe while playing lands 2 beats before the part (`skip()` and `jumpLead` in `DanceFloorActivity`), in the
-    last beats of the element before it.
-  - Checked with `dance/model.py`: every part of both compositions starts with the leader's left foot free. Parts that
-    start side by side (8 of the exercise's 11): two rock triple triples take 12 beats and end exactly where they
-    started. Parts that start face to face (follower underarm pass, lead underarm pass, tak turn): no triple step
-    stays face to face, so there is no rock triple triple there; two of them side by side and then a quiet follower
-    underarm pass (18 beats) can be composed. With the lead-in composed in front, the dance from the part on is the
-    composition's own (the same versions; after one move and turn of the whole, the steps differ by 0.000 cm), so the
-    picture can return to the composition's timeline without a jump.
-  - What it takes in the app: compose the lead-in when a swipe lands (the existing composer); draw those beats from a
-    second timeline, moved and turned onto the part's place, then go back to the main one; rework `skip()` (where each
-    swipe lands, and which part counts as the current one for "back"); small things: the title and the bottom bar
-    during the lead-in, a pause during it, a part with fewer beats before it than the lead-in needs (start from the
-    beginning), the annotation still 2 beats before the part. The music needs nothing: it starts 12 or 18 beats earlier
-    in the song. About one working session and a round of testing on the phone; the jump logic is where mistakes are
-    likeliest.
-  - If the engine moves into shared code for a web version first (handover section 10), write this once, there.
-- **Answered by the user, 2026-11-20:** for parts that start face to face, use the rock step and the triple steps
-  from face to face that they added that day ("I added one. its in GitHub. Use it instead"): two rock triple triples
-  face to face compose now, 12 beats, ending face to face with the left foot free, the feet 8.3 cm from where they
-  started. Only after swipes, not after a tap on a step in the bottom bar; the part's name is still not read aloud
-  after a jump ("yes").
-- **Where:** in `shared/src/commonMain/kotlin/org/lior/sixstep/DanceFloor.kt` (`skip()`), once for both fronts; and in
-  `app/.../DanceFloorActivity.kt` too if the Android app has not been switched to the shared dance floor by then.
-- **Still a guess:** compositions only (elements and building blocks loop and have no annotations).
-
-### The Android app takes its screens' drawing and its dance floor from the shared engine
+### The Android app takes its screens' drawing from the shared engine
 - **Added:** 2026-11-20, by the maintainer (the user: "try to have the shared part cover as much as possible").
-- **What:** `FloorView`, `StepStrip` and `DanceFloorActivity` still hold their own copies of what `shared/` now has
-  (`FeetPainter`, `FloorPicture`, `StripPainter`, `DanceFloor`, `ExploreModel`), which the web front uses. Switch the
-  Android app over, so that a change is made once: an Android `Draw` on `Canvas`, the views as thin shells, the
-  activity as a `FloorHost`, `Playback` as a `FloorPlayer`. The sound last (handover section 10).
-- **Context:** until this is done, a change to the dance floor has to be made in both places.
+- **Done so far:** since 2026-11-21 (v66) the Android dance floor runs the shared `DanceFloor`: `DanceFloorActivity` is
+  its screen (a `FloorHost`), `Playback` its `FloorPlayer`. That switch was compiled on GitHub and read through, never
+  run on a phone by the maintainer: if the Android dance floor behaves oddly, look there first.
+- **What is left:** `FloorView` and `StepStrip` still hold their own copies of the drawing that `shared/` has
+  (`FeetPainter`, `FloorPicture`, `StripPainter`), and `ExploreActivity` its own copy of `ExploreModel`. Switch them
+  over, so that a change is made once: an Android `Draw` on `Canvas`, the views as thin shells. The sound last
+  (handover section 10).
+- **Context:** until this is done, a change to the floor's drawing or to the explore list has to be made in both
+  places.
 
 ### Adding songs: what is left
 - **Added:** 2026-11-19 and 2026-11-20, by the user; the web page got "Upload…" on 2026-11-21 (v62, handover section 10).
@@ -121,12 +92,20 @@ down without doing it. When one is finished, move it to "Done" with the date and
 - **What:** working without a connection once opened (a service worker), the voice of the Android app (the page uses
   the browser's own voice).
   (Done 2026-11-21: sideways and full screen, and an icon and a name for "add to home screen"; then the whole look of
-  the app, screen by screen, with the help view's arrows and the heart page's website and beer buttons.)
+  the app, screen by screen, with the help view's arrows.)
 - **The other way round:** the Android app's own menus, switches and messages are Android's plain ones, and the page
   copies them. If the user wants them in the app's own look (black outlines, the pink highlight), change both.
 
 ## Done
 
+- **2026-11-21, v66:** "A lead-in of two rock triple triples after a jump while playing" (asked for on 2026-11-19, the
+  user's answers of 2026-11-20, asked for again on 2026-11-21): after a swipe while a composition plays, the dancers
+  dance two rock triple triples on the spot where the part starts, in its start position, and flow into it (one
+  where only 6 beats of dance come before the part; handover section 6, "The dance floor"). Still a guess:
+  compositions only (elements and building blocks loop and jump as before). Also in v66: a tap plays as well as
+  pauses (no double tap); no edit button on the dance floor; the heart note without its second paragraph, the
+  website and beer buttons hidden for now; the web page takes the full screen by itself at any tap, with the
+  launcher's button to leave it; the Android dance floor on the shared `DanceFloor`.
 - **2026-11-21, v62 (web page):** "Adding songs: the listener's own files": the song menu's "Upload…", the window
   that lists the supported songs, the file chooser, the recognition by onset curve, the email for an unknown song.
 - **2026-11-21, v61:** one tap pauses at once; "Play all" first and "Shuffle play" last in the song menu, the songs

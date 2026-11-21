@@ -34,11 +34,16 @@ ICONS = {
     'ic_pause': ('pause', 2.5, {}),
     'ic_volume': ('volume-2', 2.5, {}),
     'ic_volume_off': ('volume-off', 2.5, {}),
-    'ic_pencil': ('pencil', 2.5, {}),
     'ic_back': ('undo-2', 2.5, {}),          # the dance floor's back button (user 2026-10-28)
     'ic_check': ('check', 3.0, {}),          # the selected version pill in explore (tinted white there)
     'ic_close': ('x', 2.5, {}),              # closes the heart page's beer window
     'ic_chevron_down': ('chevron-down', 2.5, {}),
+}
+
+# icons that only the web page has (written to its folder alone, under these names): the launcher's full-screen button
+WEB_ONLY = {
+    'maximize': ('maximize', 2.25, {}),
+    'minimize': ('minimize', 2.25, {}),
 }
 
 ARGS = {'M': 2, 'L': 2, 'H': 1, 'V': 1, 'C': 6, 'S': 4, 'Q': 4, 'T': 2, 'A': 7, 'Z': 0}
@@ -163,6 +168,11 @@ def main():
         with open(os.path.join(OUT, name + '.xml'), 'w', encoding='utf-8', newline='\n') as f:
             f.write('\n'.join(lines) + '\n')
         print('%-16s %-22s %d path(s)' % (name, icon, len(ds)))
+    for name, (icon, width, fills) in WEB_ONLY.items():
+        ds = shapes(os.path.join(SRC, icon + '.svg'))
+        with open(os.path.join(WEB, name + '.svg'), 'w', encoding='utf-8', newline='\n') as f:
+            f.write(web_svg(icon, width, fills, [serialize(parse(d)) for d in ds]))
+        print('%-16s %-22s %d path(s), the web page only' % (name, icon, len(ds)))
 
 
 if __name__ == '__main__':

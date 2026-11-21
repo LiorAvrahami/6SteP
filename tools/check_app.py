@@ -26,7 +26,8 @@ GONE = ['PlayerActivity', 'FloorActivity', 'optionsBar', 'trackPicker', 'bpmPick
         'startDaily', 'metronomeOverMusic', 'speakAnnotations', 'newComposition', 'ic_strategic', 'ic_map',
         'ic_edit', 'bg_chip', 'Smoother', 'normAngle', 'conditionLabel', 'showHands', 'showBodies', 'R.color.panel',
         'R.color.ink', 'R.color.muted', '@color/panel', '@color/ink', '@color/muted',
-        'modeBtn', 'ic_schema', 'ic_flow', 'schema_view', 'flow_view']   # 2026-11-17: one way of stepping, no mode button
+        'modeBtn', 'ic_schema', 'ic_flow', 'schema_view', 'flow_view',   # 2026-11-17: one way of stepping, no mode button
+        'ic_pencil', 'editor_not_ready', 'R.id.edit', '@+id/edit']   # 2026-11-21: no edit button on the dance floor (the user edits on the computer)
 
 CLASHES = {'finish', 'recreate', 'startActivity', 'setResult', 'getIntent', 'getTitle', 'setTitle', 'getWindow',
            'onBackPressed', 'isFinishing', 'runOnUiThread', 'getResources', 'draw', 'layout', 'measure', 'scrollTo',
