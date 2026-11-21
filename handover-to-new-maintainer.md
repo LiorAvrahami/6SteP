@@ -454,8 +454,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   (`Texts.spoken`, which the Android `Speaker` now uses too; the user: "the word yo-yo is pronounced wrong. Maybe put
   an apostrophe there or something"; how it sounds now has not been heard by anybody yet); the songs are stored in
   the order Slow Your Roll, Sunday Reflection, Hot Swing, "Play all" is the first and default choice of the song menu
-  and "Shuffle play" its last (see Playback above; whoever had never chosen a song gets "Play all" now, a chosen
-  "shuffle" stays). In the web page only: every screen laid out as the app's (section 10).
+  and "Shuffle play" its last (see Playback above). Whoever had chosen a song or the shuffle before that day
+  starts with "Play all" once (the stored flag `play_all_first`, in both fronts: the user's phone had an earlier
+  choice stored, so the new default would not have shown); what is chosen from then on stays. In the web page only: every screen laid out as the app's (section 10).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

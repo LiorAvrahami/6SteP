@@ -359,6 +359,9 @@ class WebPlayer(private val assets: WebAssets) : FloorPlayer {
     private var voicePrimed = false
 
     init {
+        // "Play all" is what plays unless something else is chosen (user 2026-11-21). Whoever had chosen a song or the
+        // shuffle before that day starts with "Play all" once; what is chosen from then on stays.
+        if (!Prefs.bool("play_all_first", false)) { Prefs.put("play_all_first", true); Prefs.put("song", MusicPlan.ALL) }
         plan.song = Prefs.str("song", MusicPlan.ALL)
         plan.bpmOffset = Prefs.int("bpm_offset", 0)
         readSettings()

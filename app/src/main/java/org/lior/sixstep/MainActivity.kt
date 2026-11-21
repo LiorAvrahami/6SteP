@@ -123,7 +123,7 @@ class MainActivity : AppCompatActivity() {
      *  played in their order; the songs' average when they are shuffled */
     private fun tempo(): Double {
         val prefs = getSharedPreferences("6step", MODE_PRIVATE)
-        return MusicPlan.startTempo(Track.loadAll(this), prefs.getString("song", Playback.ALL) ?: Playback.ALL, prefs.getInt("bpm_offset", 0))
+        return MusicPlan.startTempo(Track.loadAll(this), Playback.storedSong(prefs), prefs.getInt("bpm_offset", 0))
     }
 }
 

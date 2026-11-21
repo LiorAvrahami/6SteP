@@ -1,6 +1,7 @@
 package org.lior.sixstep
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -36,6 +37,14 @@ class Playback(private val ctx: Context) {
         const val SEEK_WAIT_MS = 600L        // a seek that never reports back: start anyway
         const val START_LATENCY_MS = 30L     // MediaPlayer.start() to the music actually moving, roughly
         const val DUCK_LEVEL = 0.6f          // the music under a spoken annotation
+
+        /** The song choice that is stored: a track's key, ALL or SHUFFLE. "Play all" is what plays unless something
+         *  else is chosen (user 2026-11-21); whoever had chosen a song or the shuffle before that day starts with
+         *  "Play all" once, and what is chosen from then on stays. */
+        fun storedSong(prefs: SharedPreferences): String {
+            if (!prefs.getBoolean("play_all_first", false)) prefs.edit().putBoolean("play_all_first", true).putString("song", ALL).apply()
+            return prefs.getString("song", ALL) ?: ALL
+        }
     }
 
     /** a track's place in the dance: grid beat k0 of `grid` (the track at the session's tempo) falls on dance beat `from`;
@@ -70,7 +79,7 @@ class Playback(private val ctx: Context) {
     var muted = prefs.getBoolean("muted", false)
         private set
     /** a track's key, ALL or SHUFFLE */
-    var song: String = prefs.getString("song", ALL) ?: ALL
+    var song: String = storedSong(prefs)
         private set
     var bpmOffset = prefs.getInt("bpm_offset", 0)
         private set
