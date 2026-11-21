@@ -251,6 +251,7 @@ object Prefs {
     fun int(key: String, fallback: Int): Int = raw(key)?.toIntOrNull() ?: fallback
     fun str(key: String, fallback: String): String = raw(key) ?: fallback
     fun put(key: String, value: Any) { try { localStorage.setItem(PREFIX + key, value.toString()) } catch (e: Throwable) {} }
+    fun remove(key: String) { try { localStorage.removeItem(PREFIX + key) } catch (e: Throwable) {} }
 }
 
 // ------------------------------------------------------------------ the shared drawings on a browser canvas

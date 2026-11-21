@@ -100,7 +100,7 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
         gestures.setIsLongpressEnabled(false)
         floorView.setOnTouchListener { v, ev -> gestures.onTouchEvent(ev); if (ev.action == MotionEvent.ACTION_UP) v.performClick(); true }
         // once the views have their sizes: the bars out of sight, then the first picture (playing at once for the daily
-        // exercise, otherwise with the bars shown)
+        // exercise, otherwise standing on its first step; the bars stay away until a swipe down brings them)
         floorView.post {
             applyBars(0f)
             dance.open()
@@ -125,8 +125,8 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
     // the hints (the shared Hint): which one to show, and what this user has already done once. The flags are kept in
     // the app's preferences, so they stay until the app's data is cleared.
     override fun hint(hint: Hint?) { hintView.show(hint) }
-    override fun knows(what: String): Boolean = getSharedPreferences("6step", MODE_PRIVATE).getBoolean("hint_$what", false)
-    override fun learned(what: String) { getSharedPreferences("6step", MODE_PRIVATE).edit().putBoolean("hint_$what", true).apply() }
+    override fun knows(what: String): Boolean = getSharedPreferences("6step", MODE_PRIVATE).getBoolean(Hint.flagOf(what), false)
+    override fun learned(what: String) { getSharedPreferences("6step", MODE_PRIVATE).edit().putBoolean(Hint.flagOf(what), true).apply() }
     override val stripScrolls: Boolean get() = stripView.canScroll
 
     // ------------------------------------------------------------------ the bars

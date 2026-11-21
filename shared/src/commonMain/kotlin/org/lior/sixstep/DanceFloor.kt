@@ -164,6 +164,7 @@ class DanceFloor(
     private var frameAsked = false
     private var released = false
     private var hint: Hint? = null                // the hint the screen was last told to show
+    private var played = false                    // the dance has played since this floor was opened
     private var swing = Piece.SWING
 
     /** The dancers' way into a part that a swipe went to while a composition plays (user 2026-11-21, in place of the
@@ -221,7 +222,9 @@ class DanceFloor(
     }
 
     /** the first picture, once the screen is there: the first step (the start position), playing at once for the daily
-     *  exercise, otherwise with the bars shown */
+     *  exercise; otherwise standing there, the bars away as when it plays (user 2026-11-21: "I don't like the fact that
+     *  you start a new dance with the bars open. I prefer the bars closed and a hint to swipe down to open them"; until
+     *  then a piece that did not play at once opened with its bars shown) */
     fun open() {
         val t = tl; val p = piece
         if (error != null || t == null || p == null) {
@@ -231,7 +234,7 @@ class DanceFloor(
         host.strip(cellsOf(t, stops, Texts.START), callouts(p, t))
         host.buttons()
         show()
-        if (autoplay) play() else showBars()
+        if (autoplay) play()
         hints()
     }
 
@@ -259,21 +262,25 @@ class DanceFloor(
 
     // ------------------------------------------------------------------ the hints
 
-    /** The one hint that fits what is on the screen, among those whose flag is still down (see Hint). With the bars
-     *  shown, first what the bottom bar can do (its play button is there to be seen); then the tap that pauses while the
-     *  dance plays, or the tap that plays while it stands; and with those known and the bars away, the swipe that
-     *  brings them. */
+    /** The one hint that fits what is on the screen, among those whose flag is still down (see Hint).
+     *  With the bars shown: first what the bottom bar can do, then the tap (the bar's play button is there to be seen).
+     *  With the bars away there are two things to find, the tap and the swipe that brings the bars, and which comes
+     *  first depends on where the user is: on a piece that has just been opened and stands, the swipe (user
+     *  2026-11-21: "the bars closed and a hint to swipe down to open them"); while the dance plays, the tap that
+     *  pauses; and after a pause the tap that plays, which HintPainter holds back for a few seconds ("If someone
+     *  paused, then wait a few seconds ... before you hint them to play"). The other one follows once the first is
+     *  known. */
     private fun hintNow(): Hint? {
         if (released || error != null || tl == null) return null
         fun down(h: Hint) = !host.knows(h.key)
+        val tap = if (playing) Hint.TAP_PAUSE else Hint.TAP_PLAY
         if (barsShown) {
             if (stops.size > 1 && down(Hint.STRIP_TAP)) return Hint.STRIP_TAP
             if (host.stripScrolls && down(Hint.STRIP_SCROLL)) return Hint.STRIP_SCROLL
+            return tap.takeIf { down(it) }
         }
-        if (playing) { if (down(Hint.TAP_PAUSE)) return Hint.TAP_PAUSE }
-        else if (down(Hint.TAP_PLAY)) return Hint.TAP_PLAY
-        if (!barsShown && down(Hint.SWIPE_DOWN)) return Hint.SWIPE_DOWN
-        return null
+        val swipeFirst = !playing && !played
+        return (if (swipeFirst) listOf(Hint.SWIPE_DOWN, tap) else listOf(tap, Hint.SWIPE_DOWN)).firstOrNull { down(it) }
     }
 
     /** tell the screen which hint to show, when that has changed */
@@ -569,7 +576,7 @@ class DanceFloor(
         val from = if (countIn) b - (MusicPlan.COUNT_IN - Piece.LEAD_IN) else b + (settled(ptl, playBeat(b)) - playBeat(b))
         pb.play(from)
         if (!pb.playing) { standAt(from); return }   // the sound is busy (a call)
-        playing = true
+        playing = true; played = true
         hold = if (countIn) b else Double.NEGATIVE_INFINITY
         lastCue = cues.indexOfLast { it.first < b - 0.01 }   // an element starting on this step is announced, one under way is not
         silentUntil = if (quiet) b + 0.05 else Double.NEGATIVE_INFINITY

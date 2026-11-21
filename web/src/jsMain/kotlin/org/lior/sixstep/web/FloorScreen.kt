@@ -332,8 +332,8 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         hintTimer?.let { window.clearTimeout(it) }; hintTimer = null
         ask()
     }
-    override fun knows(what: String): Boolean = Prefs.bool("hint_$what", false)
-    override fun learned(what: String) { Prefs.put("hint_$what", true) }
+    override fun knows(what: String): Boolean = Prefs.bool(Hint.flagOf(what), false)
+    override fun learned(what: String) { Prefs.put(Hint.flagOf(what), true) }
     override val stripScrolls: Boolean get() { fit(); return strip.maxOffset() > 0.5 }
 
     /** the song menu's "Upload…": the dance stops, and the window in which a song of the listener's own is added

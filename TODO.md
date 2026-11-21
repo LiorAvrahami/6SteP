@@ -98,11 +98,13 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-21, v72:** the hints after the user tried them: one quick animation (a swipe: two) every 4 seconds, four
+  to five times quicker than v71's; the hint to play waits 4 s after a pause; a piece opens with its bars away and
+  hints at the swipe down; Settings has "Show the dance floor's hints again".
 - **2026-11-21, v71:** hints on the dance floor (the user: "the most minimalistic addition to the interface that will
   make it so that people will engage with it in the ways that they can"): five small pictures, one at a time, each
   with a flag that goes up for good when its gesture is used (handover section 6, "The hints"). Open with the user:
-  whether the pictures and their places are right; whether the swipe to the left and right on the floor and the swipe
-  up get hints too; whether Settings gets a "show the hints again".
+  whether the swipe to the left and right on the floor and the swipe up get hints too (asked on v71, not answered).
 - **2026-11-21, v70:** the two face-to-face triple steps are counted 3, 3&, 4 and 5, 5&, 6 (they were written 1, 1&, 2;
   the user: "fix it"). Only the labels changed.
 - **2026-11-21, v69:** the web page reads with Google's voice, as the Android app (the browser's own voice when

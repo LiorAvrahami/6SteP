@@ -4,6 +4,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.view.View
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.materialswitch.MaterialSwitch
 
@@ -29,6 +30,17 @@ class SettingsActivity : AppCompatActivity() {
         bind(R.id.setSnare, "snare_on", true)
         bind(R.id.setHihat, "hihat_on", true)
         bind(R.id.setVoice, "speak_annotations", true)
+        // the dance floor's hints from the beginning: every flag down again (user 2026-11-21: "add a button in the
+        // settings to reset the hints")
+        findViewById<TextView>(R.id.hintsAgain).let { again ->
+            again.background = Ui.box(this, Color.WHITE)
+            again.setOnClickListener {
+                val e = prefs.edit()
+                for (h in Hint.values()) e.remove(h.flag)
+                e.apply()
+                Toast.makeText(this, R.string.hints_again_done, Toast.LENGTH_SHORT).show()
+            }
+        }
         val version = try { packageManager.getPackageInfo(packageName, 0).versionName ?: "" } catch (e: Exception) { "" }
         findViewById<TextView>(R.id.about).text = getString(R.string.about, version)
     }

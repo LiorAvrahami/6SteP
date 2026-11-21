@@ -97,6 +97,9 @@ object Texts {
     const val SET_MUTE_NOTE = "The mute button on the dance floor silences everything at once: the music, the drums and the voice."
     // the switch for the lead-in (user 2026-11-21: "make this feature toggleable in the settings"); its words are the maintainer's
     const val SET_LEAD_IN = "After a swipe while playing: two triple steps in place before the part"
+    // the button that puts the dance floor's hints' flags down again (user 2026-11-21: "add a button in the settings to reset the hints")
+    const val SET_HINTS_AGAIN = "Show the dance floor's hints again"
+    const val HINTS_AGAIN_DONE = "The hints will show again"
     fun about(version: String): String = "6SteP $version · font: Inter (SIL Open Font License) · icons: Lucide (ISC License)"
 
     private val LEAD = Regex("\\blead\\b", RegexOption.IGNORE_CASE)

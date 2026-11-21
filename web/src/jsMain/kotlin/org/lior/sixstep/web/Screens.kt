@@ -10,6 +10,7 @@ import org.lior.sixstep.MusicPlan
 import org.lior.sixstep.Piece
 import org.lior.sixstep.Scene
 import org.lior.sixstep.StripPainter
+import org.lior.sixstep.Hint
 import org.lior.sixstep.Texts
 import org.lior.sixstep.Timeline
 import org.w3c.dom.Element
@@ -406,6 +407,11 @@ class Settings : Screen {
         bind(Texts.SET_HIHAT, "hihat_on", true)
         bind(Texts.SET_VOICE, "speak_annotations", true)
         root.add(el("div", "note", Texts.SET_MUTE_NOTE))
+        // the dance floor's hints from the beginning: every flag down again (user 2026-11-21: "add a button in the
+        // settings to reset the hints")
+        root.add(el("button", "setting box again", Texts.SET_HINTS_AGAIN) {
+            onclick = { for (h in Hint.values()) Prefs.remove(h.flag); toast(Texts.HINTS_AGAIN_DONE); null }
+        })
         val about = el("div", "about", Texts.about("web"))
         root.add(about)
         // which build of the page this is

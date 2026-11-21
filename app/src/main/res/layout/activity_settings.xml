@@ -99,6 +99,23 @@
             android:textSize="14sp"
             android:fontFamily="@font/inter_regular" />
 
+        <!-- the dance floor's hints from the beginning (user 2026-11-21): a row to press, in the look of the switches -->
+        <TextView
+            android:id="@+id/hintsAgain"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:minHeight="56dp"
+            android:gravity="center_vertical"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:text="@string/set_hints_again"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:fontFamily="@font/inter_semibold" />
+
         <TextView
             android:id="@+id/about"
             android:layout_width="match_parent"

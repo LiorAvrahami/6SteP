@@ -334,7 +334,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   (the music does not dip under the voice: user 2026-10-28). A stop's arrows are drawn over the shoes, darker, outlined
   in black. Elements and building blocks loop: chained to about 1200 beats when they close on themselves
   (`chainedLoop`), otherwise from the start position again after 2 beats (an even period keeps the music's bars). The
-  daily exercise opens playing; everything else opens paused with the bars shown. The system bars are hidden on the floor.
+  daily exercise opens playing; everything else opens standing on its first step, the bars away (since v72; with them shown until then). The system bars are hidden on the floor.
 - **Launcher.** The daily exercise's tile shows how long it takes (its beats plus a 4-beat count-in at the chosen song's
   tempo and offset; the first song's for "play all"; the songs' average for shuffle: `MusicPlan.startTempo`); the little floor dances the "quick recap" at 1.5 times that
   tempo (user 2026-10-28: "all the elements that we learned one after the other without repetitions": made in the app
@@ -369,16 +369,31 @@ commit (there is no diff step any more: the editor's file is the only version). 
 
   The pictures have one sign: a round dot is a fingertip; rings going out from it are a tap (the user's own idea: "3
   consecutive circles that appear that indicate that you tap"), and a mark in it says what the tap does; a dot that
-  slides with a tail is a swipe. All in the floor's dark grey, half see-through, no words. A hint waits before it
-  first shows (3 s for the pause, so that the dance is watched first; 1.2 to 2 s for the others), plays for a second
-  or two, rests, and comes again every 5 s (taps) or 4.4 s (swipes) for as long as it is the floor's hint.
-  **One hint at a time** (`DanceFloor.hintNow`): with the bars shown, first the bottom bar's two (its play button is
-  there to be seen); otherwise the tap that pauses while the dance plays, or the tap that plays while it stands; and
-  with those known and the bars away, the swipe down. **A flag goes up when the user does the thing itself**
-  (`tap()`, `swipeDown()`, `tapStop()`, `stripScrolled()`), hint or no hint; not when the same happens another way
-  (the top bar's play button, the bars that come by themselves when a piece is opened from Explore or ends). The
-  flags are kept by the screen (`FloorHost.knows`, `learned`): `hint_<key>` in the app's preferences and in the
-  browser's storage, so until those are cleared; a screen that keeps nothing shows no hints.
+  slides with a tail is a swipe. All in the floor's dark grey, half see-through, no words.
+  **A hint is one quick animation, and it comes back every 4 seconds for good** (since v72; the user on v71, whose
+  pictures took a second or two and came every 5 s: "The hints are kind of annoying because their animations are
+  slow. Make the animations like at least 4 or 5 times snappier ... Make every hint not repeat. Like every hint is
+  one animation. For example, for a swipe ... Make it two animations ... Very snappy, very quick. And then you make
+  the hint come back like every 4 seconds, never give up until the user does the gesture"). A tap's three rings are
+  over in 0.42 s; a swipe is shown twice in a row, 0.3 s each (the bottom bar's: once to the left, once to the
+  right), 0.66 s in all; then nothing until 4 s after the showing began (`HintPainter.EVERY`). Before its first
+  showing a hint waits (`HintPainter.delay`): 3 s for the pause, so that the dance is watched first; **4 s for the
+  play** ("If someone paused, then wait a few seconds ... before you hint them to play": whoever paused did so to
+  look); 2 s for the swipe down; 1.2 s for the bottom bar's two.
+  **One hint at a time** (`DanceFloor.hintNow`). With the bars shown: first the bottom bar's two, then the tap (the
+  bar's play button is there to be seen). With the bars away there are two things to find, the tap and the swipe
+  down, and which comes first depends on where the user is: on a piece that has just been opened and stands, the
+  swipe down; while the dance plays, the tap that pauses; after a pause, the tap that plays. The other follows once
+  the first is known. **A piece opens with the bars away** (since v72: "I don't like the fact that you start a new
+  dance with the bars open. I prefer the bars closed and a hint to swipe down to open them"; until then everything
+  but the daily exercise opened standing with its bars shown); the bars still come by themselves when a composition
+  has been danced to its end. **A flag goes up when the user does the thing itself** (`tap()`, `swipeDown()`,
+  `tapStop()`, `stripScrolled()`), hint or no hint; not when the same happens another way (the top bar's play
+  button, the bars that come by themselves at a composition's end). The flags are kept by the screen
+  (`FloorHost.knows`, `learned`) under `Hint.flag` (`hint_<key>`) in the app's preferences and in the browser's
+  storage, so until those are cleared; a screen that keeps nothing shows no hints. **Settings has a button that puts
+  all five down again**, "Show the dance floor's hints again" (v72; the user: "Yes, add a button in the settings to
+  reset the hints"), under the note about the mute button.
   **Drawing:** the shared `HintPainter` through `Draw`, so both fronts show the same. The web page has a third
   canvas for it (`canvas.hints`: over the floor and the bars, under an open menu, no touches); the Android app a
   view over everything (`HintView`, no touches) with `AndroidDraw`, Android's `Canvas` behind `Draw`: **the first
@@ -388,9 +403,11 @@ commit (there is no diff step any more: the editor's file is the only version). 
   raises no flag; nothing comes back on another floor; a screen that keeps nothing shows none), `HintsTest` (every
   picture waits, plays, rests and comes again, stays on the screen and where its gesture belongs), and the web page
   in the headless browser on a sideways and an upright phone: each hint seen, each gone for good after its gesture,
-  none on the next visit, all back when the storage is cleared. **Not hinted** (asked of the user): the swipe to the
-  left or right on the floor (a step on while it stands, a part on while it plays) and the swipe up that sends the
-  bars away. To see the hints again: clear the app's data, or open the page in a private window.
+  none on the next visit, all back when the storage is cleared; and for v72, measured in the page: the swipe-down
+  hint 2.0 s after a piece opens and then every 4.00 s, 0.65 s each time; the pause hint 0.42 s; the play hint 4.0 s
+  after a pause; the settings' button putting the flags down and nothing else. **Not hinted** (asked of the user on
+  v71, not answered): the swipe to the left or right on the floor (a step on while it stands, a part on while it
+  plays) and the swipe up that sends the bars away.
 - **Metronome.** Snare on the odd counts, closed hi-hat on the swung "&" and the even counts; scheduled on its own thread
   at exact uptimes from the clock. Both sounds are synthesised by `make_assets.py`.
 - **Speech.** Annotations are fetched once from Google Translate's TTS endpoint and cached per phrase (`cacheDir/tts_<md5>.mp3`),
@@ -587,7 +604,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   v70: the user's answers to that round's questions ("yes", "yes", "fix it"): the two face-to-face triple steps are
   counted 3 & 4 and 5 & 6 (section 3).
   v71: hints on the dance floor for what nothing on the screen says, each gone for good once its gesture has been
-  used ("The hints" above).
+  used ("The hints" above). v72, the user's five remarks on them: quicker by far, one animation every 4 s, the play
+  hint held back after a pause, a piece opening with its bars away, a reset in Settings.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

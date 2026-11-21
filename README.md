@@ -72,16 +72,16 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   Google Translate's, fetched as a short clip for every phrase, in the app and on the web page alike; the phone's or
   the browser's own voice reads when Google does not answer. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
   music dips to 60 percent under a spoken annotation and comes back right after it.
-  **Hints:** what nothing on the screen says is shown to a new user by a small moving picture, one at a time: a faint
-  button with rings for the tap that pauses and the tap that plays, a fingertip sliding down for the swipe that brings
-  the bars, a ring on a step and a sliding fingertip for the bottom bar. Each goes for good the first time the user
-  does the thing (a flag in the app's preferences or the browser's storage), and comes back only when those are
-  cleared.
+  **Hints:** what nothing on the screen says is shown to a new user by a small picture that flashes for half a second
+  and comes back every 4 seconds, one at a time: a faint button with rings for the tap that pauses and the tap that
+  plays, a fingertip sliding down (twice) for the swipe that brings the bars, a ring on a step and a sliding fingertip
+  for the bottom bar. Each goes for good the first time the user does the thing (a flag in the app's preferences or
+  the browser's storage); a button in Settings brings them all back. A piece opens with its bars away.
 - **Heart**: upright, as the user drew it (the rest of the app is sideways): the note and the email button. The
   draft's two other buttons, the website and "Buy me a Beer", are built and hidden for now (`Texts.HEART_MORE`).
 - **Settings**: the lead-in after a swipe while a composition plays (on unless switched off: then a swipe goes straight
   to the part, 2 beats ahead of it); then the snare and hi-hat over the music, the snare, the hi-hat, reading the
-  annotations aloud.
+  annotations aloud; and a button that shows the dance floor's hints again.
 
 Icons: [Lucide](https://lucide.dev) (ISC licence), converted by `design/make_ui_icons.py` from `design/lucide/`, for the
 Android app and for the web page alike. Font:
