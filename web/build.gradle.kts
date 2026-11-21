@@ -19,6 +19,14 @@ val webAssets by tasks.registering(Sync::class) {
     doLast { destinationDir.resolve("version.txt").writeText(build) }
 }
 
+// the page names its styles and its code with the build's number (index.html), so that a browser that has kept an
+// earlier build's files does not mix them with this one's
+tasks.matching { it.name == "jsProcessResources" }.configureEach {
+    val build = System.getenv("BUILD_NUMBER") ?: "dev"
+    inputs.property("build", build)
+    (this as Copy).filesMatching("index.html") { filter { line -> line.replace("@BUILD@", build) } }
+}
+
 kotlin {
     js(IR) {
         browser {

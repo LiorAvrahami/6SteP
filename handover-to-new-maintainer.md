@@ -573,7 +573,10 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   menus, an upright and a sideways phone size; the tempo measured against the page's clock equals the track's. Not
   checked: any real phone, the iPhone's rules for sound and voice, sound through Bluetooth.
 - **The build and the address:** `build.yml` (on `main`) runs the tests, builds the APK and the page, and pushes the
-  page to the `gh-pages` branch (one commit, replaced each time), which GitHub Pages serves. Pushing a `gh-pages`
+  page to the `gh-pages` branch (one commit, replaced each time), which GitHub Pages serves. GitHub lets a browser
+  keep each file for ten minutes; so that a reload after a release never shows new styles with old code (or the other
+  way round), `index.html` names both with the build's number (`style.css?v=62`: `web/build.gradle.kts` fills it in).
+  The settings page's last line says which build a browser is showing. Pushing a `gh-pages`
   branch switched Pages on by itself; the Pages settings API is not reachable from the cloud session.
   `check.yml` builds a `claude/**` branch with the same command and publishes nothing: push there first, and to
   `main` only once it is green.

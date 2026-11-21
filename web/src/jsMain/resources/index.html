@@ -12,10 +12,13 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="6SteP">
-  <link rel="stylesheet" href="style.css">
+  <!-- the number after "v=" is the build's (web/build.gradle.kts puts it there): a new build has new addresses for
+       its styles and its code, so that a browser never shows a new page with old code it had kept, or the other way
+       round -->
+  <link rel="stylesheet" href="style.css?v=@BUILD@">
 </head>
 <body>
   <div id="app"><div class="boot">6SteP!</div></div>
-  <script src="sixstep.js"></script>
+  <script src="sixstep.js?v=@BUILD@"></script>
 </body>
 </html>
