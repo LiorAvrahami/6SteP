@@ -553,7 +553,10 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   Android's Chrome grants to a full-screen page; on the user's phone the page stayed upright and turned itself, see
   below). The heart page is upright, as in the app: `Screen.sideways` is false for it, `Display.want()` asks the phone
   for portrait, and where the screen stays sideways the box is turned a quarter the other way (the class
-  `turned-back`). Put on the home screen, the page gets both from `manifest.webmanifest` (`display: fullscreen`,
+  `turned-back`). The device's file chooser (the song menu's "Upload…") may cost the page the full screen: the
+  page notes that it had it (`Display.lending`) and the next tap takes it back; the settings page's switch leaves it
+  for good. The first tap's full screen, the switch and this were tried in the headless browser, which does give a
+  page the full screen; the phone's turning could not be. Put on the home screen, the page gets both from `manifest.webmanifest` (`display: fullscreen`,
   `orientation: landscape`; the icons are written by `design/make_icon.py`). Wherever the phone still shows the page
   upright (the browser refuses, as an iPhone's is believed to, or the phone's rotation is locked), the page turns
   itself: its one box, `#app`, is laid out sideways and drawn turned a quarter (the class `turned`; held with the

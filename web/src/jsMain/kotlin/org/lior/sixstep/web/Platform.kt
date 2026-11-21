@@ -121,6 +121,7 @@ object Display {
         private set
     private var sideways = true
     private var tapped = false
+    private var regain = false   // the page lent the screen to something else while it had the full screen: the next tap takes it back
     private val listeners = ArrayList<() -> Unit>()
 
     fun start() {
@@ -129,7 +130,7 @@ object Display {
         window.addEventListener("orientationchange", { update() })
         document.addEventListener("fullscreenchange", { update(); for (l in listeners.toList()) l() })
         document.addEventListener("webkitfullscreenchange", { update(); for (l in listeners.toList()) l() })
-        document.addEventListener("click", { firstTap() }, true)
+        document.addEventListener("click", { onTap() }, true)
     }
 
     /** told when the page enters or leaves the full screen */
@@ -221,11 +222,21 @@ object Display {
     }
 
     fun leave() {
+        regain = false
         val d: dynamic = document
         try { if (jsTypeOf(d.exitFullscreen) == "function") d.exitFullscreen() else if (jsTypeOf(d.webkitExitFullscreen) == "function") d.webkitExitFullscreen() } catch (e: Throwable) {}
     }
 
     fun toggle() { if (isFullscreen()) leave() else enter() }
+
+    /** The page is about to hand the screen to something else for a moment (the device's file chooser). A browser may
+     *  take the full screen away over that; when it does, the next tap on the page takes it back. */
+    fun lending() { if (isFullscreen()) regain = true }
+
+    private fun onTap() {
+        if (regain && !isFullscreen()) { regain = false; if (canFullscreen()) enter(); return }
+        firstTap()
+    }
 
     /** the first tap of a visit on a phone: the full screen and the right way round, once. Left again, it stays left
      *  until the settings page's switch is used (a page that kept going back to the full screen could not be got out of). */

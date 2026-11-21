@@ -56,7 +56,7 @@ class UploadWindow(private val added: (String) -> Unit) {
         m.box.add(list)
         m.box.add(pick); m.box.add(input)
         m.box.add(status); m.box.add(mail)
-        pick.onclick = { if (!busy) input.click(); null }
+        pick.onclick = { if (!busy) { Display.lending(); input.click() }; null }   // the file chooser may cost the page the full screen
         input.onchange = {
             val f = input.files?.get(0)
             input.value = ""   // the same file can be chosen again
