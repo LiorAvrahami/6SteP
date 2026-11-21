@@ -48,8 +48,9 @@ jobs:
           gradle-version: "8.7"
 
       # the shared engine's tests first: a composition that cannot be danced must not reach a release
+      # (tools/ci_build.sh: the one Gradle run, repeated when the package sites did not deliver)
       - name: Test the engine, build the signed release APK and the web front
-        run: gradle :shared:jvmTest assembleRelease :web:jsBrowserDistribution --no-daemon --stacktrace
+        run: bash tools/ci_build.sh
         env:
           BUILD_NUMBER: ${{ github.run_number }}
 

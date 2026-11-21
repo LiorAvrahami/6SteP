@@ -583,7 +583,11 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   The settings page's last line says which build a browser is showing. Pushing a `gh-pages`
   branch switched Pages on by itself; the Pages settings API is not reachable from the cloud session.
   `check.yml` builds a `claude/**` branch with the same command and publishes nothing: push there first, and to
-  `main` only once it is green.
+  `main` only once it is green. Both run `tools/ci_build.sh`: the one Gradle command, run again (up to three times)
+  when the package sites did not deliver. On 2026-11-21 two of five runs failed after half a minute or a few minutes
+  with "Could not resolve all artifacts for configuration ':classpath'" and a long list of ordinary packages "not
+  found" on the Gradle plugin portal and Maven Central; the same commit passed when the run was repeated
+  (`gh run rerun <id>`). A failure of that kind says nothing about the code.
 - **In the cloud session:** `SIXSTEP_SKIP_ANDROID=1 gradle :shared:jvmTest :web:jsBrowserDistribution` works (Maven
   Central answers 429 now and then: run it again). Google's package site (`dl.google.com`) is not reachable, so the
   Android app cannot be compiled there; GitHub compiles it. `*.github.io` is not reachable either: the published page
