@@ -568,7 +568,7 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   explore rows' pictures is `pan-x` when turned, because its axes are the screen's. Checked in headless Chromium as an
   upright phone: the layout, taps, swipes, the strip, finger scrolling of the list and dragging a row (finger tests
   must start on an element that is on the screen: a first version of the test scrolled its target away and "found"
-  two bugs that were not there). The real full screen and the phone's turning could not be checked here.
+  two bugs that were not there). A real phone's turning could not be checked here; on the user's phone (2026-11-21) the page had the full screen and stayed upright, so it turned itself.
 - **How it was checked:** `tools/check_engine.py` (the Kotlin engine against the Python model: 3 compositions, 5 blocks,
   23 elements, every step at the same time and place); the page in the cloud session's headless Chromium with
   Playwright (serve `web/build/dist/js/productionExecutable`, open `#floor/composition/<name>/0`, read
