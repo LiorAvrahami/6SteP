@@ -98,6 +98,8 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-21, v73:** a swipe up or down on the dance floor brings the bars when they are away and sends them away
+  when they are shown (the user: "swiping up or down opens them and swiping up or down closes them").
 - **2026-11-21, v72:** the hints after the user tried them: one quick animation (a swipe: two) every 4 seconds, four
   to five times quicker than v71's; the hint to play waits 4 s after a pause; a piece opens with its bars away and
   hints at the swipe down; Settings has "Show the dance floor's hints again".

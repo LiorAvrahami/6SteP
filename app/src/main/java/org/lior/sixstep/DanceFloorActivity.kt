@@ -32,7 +32,7 @@ import kotlin.math.abs
  *  in and out, the buttons' faces, the menus. The sound is Playback, which the floor drives as its FloorPlayer.
  *
  *  A tap on the floor plays or pauses (there is no double tap); a swipe left or right is the next or previous step, or
- *  part while it plays; a swipe down brings the bars, a swipe up sends them away.
+ *  part while it plays; a swipe down or up brings the bars, and the next one sends them away.
  *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), back. */
 class DanceFloorActivity : AppCompatActivity(), FloorHost {
     private lateinit var floorView: FloorView
@@ -100,7 +100,7 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
         gestures.setIsLongpressEnabled(false)
         floorView.setOnTouchListener { v, ev -> gestures.onTouchEvent(ev); if (ev.action == MotionEvent.ACTION_UP) v.performClick(); true }
         // once the views have their sizes: the bars out of sight, then the first picture (playing at once for the daily
-        // exercise, otherwise standing on its first step; the bars stay away until a swipe down brings them)
+        // exercise, otherwise standing on its first step; the bars stay away until a swipe down or up brings them)
         floorView.post {
             applyBars(0f)
             dance.open()

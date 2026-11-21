@@ -22,7 +22,7 @@ import kotlin.math.pow
 
 /** The dance floor in a browser: the screen of the shared DanceFloor. It draws what the floor shows (the shared
  *  FloorPicture and StripPainter on two canvases), slides the bars, and passes on the gestures: a swipe left or right,
- *  a swipe down or up for the bars, and every tap the moment the finger lifts (a tap plays or pauses:
+ *  a swipe down or up for the bars (either brings them, either sends them away), and every tap the moment the finger lifts (a tap plays or pauses:
  *  DanceFloor.tap); on a keyboard the arrow keys and the space bar. The bars are the app's (activity_dance_floor.xml):
  *  play, the tempo, the song, mute; then back. */
 class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) : Screen, FloorHost {

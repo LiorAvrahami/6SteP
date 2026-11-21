@@ -377,13 +377,14 @@ class DanceFloorTest {
         // both taps are known: what is left to find with the bars away is the swipe down
         assertEquals(Hint.SWIPE_DOWN, r.host.hint)
         r.floor.tap(); assertEquals(Hint.SWIPE_DOWN, r.host.hint, "paused or playing")
-        r.floor.swipeUp(); assertEquals(setOf("tap_pause", "tap_play"), known, "a swipe up with the bars away is nothing")
         r.floor.swipeDown()
         assertTrue(r.floor.barsShown)
         assertEquals(setOf("tap_pause", "tap_play", "bars"), known)
         // the bars are there: a step of the bottom bar can be tapped
         assertEquals(Hint.STRIP_TAP, r.host.hint)
-        r.floor.swipeDown(); assertEquals(Hint.STRIP_TAP, r.host.hint, "a second swipe down changes nothing")
+        // (a second swipe sends the bars away again, and with them the bottom bar's hint; the next one brings both back)
+        r.floor.swipeDown(); assertFalse(r.floor.barsShown); assertNull(r.host.hint, "the bars away, and nothing left to find without them")
+        r.floor.swipeUp(); assertTrue(r.floor.barsShown); assertEquals(Hint.STRIP_TAP, r.host.hint)
         r.floor.tapStop(7)
         assertEquals(7, r.host.current)
         assertTrue("strip_tap" in known)
@@ -401,8 +402,9 @@ class DanceFloorTest {
         again.run(4000.0); again.floor.tap(); again.floor.swipeDown()
         assertTrue(again.host.hints.all { it == null }, "a user who has done it all is shown nothing: ${again.host.hints}")
         // one hint at a time, each replaced by the next (the first two came twice: once for the top bar's button, which
-        // paused and played without teaching the tap, and once for the taps themselves)
-        assertEquals(listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.SWIPE_DOWN, Hint.STRIP_TAP, Hint.STRIP_SCROLL, null),
+        // paused and played without teaching the tap, and once for the taps themselves; and the bottom bar's first one
+        // went and came with the bars)
+        assertEquals(listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.SWIPE_DOWN, Hint.STRIP_TAP, null, Hint.STRIP_TAP, Hint.STRIP_SCROLL, null),
             r.host.hints.take(asked).filterIndexed { i, h -> i == 0 || r.host.hints[i - 1] != h })
     }
 
@@ -463,6 +465,32 @@ class DanceFloorTest {
         assertTrue(r.host.hints.all { it == null }, "${r.host.hints}")
     }
 
+    /** user 2026-11-21: "swiping down when the bars are up ... should also close them. Like swiping up or down opens
+     *  them and swiping up or down closes them" */
+    @Test fun aSwipeUpOrDownBringsTheBarsAndASwipeUpOrDownSendsThemAway() {
+        for (first in listOf(true, false)) for (second in listOf(true, false)) {
+            val known = HashSet<String>()
+            val r = rig(exercise, known = known)
+            fun swipe(down: Boolean) { if (down) r.floor.swipeDown() else r.floor.swipeUp() }
+            fun way(down: Boolean) = if (down) "down" else "up"
+            assertFalse(r.host.bars)
+            swipe(first)
+            assertTrue(r.host.bars && r.floor.barsShown, "a swipe ${way(first)} brings the bars")
+            assertEquals(setOf("bars"), known, "and the user has found them, whichever way the swipe went")
+            swipe(second)
+            assertFalse(r.host.bars || r.floor.barsShown, "a swipe ${way(second)} sends them away")
+            swipe(!second)
+            assertTrue(r.host.bars, "and a swipe ${way(!second)} brings them again")
+            // the same while the dance plays
+            r.floor.tap()
+            assertTrue(r.floor.playing && !r.host.bars, "playing closes the bars")
+            r.run(1500.0)
+            swipe(second); assertTrue(r.host.bars, "while it plays: a swipe ${way(second)} brings the bars")
+            swipe(first); assertFalse(r.host.bars, "and a swipe ${way(first)} sends them away")
+            assertTrue(r.floor.playing, "the dance plays on")
+        }
+    }
+
     @Test fun aTapPlaysAndATapPauses() {
         val r = rig(exercise)
         assertFalse(r.host.bars, "opened standing, the bars away")
@@ -485,7 +513,7 @@ class DanceFloorTest {
         assertFalse(r.floor.playing)
         assertTrue(r.host.bars, "a tap does not close the bars")
         r.floor.swipeUp()
-        assertFalse(r.host.bars)
+        assertFalse(r.host.bars, "a swipe does")
     }
 
     @Test fun theSongMenuHasPlayAllFirstAndShufflePlayLast() {

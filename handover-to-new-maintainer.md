@@ -278,14 +278,17 @@ commit (there is no diff step any more: the editor's file is the only version). 
   Swipe left or right: the next or previous stop (the start position one beat before count 1, then every instant a foot
   lands; it wraps round): the feet travel there (`step()`: every travel takes `STEP_BEATS`, a third of a beat, and plays
   that stretch of the dance at an even rate), and once they are there the stop's dashed arrows come, both dancers at
-  once (one way of stepping since 2026-11-17; the flow and schema modes and their button are gone). Swipe down: the
-  bars; swipe up: they go. **A tap on the floor plays, and a tap while it plays pauses**, at once, the moment the
+  once (one way of stepping since 2026-11-17; the flow and schema modes and their button are gone). **A swipe down
+  or up, either of them, brings the bars when they are away and sends them away when they are shown** (since v73;
+  the user, 2026-11-21: "swiping down when the bars are up ... should also close them. Like swiping up or down opens
+  them and swiping up or down closes them"; until then down brought them and only up sent them away:
+  `DanceFloor.swipeDown()` and `swipeUp()` are one thing now). **A tap on the floor plays, and a tap while it plays pauses**, at once, the moment the
   finger lifts (user 2026-11-21, twice: first "you don't need to double tap in order to pause. A single tap is
   enough", then, the same day, "I want a single tap in the dance screen to continue playing the dance instead of a
   double tap"). There is no double tap any more: `DanceFloor.tap()` is play/pause and every tap is one (in the
   activity `onSingleTapUp` of a detector whose double-tap listener is taken away; on the page every `pointerup` that
   stayed within 20 px), so two quick taps pause and play again. A tap does not close the bars by itself any more:
-  playing closes them, and so does a swipe up. A swipe while playing jumps to the next part or back (the old player's
+  playing closes them, and so does a swipe up or down. A swipe while playing jumps to the next part or back (the old player's
   2 s rule, `BACK_REPLAY_SECONDS`): a composition's entries, any other piece's elements.
   **In a composition the dancers get to the part by a lead-in: two triple steps on the spot** (`jumpTo`,
   `makeLeadIn` and `leadScene` in `DanceFloor`; this form since v69). The clock, and the music with it, starts 4
@@ -605,7 +608,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   counted 3 & 4 and 5 & 6 (section 3).
   v71: hints on the dance floor for what nothing on the screen says, each gone for good once its gesture has been
   used ("The hints" above). v72, the user's five remarks on them: quicker by far, one animation every 4 s, the play
-  hint held back after a pause, a piece opening with its bars away, a reset in Settings.
+  hint held back after a pause, a piece opening with its bars away, a reset in Settings. v73: a swipe up or down
+  brings the bars and a swipe up or down sends them away.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

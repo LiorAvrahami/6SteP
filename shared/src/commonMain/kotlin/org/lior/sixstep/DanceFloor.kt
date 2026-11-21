@@ -89,8 +89,8 @@ interface FloorHost {
  *
  *  Swipe left or right: the next or previous step. There is one way of stepping (user 2026-11-17): the feet travel to
  *  the step, and once they are there dashed arrows show the path each foot that stepped came by, with a small round
- *  arrow where a foot turns more than a quarter turn (both dancers at once). Swipe down: the top and bottom bars;
- *  swipe up closes them. A tap on the floor, or the play button: play when the dance stands, pause when it plays (user
+ *  arrow where a foot turns more than a quarter turn (both dancers at once). A swipe down or up: the top and bottom
+ *  bars come, and the next such swipe sends them away. A tap on the floor, or the play button: play when the dance stands, pause when it plays (user
  *  2026-11-21: "a single tap is enough" to pause, and "a single tap ... to continue playing the dance instead of a
  *  double tap"); play closes the bars. A swipe while playing jumps to the next part, or back to the start of this one
  *  (the previous one in its first 2 s).
@@ -242,8 +242,13 @@ class DanceFloor(
 
     /** a swipe to the left (forward = true) or to the right */
     fun swipe(forward: Boolean) { if (playing) skip(forward) else step(if (forward) 1 else -1) }
-    fun swipeDown() { if (!barsShown) { showBars(); learned(Hint.SWIPE_DOWN) } }   // the bars came by the user's own swipe: no more hint for that
-    fun swipeUp() = hideBars()
+    /** A swipe down or up on the floor, either of them: the bars come when they are away and go when they are shown
+     *  (user 2026-11-21: "swiping up or down opens them and swiping up or down closes them"; until then a swipe down
+     *  brought them and only a swipe up sent them away). Bringing them is one of the things the hints teach: the flag
+     *  goes up, whichever way the swipe went. */
+    fun swipeDown() = swipeUpOrDown()
+    fun swipeUp() = swipeUpOrDown()
+    private fun swipeUpOrDown() { if (barsShown) hideBars() else { showBars(); learned(Hint.SWIPE_DOWN) } }
 
     /** a tap on the floor, passed on the moment the finger lifts: it pauses the dance when it plays, and plays it when
      *  it stands (user 2026-11-21). There is no double tap any more: every tap is one of these. */
