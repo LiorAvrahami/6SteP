@@ -90,6 +90,8 @@ class StepStrip @JvmOverloads constructor(context: Context, attrs: AttributeSet?
     private fun cellW() = if (cellsAcross > 0) max(1f, (width - 2 * padH - gap() * (cellsAcross - 1)) / cellsAcross) else cellWidthDp * d
     private fun pitch() = cellW() + gap()
     private fun maxOffset() = max(0f, 2 * padH + cells.size * pitch() - gap() - width)
+    /** it holds more pictures than fit: it can be dragged sideways */
+    val canScroll: Boolean get() = width > 0 && maxOffset() > 0.5f
 
     private fun prepare() {
         val n = cells.size

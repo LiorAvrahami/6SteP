@@ -171,6 +171,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* ---- the dance floor (activity_dance_floor.xml) */
 .floor { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: #fff; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .floor canvas.stage { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.floor canvas.hints { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; pointer-events: none; z-index: 4; }   /* the hints: over the floor and the bars, under an open menu, taking no touches */
 .topbar { position: absolute; left: 0; right: 0; top: 0; height: 64px; background: var(--bar); display: flex; align-items: center; gap: 10px; padding: 0 16px; padding-left: calc(16px + var(--safe-l)); padding-right: calc(16px + var(--safe-r));
   transform: translateY(-100%); transition: transform 0.2s; }
 .floor.bars .topbar { transform: none; }

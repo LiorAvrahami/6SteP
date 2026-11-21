@@ -27,6 +27,14 @@ class DanceFloorTest {
         var current = -1
         var bars = false
         override var leadIn = true   // the settings' switch for the lead-in after a swipe
+        // the hints: what this user has done before (kept between floors, as a phone keeps it), and what the floor asks to be shown
+        var known: HashSet<String>? = null   // null: a screen that keeps nothing, and so shows no hints
+        var hint: Hint? = null
+        val hints = ArrayList<Hint?>()       // every hint the floor asked for, in order
+        override fun knows(what: String) = known?.contains(what) ?: true
+        override fun learned(what: String) { known?.add(what) }
+        override fun hint(hint: Hint?) { this.hint = hint; hints.add(hint) }
+        override var stripScrolls = true
         val banners = ArrayList<Pair<String, Double>>()   // every banner as it came up, with nothing else: filled by the test
         private val frames = ArrayList<() -> Unit>()
         override fun nowMs() = clock.ms
@@ -82,8 +90,9 @@ class DanceFloorTest {
         }
     }
 
-    private fun rig(name: String, kind: String = Piece.COMPOSITION, autoplay: Boolean = false, tempo: Double = 120.0): Rig {
+    private fun rig(name: String, kind: String = Piece.COMPOSITION, autoplay: Boolean = false, tempo: Double = 120.0, known: HashSet<String>? = null): Rig {
         val clock = Clock(); val host = Host(clock); val player = Player(clock, tempo)
+        host.known = known
         val floor = DanceFloor(data, store, kind, name, 0, autoplay, player, host)
         assertNull(floor.error, "the floor cannot dance $name")
         floor.open()
@@ -334,6 +343,107 @@ class DanceFloorTest {
         assertTrue(abs(r.player.beatNow() - 158.0) < 0.05, "switched on again, a swipe lands 4 beats before the part at 162: ${r.player.beatNow()}")
         r.run(50.0)
         assertTrue(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX), "and the dancers lead in: ${r.host.scene?.title}")
+    }
+
+    /** user 2026-11-21: "a series of flags ... that indicate what the user has already done. And once a user has already
+     *  used some functionality, then we don't need to hint at it anymore. If the user didn't use some functionality,
+     *  then we keep hinting at this functionality to the user until they use this functionality." */
+    @Test fun aNewUserIsShownOneHintAtATimeUntilEachThingHasBeenDone() {
+        val known = HashSet<String>()   // a new user: nothing done yet
+        val r = rig(exercise, autoplay = true, known = known)
+        // the daily exercise plays, the bars are away: a tap would pause it
+        assertTrue(r.floor.playing && !r.floor.barsShown)
+        assertEquals(Hint.TAP_PAUSE, r.host.hint)
+        r.run(4000.0)
+        assertEquals(Hint.TAP_PAUSE, r.host.hint, "it stays for as long as the dance plays and the tap has not been used")
+        assertTrue(known.isEmpty())
+        // paused with the play button of the top bar (the bars are away, so only a test can): that is not the tap
+        r.floor.playPause()
+        assertEquals(Hint.TAP_PLAY, r.host.hint, "standing, the hint is the tap that plays")
+        r.floor.playPause()
+        assertTrue(known.isEmpty(), "pausing and playing another way raises no flag")
+        assertEquals(Hint.TAP_PAUSE, r.host.hint)
+        // the tap: the flag goes up, and now a tap would play
+        r.floor.tap()
+        assertFalse(r.floor.playing)
+        assertEquals(setOf("tap_pause"), known)
+        assertEquals(Hint.TAP_PLAY, r.host.hint)
+        r.floor.tap()
+        assertTrue(r.floor.playing)
+        assertEquals(setOf("tap_pause", "tap_play"), known)
+        // both taps are known: what is left to find with the bars away is the swipe down
+        assertEquals(Hint.SWIPE_DOWN, r.host.hint)
+        r.floor.tap(); assertEquals(Hint.SWIPE_DOWN, r.host.hint, "paused or playing")
+        r.floor.swipeUp(); assertEquals(setOf("tap_pause", "tap_play"), known, "a swipe up with the bars away is nothing")
+        r.floor.swipeDown()
+        assertTrue(r.floor.barsShown)
+        assertEquals(setOf("tap_pause", "tap_play", "bars"), known)
+        // the bars are there: a step of the bottom bar can be tapped
+        assertEquals(Hint.STRIP_TAP, r.host.hint)
+        r.floor.swipeDown(); assertEquals(Hint.STRIP_TAP, r.host.hint, "a second swipe down changes nothing")
+        r.floor.tapStop(7)
+        assertEquals(7, r.host.current)
+        assertTrue("strip_tap" in known)
+        // and the bar can be dragged
+        assertEquals(Hint.STRIP_SCROLL, r.host.hint)
+        r.floor.stripScrolled()
+        assertEquals(setOf("tap_pause", "tap_play", "bars", "strip_tap", "strip_scroll"), known)
+        assertNull(r.host.hint, "everything has been done: no hint is left")
+        // and none comes back, whatever happens on the floor
+        val asked = r.host.hints.size
+        r.floor.tap(); r.run(500.0); r.floor.tap(); r.floor.swipeDown(); r.floor.swipeUp(); r.floor.tap(); r.floor.swipe(true); r.run(500.0)
+        assertEquals(asked, r.host.hints.size, "the floor asks for no hint any more")
+        // nor on another floor, on another day: the flags are the screen's, kept for good
+        val again = rig(exercise, autoplay = true, known = known)
+        again.run(4000.0); again.floor.tap(); again.floor.swipeDown()
+        assertTrue(again.host.hints.all { it == null }, "a user who has done it all is shown nothing: ${again.host.hints}")
+        // one hint at a time, each replaced by the next (the first two came twice: once for the top bar's button, which
+        // paused and played without teaching the tap, and once for the taps themselves)
+        assertEquals(listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.SWIPE_DOWN, Hint.STRIP_TAP, Hint.STRIP_SCROLL, null),
+            r.host.hints.take(asked).filterIndexed { i, h -> i == 0 || r.host.hints[i - 1] != h })
+    }
+
+    /** opened from the explore page a piece stands on its first step with the bars shown: the bottom bar's hints come
+     *  first there, and the bars that came by themselves do not count as the user's swipe */
+    @Test fun aPieceOpenedWithTheBarsShownHintsAtTheBottomBarFirst() {
+        val known = HashSet<String>()
+        val r = rig("side to side", kind = Piece.BLOCK, known = known)
+        assertTrue(r.floor.barsShown && !r.floor.playing)
+        assertEquals(Hint.STRIP_TAP, r.host.hint)
+        assertTrue(known.isEmpty(), "the bars shown at the opening are not the user's doing")
+        r.floor.tapStop(2)
+        assertEquals(Hint.STRIP_SCROLL, r.host.hint)
+        // a bar whose steps all fit on the screen cannot be dragged: no hint for that
+        val small = rig("side to side", kind = Piece.BLOCK, known = hashSetOf("strip_tap"))
+        // (the screen says so before the floor opens)
+        val clock = Clock(); val host = Host(clock); host.known = hashSetOf("strip_tap"); host.stripScrolls = false
+        val floor = DanceFloor(data, store, Piece.BLOCK, "side to side", 0, false, Player(clock, 120.0), host)
+        floor.open()
+        assertEquals(Hint.TAP_PLAY, host.hint, "with nothing to drag, the next thing is the tap that plays")
+        assertEquals(Hint.STRIP_SCROLL, small.host.hint)
+        // the user drags the bar: now the tap that plays, on the floor between the bars
+        r.floor.stripScrolled()
+        assertEquals(Hint.TAP_PLAY, r.host.hint)
+        r.floor.tap()
+        assertTrue(r.floor.playing && !r.floor.barsShown, "the tap plays, and the bars go")
+        assertEquals(Hint.TAP_PAUSE, r.host.hint)
+        r.floor.tap()
+        assertEquals(Hint.SWIPE_DOWN, r.host.hint, "the bars went by themselves; bringing them back is still to be found")
+        assertEquals(setOf("strip_tap", "strip_scroll", "tap_play", "tap_pause"), known)
+        r.floor.swipeDown()
+        assertNull(r.host.hint)
+        // leaving the floor takes the hint away
+        val r2 = rig(exercise, autoplay = true, known = HashSet())
+        assertEquals(Hint.TAP_PAUSE, r2.host.hint)
+        r2.floor.release()
+        assertNull(r2.host.hint)
+    }
+
+    /** a screen that keeps no flags (the default) shows no hints at all */
+    @Test fun aScreenThatKeepsNothingShowsNoHints() {
+        val r = rig(exercise, autoplay = true)
+        r.run(3000.0); r.floor.tap(); r.floor.swipeDown(); r.floor.tapStop(3)
+        assertTrue(r.host.hints.all { it == null }, "${r.host.hints}")
     }
 
     @Test fun aTapPlaysAndATapPauses() {

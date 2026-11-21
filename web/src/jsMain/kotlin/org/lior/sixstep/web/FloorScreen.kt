@@ -6,6 +6,8 @@ import org.lior.sixstep.Colors
 import org.lior.sixstep.DanceFloor
 import org.lior.sixstep.FloorHost
 import org.lior.sixstep.FloorPicture
+import org.lior.sixstep.Hint
+import org.lior.sixstep.HintPainter
 import org.lior.sixstep.Scene
 import org.lior.sixstep.StepCell
 import org.lior.sixstep.StripPainter
@@ -36,6 +38,12 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     override val root: HTMLElement = el("div", "floor")
     private val stage = Stage(document.createElement("canvas") as HTMLCanvasElement)
     private val stripStage = Stage(document.createElement("canvas") as HTMLCanvasElement)
+    // the hints (shared HintPainter): a layer over everything, bars included, that takes no touches
+    private val hintStage = Stage(document.createElement("canvas") as HTMLCanvasElement)
+    private var hint: Hint? = null
+    private var hintSince = 0.0      // when it became the floor's hint
+    private var hintDrawn = false    // something of it is on the layer now
+    private var hintTimer: Int? = null   // wakes the frames when a resting hint is to play again
     private val picture = FloorPicture(1.0)
     private val strip = StripPainter(1.0).apply { barColor = Colors.BAR; calloutBandDp = BAND; cellWidthDp = 64.0; gapDp = 8.0 }
 
@@ -87,6 +95,8 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         top.add(playBtn); top.add(rateBtn); top.add(songBtn); top.add(muteBtn); top.add(el("div", "space"))
         top.add(iconButton("back", Texts.BACK) { App.back() })
         root.add(top)
+        hintStage.canvas.className = "hints"
+        root.add(hintStage.canvas)
         root.add(loadingEl)
 
         // the floor: where the touch went down and where it came up
@@ -114,7 +124,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
             e as MouseEvent
             if (!stripDown) return@addEventListener
             val x = Display.x(e); val now = nowMs()
-            if (!stripDragging && abs(x - stripDownX) > 8) { stripDragging = true; stripLastX = x; stripLastT = now }
+            if (!stripDragging && abs(x - stripDownX) > 8) { stripDragging = true; stripLastX = x; stripLastT = now; floor.stripScrolled() }
             if (stripDragging) {
                 val dx = x - stripLastX; val dt = (now - stripLastT).coerceAtLeast(1.0)
                 strip.offset = (strip.offset - dx).coerceIn(0.0, strip.maxOffset())
@@ -174,6 +184,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         try { wakeLock?.release() } catch (e: Throwable) {}
         wakeLock = null
         floor.release()
+        hintTimer?.let { window.clearTimeout(it) }; hintTimer = null
     }
 
     /** the screen stays on while the floor is shown, where the browser can do that */
@@ -235,9 +246,21 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
             stripStage.g.clearRect(0.0, 0.0, stripStage.width, stripStage.height)
             strip.draw(stripStage.draw)
         }
+        // the hint, if there is one: its picture moves by itself, so it is drawn at every frame for as long as it is there
+        val h = hint
+        if (h != null || hintDrawn) {
+            hintStage.fit()
+            if (hintDrawn) hintStage.g.clearRect(0.0, 0.0, hintStage.width, hintStage.height)
+            hintDrawn = h != null && HintPainter.draw(hintStage.draw, h, (now - hintSince) / 1000.0, hintStage.width, hintStage.height, 1.0, if (floor.barsShown) STRIP else 0.0)
+        }
         loadingEl.hidden = !floor.loading
         report()
-        if (dirty || stripDirty || callbacks.isNotEmpty() || gliding || (!stripDragging && abs(flingV) > 0.02) || floor.loading) ask()
+        // while it rests nothing needs drawing: the frames are woken when it is to play again
+        if (h != null && !hintDrawn && hintTimer == null) {
+            val ms = (HintPainter.wait(h, (now - hintSince) / 1000.0) * 1000.0).coerceIn(16.0, 60000.0)
+            hintTimer = window.setTimeout({ hintTimer = null; ask() }, ms.toInt())
+        }
+        if (dirty || stripDirty || callbacks.isNotEmpty() || gliding || (!stripDragging && abs(flingV) > 0.02) || floor.loading || hintDrawn) ask()
     }
 
     /** what the floor shows, for whoever tests the page from outside (window.sixstep) */
@@ -247,6 +270,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         o.playing = floor.playing; o.loading = floor.loading; o.beat = App.player.beatNow(); o.bpm = App.player.bpm(); o.t = nowMs()
         o.title = sc?.title; o.count = sc?.count; o.banner = sc?.banner; o.arrows = sc?.arrows?.size ?: 0
         o.current = strip.current; o.bars = floor.barsShown; o.song = floor.songLabel()
+        o.hint = hint?.key; o.hintShowing = hintDrawn
         window.asDynamic().sixstep = o
     }
 
@@ -299,8 +323,18 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     }
 
     override fun message(text: String) = toast(text)
-    /** the settings page's switch for the rock triple triples after a swipe (on unless it was switched off) */
+    /** the settings page's switch for the lead-in after a swipe (on unless it was switched off) */
     override val leadIn: Boolean get() = Prefs.bool("lead_in", true)
+
+    // the hints: which one to show, and what this user has already done (kept in the browser's storage, so until that is cleared)
+    override fun hint(hint: Hint?) {
+        this.hint = hint; hintSince = nowMs()
+        hintTimer?.let { window.clearTimeout(it) }; hintTimer = null
+        ask()
+    }
+    override fun knows(what: String): Boolean = Prefs.bool("hint_$what", false)
+    override fun learned(what: String) { Prefs.put("hint_$what", true) }
+    override val stripScrolls: Boolean get() { fit(); return strip.maxOffset() > 0.5 }
 
     /** the song menu's "Upload…": the dance stops, and the window in which a song of the listener's own is added
      *  opens; a song that was added is the one that plays from then on */

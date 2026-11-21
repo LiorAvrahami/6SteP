@@ -94,4 +94,11 @@
             android:src="@drawable/ic_back"
             android:contentDescription="@string/back" />
     </LinearLayout>
+    <!-- the hints for what the floor can do (the shared Hint and HintPainter): over the floor and its bars, taking
+         no touches (a plain view takes none, so they go to what lies under it) -->
+    <org.lior.sixstep.HintView
+        android:id="@+id/hints"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no" />
 </FrameLayout>

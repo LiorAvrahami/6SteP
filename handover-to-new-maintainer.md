@@ -350,6 +350,47 @@ commit (there is no diff step any more: the editor's file is the only version). 
   centred on the step that stands out most: `Rarity` describes a pose relative to the couple (the feet around their
   middle, his-to-her direction along x, headings as short vectors) and takes the step with the lowest Gaussian density
   among the poses of every element. Dragging one row puts the others back.
+- **The hints** (since v71; user 2026-11-21: "People that use this app ... it's not intuitive to them, the things that
+  they can do. So they understand that they can click on things, but in the dance floor is just not intuitive ...
+  what I want is the most minimalistic addition to the interface that will make it so that people will engage with
+  it in the ways that they can ... a series of flags ... that indicate what the user has already done. And once a
+  user has already used some functionality, then we don't need to hint at it anymore. If the user didn't use some
+  functionality, then we keep hinting ... until they use this functionality ... until they like clear their cookies
+  or whatever, I want these hints to not exist"). Five things, each with a flag and a small moving picture
+  (`shared/.../Hints.kt`: `Hint`, `HintPainter`):
+
+  | Flag (`Hint.key`) | What the user can do | The picture, and where |
+  |---|---|---|
+  | `tap_pause` | a tap on the floor pauses the dance | a faint round button with the pause mark and three rings going out from it, low on the right, while the dance plays |
+  | `tap_play` | a tap on the floor plays it | the same with the play mark, while the dance stands |
+  | `bars` | a swipe down brings the bars | a short grip at the top edge, a fingertip sliding down from it with a tail, an arrowhead under it; while the bars are away |
+  | `strip_tap` | a tap on a step of the bottom bar goes there | a fingertip with three rings on the bar's pictures |
+  | `strip_scroll` | the bottom bar can be dragged | a fingertip sliding along the bar's pictures, to the left and then to the right, turn about |
+
+  The pictures have one sign: a round dot is a fingertip; rings going out from it are a tap (the user's own idea: "3
+  consecutive circles that appear that indicate that you tap"), and a mark in it says what the tap does; a dot that
+  slides with a tail is a swipe. All in the floor's dark grey, half see-through, no words. A hint waits before it
+  first shows (3 s for the pause, so that the dance is watched first; 1.2 to 2 s for the others), plays for a second
+  or two, rests, and comes again every 5 s (taps) or 4.4 s (swipes) for as long as it is the floor's hint.
+  **One hint at a time** (`DanceFloor.hintNow`): with the bars shown, first the bottom bar's two (its play button is
+  there to be seen); otherwise the tap that pauses while the dance plays, or the tap that plays while it stands; and
+  with those known and the bars away, the swipe down. **A flag goes up when the user does the thing itself**
+  (`tap()`, `swipeDown()`, `tapStop()`, `stripScrolled()`), hint or no hint; not when the same happens another way
+  (the top bar's play button, the bars that come by themselves when a piece is opened from Explore or ends). The
+  flags are kept by the screen (`FloorHost.knows`, `learned`): `hint_<key>` in the app's preferences and in the
+  browser's storage, so until those are cleared; a screen that keeps nothing shows no hints.
+  **Drawing:** the shared `HintPainter` through `Draw`, so both fronts show the same. The web page has a third
+  canvas for it (`canvas.hints`: over the floor and the bars, under an open menu, no touches); the Android app a
+  view over everything (`HintView`, no touches) with `AndroidDraw`, Android's `Canvas` behind `Draw`: **the first
+  shared painter the app draws with, compiled on GitHub and read through, but never seen on a phone by the
+  maintainer.** Neither front draws while a hint rests (`HintPainter.wait`).
+  **Checked:** `DanceFloorTest` (a new user is taken through the five, one at a time; another way of doing a thing
+  raises no flag; nothing comes back on another floor; a screen that keeps nothing shows none), `HintsTest` (every
+  picture waits, plays, rests and comes again, stays on the screen and where its gesture belongs), and the web page
+  in the headless browser on a sideways and an upright phone: each hint seen, each gone for good after its gesture,
+  none on the next visit, all back when the storage is cleared. **Not hinted** (asked of the user): the swipe to the
+  left or right on the floor (a step on while it stands, a part on while it plays) and the swipe up that sends the
+  bars away. To see the hints again: clear the app's data, or open the page in a private window.
 - **Metronome.** Snare on the odd counts, closed hi-hat on the swung "&" and the even counts; scheduled on its own thread
   at exact uptimes from the clock. Both sounds are synthesised by `make_assets.py`.
 - **Speech.** Annotations are fetched once from Google Translate's TTS endpoint and cached per phrase (`cacheDir/tts_<md5>.mp3`),
@@ -362,6 +403,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   This was the fix for "the music and the annotations both go dim sometimes" (2026-10-19); the diagnosis also named the
   phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
 - **Preferences** (`6step`): `lead_in`, `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on` (the settings page);
+  `hint_tap_pause`, `hint_tap_play`, `hint_bars`, `hint_strip_tap`, `hint_strip_scroll` (true once the user has done the thing: its hint never shows again);
   `bpm_offset`, `song` (a track key, `all` (the default) or `shuffle`), `muted` (the dance floor's top bar; `strategic`, the schema mode, is no longer read since 2026-11-17);
   `explore_open_elements`, `explore_open_compositions`, `explore_open_blocks`, `explore_version_<kind>_<name>`. The web page keeps the same names in the browser's local storage (prefix `6step.`),
   and `user_songs` for the songs the listener added. Gone with the redesign: the exploration
@@ -544,6 +586,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   facing" is a building block; the underarm bringback is a version of the follower underarm pass (section 3).
   v70: the user's answers to that round's questions ("yes", "yes", "fix it"): the two face-to-face triple steps are
   counted 3 & 4 and 5 & 6 (section 3).
+  v71: hints on the dance floor for what nothing on the screen says, each gone for good once its gesture has been
+  used ("The hints" above).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

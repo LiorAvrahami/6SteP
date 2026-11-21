@@ -38,6 +38,7 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
     private lateinit var floorView: FloorView
     private lateinit var topBar: View
     private lateinit var stripView: StepStrip
+    private lateinit var hintView: HintView
     private lateinit var playBtn: ImageButton
     private lateinit var rateBtn: TextView
     private lateinit var songBtn: TextView
@@ -57,6 +58,7 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
             it.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         }
         floorView = findViewById(R.id.floor); topBar = findViewById(R.id.topBar); stripView = findViewById(R.id.strip)
+        hintView = findViewById(R.id.hints)
         playBtn = findViewById(R.id.play); rateBtn = findViewById(R.id.rate); songBtn = findViewById(R.id.song)
         muteBtn = findViewById(R.id.mute)
         val back = findViewById<ImageButton>(R.id.back)
@@ -78,6 +80,7 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
         TooltipCompat.setTooltipText(rateBtn, getString(R.string.tempo))
         TooltipCompat.setTooltipText(songBtn, getString(R.string.song))
         stripView.onTap = { k -> dance.tapStop(k) }
+        stripView.onDragStart = { dance.stripScrolled() }   // the user drags the bottom bar: that is one of the things the hints teach
         updateButtons()
 
         val gestures = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
@@ -116,8 +119,15 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
     override fun bars(shown: Boolean) { barsWanted = shown; moveBars() }
     override fun buttons() { updateButtons() }
     override fun message(text: String) { Toast.makeText(this, text, Toast.LENGTH_LONG).show() }
-    /** the settings page's switch for the rock triple triples after a swipe (on unless it was switched off) */
+    /** the settings page's switch for the lead-in after a swipe (on unless it was switched off) */
     override val leadIn: Boolean get() = getSharedPreferences("6step", MODE_PRIVATE).getBoolean("lead_in", true)
+
+    // the hints (the shared Hint): which one to show, and what this user has already done once. The flags are kept in
+    // the app's preferences, so they stay until the app's data is cleared.
+    override fun hint(hint: Hint?) { hintView.show(hint) }
+    override fun knows(what: String): Boolean = getSharedPreferences("6step", MODE_PRIVATE).getBoolean("hint_$what", false)
+    override fun learned(what: String) { getSharedPreferences("6step", MODE_PRIVATE).edit().putBoolean("hint_$what", true).apply() }
+    override val stripScrolls: Boolean get() = stripView.canScroll
 
     // ------------------------------------------------------------------ the bars
 
@@ -135,6 +145,7 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
         val th = topBar.height.toFloat(); val bh = stripView.height.toFloat()
         topBar.translationY = -th * (1 - f); stripView.translationY = bh * (1 - f)
         floorView.insetTop = th * f; floorView.insetBottom = bh * f
+        hintView.bottomBar = bh * f
     }
 
     // ------------------------------------------------------------------ the buttons and their menus

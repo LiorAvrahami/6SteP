@@ -70,6 +70,17 @@ interface FloorHost {
      *  this feature toggleable in the settings so that it's possible to disable it"); on unless it was switched off.
      *  Asked at every swipe, so that a change on the settings page counts at once. */
     val leadIn: Boolean get() = true
+    /** Has the user done this at least once (`what`: a Hint's key)? Kept for good by the screen, in the app's
+     *  preferences or the browser's storage, so that the hint for it never shows again (user 2026-11-21: "until they
+     *  like clear their cookies or whatever, I want these hints to not exist"). A screen that keeps nothing says yes
+     *  to everything, and so shows no hints. */
+    fun knows(what: String): Boolean = true
+    /** the user has just done it: remember that */
+    fun learned(what: String) {}
+    /** the hint to show over the floor now (HintPainter draws it), or none */
+    fun hint(hint: Hint?) {}
+    /** the bottom bar holds more steps than fit on the screen: it can be dragged sideways */
+    val stripScrolls: Boolean get() = true
 }
 
 /** The one dance floor (the user's layout draft, 2026-10-28): every element, building block and composition is danced
@@ -152,6 +163,7 @@ class DanceFloor(
     val travelling: Boolean get() = travel != null
     private var frameAsked = false
     private var released = false
+    private var hint: Hint? = null                // the hint the screen was last told to show
     private var swing = Piece.SWING
 
     /** The dancers' way into a part that a swipe went to while a composition plays (user 2026-11-21, in place of the
@@ -220,23 +232,61 @@ class DanceFloor(
         host.buttons()
         show()
         if (autoplay) play() else showBars()
+        hints()
     }
 
     // ------------------------------------------------------------------ what the fronts pass on
 
     /** a swipe to the left (forward = true) or to the right */
     fun swipe(forward: Boolean) { if (playing) skip(forward) else step(if (forward) 1 else -1) }
-    fun swipeDown() = showBars()
+    fun swipeDown() { if (!barsShown) { showBars(); learned(Hint.SWIPE_DOWN) } }   // the bars came by the user's own swipe: no more hint for that
     fun swipeUp() = hideBars()
 
     /** a tap on the floor, passed on the moment the finger lifts: it pauses the dance when it plays, and plays it when
      *  it stands (user 2026-11-21). There is no double tap any more: every tap is one of these. */
-    fun tap() = playPause()
+    fun tap() {
+        val was = playing
+        playPause()
+        if (playing != was) learned(if (was) Hint.TAP_PAUSE else Hint.TAP_PLAY)   // the tap did it: no more hint for that
+    }
+    /** the user dragged the bottom bar sideways (the screen tells) */
+    fun stripScrolled() = learned(Hint.STRIP_SCROLL)
     fun playPause() { if (playing) pause() else play() }
     fun toggleMute() { pb.setMuted(!pb.muted); host.buttons() }
     /** the page went out of sight, or the app into the background */
     fun hidden() { if (playing) pause() }
-    fun release() { released = true; travel = null; playing = false; pb.release() }
+    fun release() { released = true; travel = null; playing = false; pb.release(); hints() }
+
+    // ------------------------------------------------------------------ the hints
+
+    /** The one hint that fits what is on the screen, among those whose flag is still down (see Hint). With the bars
+     *  shown, first what the bottom bar can do (its play button is there to be seen); then the tap that pauses while the
+     *  dance plays, or the tap that plays while it stands; and with those known and the bars away, the swipe that
+     *  brings them. */
+    private fun hintNow(): Hint? {
+        if (released || error != null || tl == null) return null
+        fun down(h: Hint) = !host.knows(h.key)
+        if (barsShown) {
+            if (stops.size > 1 && down(Hint.STRIP_TAP)) return Hint.STRIP_TAP
+            if (host.stripScrolls && down(Hint.STRIP_SCROLL)) return Hint.STRIP_SCROLL
+        }
+        if (playing) { if (down(Hint.TAP_PAUSE)) return Hint.TAP_PAUSE }
+        else if (down(Hint.TAP_PLAY)) return Hint.TAP_PLAY
+        if (!barsShown && down(Hint.SWIPE_DOWN)) return Hint.SWIPE_DOWN
+        return null
+    }
+
+    /** tell the screen which hint to show, when that has changed */
+    private fun hints() {
+        val want = hintNow()
+        if (want != hint) { hint = want; host.hint(want) }
+    }
+
+    /** the user did it: the flag goes up for good, and the next hint (if any) takes its place */
+    private fun learned(h: Hint) {
+        if (!host.knows(h.key)) host.learned(h.key)
+        hints()
+    }
 
     val muted: Boolean get() = pb.muted
     val loading: Boolean get() = playing && pb.loading
@@ -496,6 +546,7 @@ class DanceFloor(
         if (k !in stops.indices) return
         if (playing) startAt(k, pb.beatNow(), quiet = true)
         else { travel = null; idx = k; show() }
+        learned(Hint.STRIP_TAP)
     }
 
     // ------------------------------------------------------------------ playing: everything made afresh from a step
@@ -524,6 +575,7 @@ class DanceFloor(
         silentUntil = if (quiet) b + 0.05 else Double.NEGATIVE_INFINITY
         banner = null
         hideBars(); host.buttons()
+        hints()
         askFrame()
     }
 
@@ -545,6 +597,7 @@ class DanceFloor(
         idx = if (p.isNaN()) 0 else stopIndex(stops, p)
         banner = null
         show(); host.buttons()
+        hints()
     }
 
     /** a composition danced to its end */
@@ -552,6 +605,7 @@ class DanceFloor(
         playing = false; approach = null; pb.stop(); pausedClock = Double.NaN
         idx = stops.size - 1
         show(Texts.DONE); host.buttons(); showBars()
+        hints()
     }
 
     /** while playing: to the next part, or back to the start of this one (the previous one in its first seconds) */
@@ -697,11 +751,13 @@ class DanceFloor(
         barsShown = true
         host.stripScrollTo(maxOf(stripCurrent, 0), false)
         host.bars(true)
+        hints()
     }
 
     private fun hideBars() {
         if (!barsShown) return
         barsShown = false
         host.bars(false)
+        hints()
     }
 }
