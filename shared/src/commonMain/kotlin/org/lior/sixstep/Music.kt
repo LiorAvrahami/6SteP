@@ -76,13 +76,28 @@ class Track(val key: String, val title: String, val artist: String, val licence:
 /** The music laid along the dance, for the song and the tempo chosen (user 2026-10-28: "for every step the app should
  *  know via a lookup which beat this is in the audio"): the first track's first downbeat (BeatGrid.startBeatIndex) on
  *  dance beat 0, with four beats of it before (the count-in); each next track on the first element start at least two
- *  beats after the previous file runs out, the snare and hi-hat in between. A chosen song plays over and over; shuffle
- *  goes through all of them. So every dance beat has one place in the audio (segmentAt).
+ *  beats after the previous file runs out, the snare and hi-hat in between. "Play all" (the default, user 2026-11-21)
+ *  goes through the songs in the order they are stored, the first one first, and after the last one comes the first
+ *  again; a chosen song plays over and over; "shuffle play" goes through all of them in an order drawn afresh. So every
+ *  dance beat has one place in the audio (segmentAt).
  *  (The web front's player is built on this. The Android app's Playback has the same plan inside it, for now.) */
-class MusicPlan(val tracks: List<Track>, private val gridOf: (Track) -> BeatGrid) {
+class MusicPlan(tracks: List<Track>, private val gridOf: (Track) -> BeatGrid) {
     companion object {
         val BPM_OFFSETS = intArrayOf(-40, -30, -20, -10, 0, 10, 20)
+        const val ALL = "all"                // every song, in the order they are stored
         const val SHUFFLE = "shuffle"
+
+        /** the tempo a dance starts at with these choices, before anything plays: the chosen song's; the first song's
+         *  when all are played in their order; the songs' average when they are shuffled (nobody knows which is first) */
+        fun startTempo(tracks: List<Track>, song: String, bpmOffset: Int): Double {
+            val chosen = tracks.firstOrNull { it.key == song }
+            return when {
+                chosen != null -> chosen.variantFor(bpmOffset).bpm
+                tracks.isEmpty() -> 120.0
+                song == SHUFFLE -> tracks.map { it.variantFor(bpmOffset).bpm }.average()
+                else -> tracks.first().variantFor(bpmOffset).bpm
+            }
+        }
         const val COUNT_IN = 4.0             // beats of the first track before the dance starts
         const val GAP = 2.0                  // a track starts on the first element start at least this many beats after the last one ran out
         const val END_LEAD = 0.25            // s: a track counts as over this long before its file ends
@@ -101,8 +116,11 @@ class MusicPlan(val tracks: List<Track>, private val gridOf: (Track) -> BeatGrid
     /** where a track may start: the first element start at or after a dance beat; null after the end of the piece */
     var boundaryAfter: (Double) -> Double? = { null }
         set(v) { field = v; replan() }
-    /** a track's key, or SHUFFLE */
-    var song: String = SHUFFLE
+    /** the songs there are, in the order they are stored; one that the user adds comes last */
+    var tracks: List<Track> = tracks
+        set(v) { field = v; reorder() }
+    /** a track's key, ALL or SHUFFLE */
+    var song: String = ALL
         set(v) { field = v; reorder() }
     var bpmOffset = 0
         set(v) { field = v; replan() }
@@ -113,10 +131,14 @@ class MusicPlan(val tracks: List<Track>, private val gridOf: (Track) -> BeatGrid
 
     init { reorder() }
 
-    /** the chosen song, over and over; or every song, shuffled */
+    /** the chosen song, over and over; or every song: in the order they are stored, or shuffled */
     fun reorder() {
         val chosen = tracks.firstOrNull { it.key == song }
-        order = if (chosen != null) listOf(chosen) else tracks.shuffled()
+        order = when {
+            chosen != null -> listOf(chosen)
+            song == SHUFFLE -> tracks.shuffled()
+            else -> tracks
+        }
         replan()
     }
 

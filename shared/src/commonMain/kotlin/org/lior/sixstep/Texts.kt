@@ -34,8 +34,13 @@ object Texts {
     fun bpm(n: Int): String = "$n BPM"
     fun bpmOriginal(n: Int): String = "$n BPM · original"
     const val SONG = "Song"
-    const val SHUFFLE_ALL = "Shuffle all songs"
+    const val PLAY_ALL = "Play all"
+    const val SHUFFLE_PLAY = "Shuffle play"
+    const val UPLOAD = "Upload…"
     fun shuffleNow(title: String): String = "Shuffle · $title"
+    const val EDIT = "Edit"
+    const val EDITOR_NOT_READY = "Choreography editor for phone not implemented yet."
+    const val OK = "OK"
     const val MUTE = "Mute the music and the voice"
     const val UNMUTE = "Turn the music and the voice back on"
     const val BACK = "Back"
@@ -51,9 +56,17 @@ object Texts {
 
     // the heart page (the user's own words, 2026-10-28, with the spelling put right)
     const val HEART_NOTE = "Hi, I'm Lior. I made this app for the community, with the intent to help. Nothing would make me happier than getting a genuine, thoughtful email about how someone used and appreciates this app.\n\nPlease describe with complete genuineness and honesty what about this app you liked, and if it made you feel a connection with me, its creator."
+    const val HEART_BEER = "Also, putting apps in the Play Store costs me money. If you feel generous, you can buy me a beer (IRL or via the app)."
     const val EMAIL_ME = "Email me"
+    const val MY_WEBSITE = "My website"
+    const val BUY_BEER = "Buy me a Beer"
     const val EMAIL = "lior.2pi+6step@gmail.com"   // the app's own address at the user's mailbox (user 2026-10-29)
     const val CLOSE = "Close"
+    const val LINK_NOT_SET = "This link is not set up yet"
+    /** the user's own pages, still to be given: until then a tap says the link is not set up yet */
+    const val WEBSITE = ""
+    const val PAY_URL = ""          // with %d for the amount in dollars
+    val BEER_AMOUNTS = intArrayOf(5, 15, 30)
 
     // settings
     const val SET_OVERLAY = "Snare and hi-hat over the music"
@@ -63,7 +76,11 @@ object Texts {
     const val SET_MUTE_NOTE = "The mute button on the dance floor silences everything at once: the music, the drums and the voice."
     fun about(version: String): String = "6SteP $version · font: Inter (SIL Open Font License) · icons: Lucide (ISC License)"
 
+    private val LEAD = Regex("\\blead\\b", RegexOption.IGNORE_CASE)
+    private val YOYO = Regex("\\byo[ -]?yo(s?)\\b", RegexOption.IGNORE_CASE)
+
     /** how a phrase is said: words the voices read wrongly are spelled the way they sound. "lead" alone reads as the
-     *  metal ("led"); "leed" reads as in "lead and follow" (user 2026-10-19). The screen keeps the real spelling. */
-    fun spoken(text: String): String = text.replace(Regex("\\blead\\b", RegexOption.IGNORE_CASE), "leed")
+     *  metal ("led"); "leed" reads as in "lead and follow" (user 2026-10-19). "yoyo" in one word is read as something
+     *  else; "yo-yo", the toy's own spelling, is read right (user 2026-11-21). The screen keeps the real spelling. */
+    fun spoken(text: String): String = text.replace(LEAD, "leed").replace(YOYO) { m -> "yo-yo" + m.groupValues[1] }
 }

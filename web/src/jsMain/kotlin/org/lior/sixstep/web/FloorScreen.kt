@@ -20,7 +20,9 @@ import kotlin.math.pow
 
 /** The dance floor in a browser: the screen of the shared DanceFloor. It draws what the floor shows (the shared
  *  FloorPicture and StripPainter on two canvases), slides the bars, and passes on the gestures: a swipe left or right,
- *  a swipe down or up for the bars, a tap, a double tap; on a keyboard the arrow keys and the space bar. */
+ *  a swipe down or up for the bars, and every tap the moment the finger lifts (the floor itself knows a double tap:
+ *  DanceFloor.tap); on a keyboard the arrow keys and the space bar. The bars are the app's (activity_dance_floor.xml):
+ *  play, the tempo, the song, mute; then edit and back. */
 class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) : Screen, FloorHost {
     companion object {
         const val TOP_BAR = 64.0
@@ -28,7 +30,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         const val BAND = 32.0            // the strip's upper band, where the annotations are: touches there go to the floor
         const val SWIPE_X = 60.0
         const val SWIPE_Y = 80.0
-        const val DOUBLE_TAP_MS = 300
+        const val TAP_SLOP = 20.0        // a finger that moved less than this, either way, has tapped
     }
 
     override val root: HTMLElement = el("div", "floor")
@@ -42,13 +44,12 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     private val songLabel = el("span")
     private val songBtn = el("button", "song press") {
         title = Texts.SONG
-        add(songLabel); add(icon("chevron-down"))
-        onclick = { it.stopPropagation(); menu(this, floor.songChoices()) { i -> floor.chooseSong(i) }; null }
+        add(songLabel); add(icon("chevron_down"))
+        onclick = { it.stopPropagation(); val choices = floor.songChoices(); menu(this, choices) { i -> floor.chooseSong(choices[i].key) }; null }
     }
-    private val muteBtn = iconButton("volume-2", Texts.MUTE) { floor.toggleMute() }
+    private val muteBtn = iconButton("volume", Texts.MUTE) { floor.toggleMute() }
     private val loadingEl = el("div", "loading") { add(el("div", "spinner")); add(el("span", "", Texts.LOADING_MUSIC)); hidden = true }
     private var menuEl: HTMLElement? = null
-    private var toastEl: HTMLElement? = null
 
     private val floor = DanceFloor(App.assets.data, App.assets.store, kind, name, variant, autoplay, App.player, this)
 
@@ -68,8 +69,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
 
     // the floor's gestures
     private var downX = 0.0; private var downY = 0.0; private var isDown = false
-    private var lastTap = -1e9
-    private var tapTimer: Int? = null
+    private var closing = false
     private var wakeLock: dynamic = null
 
     init {
@@ -82,7 +82,8 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         root.add(stripBox)
         val top = el("div", "topbar")
         top.add(playBtn); top.add(rateBtn); top.add(songBtn); top.add(muteBtn); top.add(el("div", "space"))
-        top.add(iconButton("undo-2", Texts.BACK) { App.back() })
+        top.add(iconButton("pencil", Texts.EDIT) { alertBox(Texts.EDITOR_NOT_READY) })
+        top.add(iconButton("back", Texts.BACK) { App.back() })
         root.add(top)
         root.add(loadingEl)
 
@@ -92,9 +93,11 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
             isDown = true; downX = Display.x(e); downY = Display.y(e)
             // the floor keeps the touch until it lifts, also when it ends over a bar
             try { stage.canvas.asDynamic().setPointerCapture(e.asDynamic().pointerId) } catch (t: Throwable) {}
-            App.player.unlock(); closeMenu()
+            App.player.unlock()
+            closing = menuEl != null   // a touch that closes a menu does nothing else, as on Android
+            closeMenu()
         })
-        stage.canvas.addEventListener("pointerup", { e -> e as MouseEvent; if (isDown) { isDown = false; gesture(Display.x(e) - downX, Display.y(e) - downY) } })
+        stage.canvas.addEventListener("pointerup", { e -> e as MouseEvent; if (isDown) { isDown = false; if (!closing) gesture(Display.x(e) - downX, Display.y(e) - downY) } })
         stage.canvas.addEventListener("pointercancel", { isDown = false })
 
         // the strip under its band: drag it, or tap a step
@@ -166,7 +169,6 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         window.removeEventListener("keydown", onKey)
         window.removeEventListener("resize", onResize)
         document.removeEventListener("visibilitychange", onVisibility)
-        tapTimer?.let { window.clearTimeout(it) }
         try { wakeLock?.release() } catch (e: Throwable) {}
         wakeLock = null
         floor.release()
@@ -185,17 +187,8 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     private fun gesture(dx: Double, dy: Double) {
         if (abs(dy) > SWIPE_Y && abs(dy) > abs(dx) * 1.2) { if (dy > 0) floor.swipeDown() else floor.swipeUp(); return }
         if (abs(dx) > SWIPE_X && abs(dx) > abs(dy) * 1.2) { floor.swipe(dx < 0); return }
-        if (abs(dx) > 12 || abs(dy) > 12) return
-        // a tap: the second of two close together is a double tap, a single one acts once no second has come
-        val now = nowMs()
-        if (now - lastTap < DOUBLE_TAP_MS) {
-            lastTap = -1e9
-            tapTimer?.let { window.clearTimeout(it) }; tapTimer = null
-            floor.doubleTap()
-        } else {
-            lastTap = now
-            tapTimer = window.setTimeout({ tapTimer = null; floor.tap() }, DOUBLE_TAP_MS)
-        }
+        // a tap: passed on at once (user 2026-11-21: one tap pauses, with nothing to wait for)
+        if (abs(dx) <= TAP_SLOP && abs(dy) <= TAP_SLOP) floor.tap()
     }
 
     // ------------------------------------------------------------------ the frames
@@ -209,6 +202,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     private fun fit() {
         if (stage.fit()) { picture.setSize(stage.width, stage.height); dirty = true }
         if (stripStage.fit()) { strip.setSize(stripStage.width, stripStage.height); stripDirty = true }
+        picture.pixel = stage.pixel; strip.pixel = stripStage.pixel
     }
 
     private fun frame() {
@@ -293,7 +287,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         (playBtn.firstChild as HTMLElement).setAttribute("src", if (playing) "icons/pause.svg" else "icons/play.svg")
         playBtn.title = if (playing) Texts.PAUSE else Texts.PLAY
         playBtn.setAttribute("aria-label", playBtn.title)
-        (muteBtn.firstChild as HTMLElement).setAttribute("src", if (floor.muted) "icons/volume-off.svg" else "icons/volume-2.svg")
+        (muteBtn.firstChild as HTMLElement).setAttribute("src", if (floor.muted) "icons/volume_off.svg" else "icons/volume.svg")
         muteBtn.title = if (floor.muted) Texts.UNMUTE else Texts.MUTE
         muteBtn.setAttribute("aria-label", muteBtn.title)
         rateBtn.textContent = floor.tempoLabel()
@@ -302,18 +296,14 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         ask()
     }
 
-    override fun message(text: String) {
-        toastEl?.remove()
-        val t = el("div", "toast", text)
-        toastEl = t
-        root.add(t)
-        window.setTimeout({ if (toastEl === t) { t.remove(); toastEl = null } }, 3500)
-    }
+    override fun message(text: String) = toast(text)
 
     // ------------------------------------------------------------------ the tempo and song menus
 
     private fun closeMenu() { menuEl?.remove(); menuEl = null }
 
+    /** a menu under one of the bar's buttons, as the app's: each line with a round mark at its end, filled on the one
+     *  that is chosen; a line that only does something (the song menu's "Upload…") has no mark */
     private fun menu(anchor: HTMLElement, choices: List<DanceFloor.Choice>, pick: (Int) -> Unit) {
         val open = menuEl != null && menuEl?.getAttribute("data-of") == anchor.className
         closeMenu()
@@ -321,7 +311,11 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         val m = el("div", "menu")
         m.setAttribute("data-of", anchor.className)
         m.style.left = "${anchor.offsetLeft}px"
-        for ((i, c) in choices.withIndex()) m.add(el("button", if (c.checked) "on" else "", c.label) { onclick = { it.stopPropagation(); closeMenu(); pick(i); null } })
+        for ((i, c) in choices.withIndex()) m.add(el("button", if (c.checked) "on" else "") {
+            add(el("span", "", c.label))
+            if (c.checkable) add(el("i", "radio"))
+            onclick = { it.stopPropagation(); closeMenu(); pick(i); null }
+        })
         root.add(m)
         menuEl = m
     }

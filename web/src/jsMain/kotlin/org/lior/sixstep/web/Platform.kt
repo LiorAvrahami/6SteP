@@ -29,7 +29,7 @@ fun el(tag: String, cls: String = "", text: String? = null, build: (HTMLElement.
 
 fun HTMLElement.add(child: Node): HTMLElement { appendChild(child); return this }
 
-/** one of the Lucide icons (icons/<name>.svg) */
+/** one of the app's icons (icons/<name>.svg: the Android app's ic_<name>, made by design/make_ui_icons.py for both) */
 fun icon(name: String, alt: String = ""): HTMLImageElement {
     val i = document.createElement("img") as HTMLImageElement
     i.src = "icons/$name.svg"; i.alt = alt
@@ -48,22 +48,78 @@ fun iconButton(name: String, label: String, cls: String = "iconbtn press", onCli
 
 fun nowMs(): Double = window.performance.now()
 
+/** the page's one box (#app): every screen, window and message is put into it, so that they all lie the way it lies */
+fun appBox(): HTMLElement = document.getElementById("app") as HTMLElement
+
+/** a short message at the bottom of the page that goes away by itself, as an Android toast */
+fun toast(text: String) {
+    val box = appBox()
+    box.querySelector(".toast")?.let { box.removeChild(it) }
+    val t = el("div", "toast", text)
+    box.add(t)
+    window.setTimeout({ if (t.parentNode != null) t.parentNode?.removeChild(t) }, 3000)
+}
+
+/** A window over the page: the page behind it is dimmed and cannot be touched; a tap beside the window closes it.
+ *  What is in the window goes into `box`. */
+class Modal(boxClass: String) {
+    val box: HTMLElement = el("div", boxClass)
+    private val shade = el("div", "shade")
+    var onClose: (() -> Unit)? = null
+    val isOpen: Boolean get() = shade.parentNode != null
+
+    init {
+        shade.add(box)
+        shade.addEventListener("click", { e -> if (e.target === shade) close() })
+    }
+
+    fun open() { if (!isOpen) appBox().add(shade) }
+    fun close() { if (isOpen) { shade.parentNode?.removeChild(shade); onClose?.invoke() } }
+}
+
+/** a small window with a message and an OK, as an Android alert */
+fun alertBox(text: String) {
+    val m = Modal("alert")
+    m.box.add(el("div", "msg", text))
+    m.box.add(el("button", "ok", org.lior.sixstep.Texts.OK) { onclick = { m.close(); null } })
+    m.open()
+}
+
+/** the largest whole text size from `max` down to `min` px at which `inner` is no taller (and no wider) than the room
+ *  inside `outer`, as an Android text that sizes itself */
+fun fitText(outer: HTMLElement, inner: HTMLElement, min: Int, max: Int) {
+    val cs = window.getComputedStyle(outer)
+    fun px(v: String): Double = v.removeSuffix("px").toDoubleOrNull() ?: 0.0
+    val roomH = outer.clientHeight - px(cs.paddingTop) - px(cs.paddingBottom)
+    val roomW = outer.clientWidth - px(cs.paddingLeft) - px(cs.paddingRight)
+    if (roomH <= 0 || roomW <= 0) return
+    var size = max
+    while (true) {
+        inner.style.fontSize = "${size}px"
+        if (size <= min || (inner.offsetHeight <= roomH + 0.5 && inner.scrollWidth <= roomW + 0.5)) break
+        size--
+    }
+}
+
 // ------------------------------------------------------------------ how the page sits on the screen
 
-/** The page is sideways, as the Android app is, and full screen where the browser allows it (user 2026-11-21).
+/** The page lies the way the Android app's screens do (user 2026-11-21): sideways, all but the heart page, which is
+ *  upright as the user drew it; and full screen where the browser allows it.
  *
  *  A page cannot simply tell a phone to turn. What it can do: on the first tap of a visit it asks for the full screen,
- *  and with that for landscape (Android's Chrome grants both; put on the home screen, the page gets them from its
- *  manifest without asking). Wherever the phone still shows the page upright (the browser refuses, or the phone's
- *  rotation is locked), the page turns itself: its one box (#app) is laid out sideways and drawn turned a quarter, so
- *  that it is landscape for whoever holds the phone sideways, top to the left, as an Android app in landscape is held.
- *  A computer's window is left as it is.
+ *  and with that for the way the screen should lie (Android's Chrome grants both; put on the home screen, the page gets
+ *  them without asking). Wherever the phone still shows the page the other way (the browser refuses, or the phone's
+ *  rotation is locked), the page turns itself: its one box (#app) is laid out the way the screen wants it and drawn
+ *  turned a quarter. A sideways page on an upright phone is then right for whoever holds the phone sideways, top to
+ *  the left, as an Android app in landscape is held. A computer's window is left as it is.
  *
  *  Because the box may lie turned, a touch's place is not asked of the event but of x(), y() and xIn() here. */
 object Display {
-    /** the page's box is drawn turned a quarter: the browser's screen is upright, the page is sideways */
-    var turned = false
+    /** how the page's box lies on the browser's screen: 0 as the screen does; 1 a quarter turn clockwise (the screen
+     *  is upright, the page sideways); -1 a quarter turn the other way (the screen is sideways, the page upright) */
+    var quarter = 0
         private set
+    private var sideways = true
     private var tapped = false
     private val listeners = ArrayList<() -> Unit>()
 
@@ -80,29 +136,51 @@ object Display {
     fun onFullscreenChange(l: () -> Unit) { listeners.add(l) }
     fun removeListener(l: () -> Unit) { listeners.remove(l) }
 
+    /** the screen that is shown now wants the page sideways, or upright (the heart page) */
+    fun want(sideways: Boolean) {
+        if (this.sideways == sideways) return
+        this.sideways = sideways
+        if (isFullscreen() || installed()) lock()
+        update()
+    }
+
     /** a phone or a tablet: something that is held and touched, and so can be turned */
     private fun handheld(): Boolean = try { window.matchMedia("(pointer: coarse)").matches } catch (e: Throwable) { false }
+
+    /** how far the phone's screen is turned from the way it is normally held, in degrees (90: its top is to the left) */
+    private fun angle(): Int = try {
+        val o: dynamic = window.screen.asDynamic().orientation
+        val a: dynamic = if (o != null && jsTypeOf(o) != "undefined" && jsTypeOf(o.angle) == "number") o.angle else window.asDynamic().orientation
+        if (jsTypeOf(a) == "number") a.unsafeCast<Int>() else 90
+    } catch (e: Throwable) { 90 }
 
     private fun update() {
         val app = document.getElementById("app") as? HTMLElement ?: return
         val root = document.documentElement as? HTMLElement ?: return
         val w = window.innerWidth.toDouble(); val h = window.innerHeight.toDouble()
-        turned = handheld() && h > w
-        if (turned) { root.classList.add("turned"); app.style.width = "${h}px"; app.style.height = "${w}px" }
-        else { root.classList.remove("turned"); app.style.width = ""; app.style.height = "" }
-        // a box that really is upright (a tall window on a computer) gets the launcher's upright layout
-        if (!turned && h > w) root.classList.add("upright") else root.classList.remove("upright")
-        val bw = if (turned) h else w; val bh = if (turned) w else h
+        quarter = when {
+            !handheld() -> 0
+            sideways && h > w -> 1
+            // upright on a screen that lies sideways: turned back the way the screen was turned
+            !sideways && w > h -> if (angle() == 270 || angle() == -90) 1 else -1
+            else -> 0
+        }
+        root.classList.toggle("turned", quarter == 1)
+        root.classList.toggle("turned-back", quarter == -1)
+        if (quarter != 0) { app.style.width = "${h}px"; app.style.height = "${w}px" } else { app.style.width = ""; app.style.height = "" }
+        val bw = if (quarter != 0) h else w; val bh = if (quarter != 0) w else h
+        // a box that is upright: the heart page, and a tall window on a computer (the launcher has a layout for that)
+        root.classList.toggle("upright", bh > bw)
         root.style.setProperty("--aw", "${bw / 100}px"); root.style.setProperty("--ah", "${bh / 100}px")
     }
 
     /** where a touch is along the page's own width (x) and height (y); only differences of these mean something */
-    fun x(e: MouseEvent): Double = if (turned) e.clientY.toDouble() else e.clientX.toDouble()
-    fun y(e: MouseEvent): Double = if (turned) -e.clientX.toDouble() else e.clientY.toDouble()
+    fun x(e: MouseEvent): Double = when (quarter) { 1 -> e.clientY.toDouble(); -1 -> -e.clientY.toDouble(); else -> e.clientX.toDouble() }
+    fun y(e: MouseEvent): Double = when (quarter) { 1 -> -e.clientX.toDouble(); -1 -> e.clientX.toDouble(); else -> e.clientY.toDouble() }
     /** how far a touch is from an element's left edge, in the page's own px */
     fun xIn(e: MouseEvent, el: Element): Double {
         val r = el.getBoundingClientRect()
-        return if (turned) e.clientY - r.top else e.clientX - r.left
+        return when (quarter) { 1 -> e.clientY - r.top; -1 -> r.bottom - e.clientY; else -> e.clientX - r.left }
     }
 
     fun canFullscreen(): Boolean {
@@ -122,15 +200,17 @@ object Display {
             window.navigator.asDynamic().standalone == true
     } catch (e: Throwable) { false }
 
-    /** ask the phone for landscape; it says yes only to a page that has the full screen (or is on its way to it) */
+    /** ask the phone to lie the way the screen shown wants it; it says yes only to a page that has the full screen (or
+     *  is on its way to it) */
     private fun lock() {
         try {
             val o: dynamic = window.screen.asDynamic().orientation
-            if (o != null && jsTypeOf(o) != "undefined" && jsTypeOf(o.lock) == "function") o.lock("landscape").then({ _: dynamic -> }, { _: dynamic -> })
+            if (o != null && jsTypeOf(o) != "undefined" && jsTypeOf(o.lock) == "function")
+                o.lock(if (sideways) "landscape" else "portrait").then({ _: dynamic -> update() }, { _: dynamic -> })
         } catch (e: Throwable) {}
     }
 
-    /** the full screen, and landscape with it; only from a tap */
+    /** the full screen, and the right way round with it; only from a tap */
     fun enter() {
         val el: dynamic = document.documentElement
         try {
@@ -147,8 +227,8 @@ object Display {
 
     fun toggle() { if (isFullscreen()) leave() else enter() }
 
-    /** the first tap of a visit on a phone: the full screen and landscape, once. Left again, it stays left until the
-     *  launcher's button is used (a page that kept going back to the full screen could not be got out of). */
+    /** the first tap of a visit on a phone: the full screen and the right way round, once. Left again, it stays left
+     *  until the settings page's switch is used (a page that kept going back to the full screen could not be got out of). */
     private fun firstTap() {
         if (tapped) return
         tapped = true
@@ -180,11 +260,14 @@ class Stage(val canvas: HTMLCanvasElement) {
     var height = 0.0
         private set
     val draw = CanvasDraw(g)
+    /** one of the screen's own pixels, in the page's px (what the shared painters call `pixel`) */
+    val pixel: Double get() = 1.0 / window.devicePixelRatio
 
     /** fit the buffer to the size on the page; true when the size changed */
     fun fit(): Boolean {
         val w = canvas.clientWidth.toDouble(); val h = canvas.clientHeight.toDouble()
         val dpr = window.devicePixelRatio
+        draw.dpr = dpr
         val bw = (w * dpr).toInt(); val bh = (h * dpr).toInt()
         val changed = w != width || h != height || canvas.width != bw || canvas.height != bh
         if (changed) { canvas.width = bw; canvas.height = bh; width = w; height = h }
@@ -197,6 +280,8 @@ class Stage(val canvas: HTMLCanvasElement) {
 class CanvasDraw(private val g: CanvasRenderingContext2D) : Draw {
     var width = 0.0
     var height = 0.0
+    /** the screen's own pixels per px of the page */
+    var dpr = 1.0
     private val dg: dynamic = g
 
     private fun css(c: Int): String {
@@ -213,7 +298,14 @@ class CanvasDraw(private val g: CanvasRenderingContext2D) : Draw {
     override fun fillAll(color: Int) { dg.fillStyle = css(color); g.fillRect(0.0, 0.0, width, height) }
 
     override fun line(x0: Double, y0: Double, x1: Double, y1: Double, color: Int, width: Double) {
-        g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1)
+        var ax = x0; var ay = y0; var bx = x1; var by = y1
+        // a line as thin as one of the screen's own pixels is put exactly on a column or a row of them, so that it is
+        // one sharp pixel wide (as the Android app's grid is) and not two faint ones
+        if (width * dpr <= 1.01) {
+            if (x0 == x1) { ax = (kotlin.math.floor(x0 * dpr) + 0.5) / dpr; bx = ax }
+            else if (y0 == y1) { ay = (kotlin.math.floor(y0 * dpr) + 0.5) / dpr; by = ay }
+        }
+        g.beginPath(); g.moveTo(ax, ay); g.lineTo(bx, by)
         dg.strokeStyle = css(color); g.lineWidth = width; dg.lineCap = "butt"; solid(); g.stroke()
     }
 

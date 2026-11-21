@@ -31,7 +31,8 @@
     <string name="bpm">%1$d BPM</string>
     <string name="bpm_original">%1$d BPM · original</string>
     <string name="song">Song</string>
-    <string name="shuffle_all">Shuffle all songs</string>
+    <string name="play_all">Play all</string>
+    <string name="shuffle_play">Shuffle play</string>
     <string name="shuffle_now">Shuffle · %1$s</string>
     <string name="mute">Mute the music and the voice</string>
     <string name="unmute">Turn the music and the voice back on</string>

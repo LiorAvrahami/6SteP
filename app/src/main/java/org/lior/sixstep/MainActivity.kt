@@ -119,15 +119,11 @@ class MainActivity : AppCompatActivity() {
         if (on) { running = false; arrows.post { arrows.invalidate() } } else startSnippet()
     }
 
-    /** the tempo the daily exercise is danced at: the chosen song's at the chosen offset, or the songs' average when they
-     *  are shuffled */
+    /** the tempo the daily exercise is danced at, at the chosen offset: the chosen song's; the first song's when all are
+     *  played in their order; the songs' average when they are shuffled */
     private fun tempo(): Double {
         val prefs = getSharedPreferences("6step", MODE_PRIVATE)
-        val off = prefs.getInt("bpm_offset", 0)
-        val tracks = Track.loadAll(this)
-        val chosen = tracks.firstOrNull { it.key == prefs.getString("song", Playback.SHUFFLE) }
-        if (chosen != null) return chosen.variantFor(off).bpm
-        return if (tracks.isEmpty()) 120.0 else tracks.map { it.variantFor(off).bpm }.average()
+        return MusicPlan.startTempo(Track.loadAll(this), prefs.getString("song", Playback.ALL) ?: Playback.ALL, prefs.getInt("bpm_offset", 0))
     }
 }
 

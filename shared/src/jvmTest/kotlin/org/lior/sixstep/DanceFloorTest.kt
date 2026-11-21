@@ -46,7 +46,7 @@ class DanceFloorTest {
     private class Player(val clock: Clock, val tempo: Double) : FloorPlayer {
         override var playing = false
         override val muted = false
-        override val song = MusicPlan.SHUFFLE
+        override val song = MusicPlan.ALL
         override val bpmOffset = 0
         override val tracks = emptyList<Track>()
         override val loading = false
@@ -135,7 +135,7 @@ class DanceFloorTest {
 
     @Test fun playShowsEachAnnotationTwoBeatsAheadAndReadsItWithItsCount() {
         val r = rig(exercise)
-        r.floor.doubleTap()
+        r.floor.playPause()
         assertTrue(r.floor.playing)
         assertFalse(r.host.bars, "the bars close when play starts")
         var up: Double? = null; var gone: Double? = null
@@ -154,7 +154,7 @@ class DanceFloorTest {
 
     @Test fun aSwipeWhilePlayingLandsTwoBeatsBeforeTheNextPartAndDoesNotReadIt() {
         val r = rig(exercise)
-        r.floor.doubleTap()
+        r.floor.playPause()
         r.run(5000.0)   // into "side to side" (beat 6 to 30)
         val spokenBefore = r.player.spoken.size
         r.floor.swipe(true)
@@ -170,9 +170,55 @@ class DanceFloorTest {
         assertTrue(r.host.current > 0)
     }
 
+    @Test fun oneTapPausesAtOnceAndTwoTapsPlay() {
+        val r = rig(exercise)
+        // the bars are open: a tap closes them, and does not start anything
+        r.floor.tap()
+        assertFalse(r.host.bars, "a tap closes the bars")
+        assertFalse(r.floor.playing)
+        r.run(1000.0)
+        // two taps close together: play
+        r.floor.tap(); r.run(120.0)
+        assertFalse(r.floor.playing, "one tap alone does not start the dance")
+        r.floor.tap()
+        assertTrue(r.floor.playing, "the second tap, 120 ms after the first, starts it")
+        r.run(3000.0)
+        // one tap: paused there and then, with nothing to wait for
+        r.floor.tap()
+        assertFalse(r.floor.playing, "a single tap pauses at once")
+        // a second tap right behind it (the old habit of tapping twice to pause) leaves the dance paused
+        r.run(150.0); r.floor.tap()
+        assertFalse(r.floor.playing, "the second tap of a double tap does not start the dance again")
+        // after that pair, two taps are a double tap again
+        r.run(1000.0)
+        r.floor.tap(); r.run(100.0); r.floor.tap()
+        assertTrue(r.floor.playing)
+        // the bars brought up while it plays: a tap closes them and the dance goes on; a second one close behind pauses
+        r.run(1000.0)
+        r.floor.swipeDown()
+        assertTrue(r.host.bars)
+        r.floor.tap()
+        assertFalse(r.host.bars); assertTrue(r.floor.playing, "the tap that closes the bars does not pause")
+        r.run(100.0); r.floor.tap()
+        assertFalse(r.floor.playing, "tapped twice with the bars open: paused")
+        // two taps far apart are two single taps: neither starts the dance
+        r.run(1000.0); r.floor.tap(); r.run(600.0); r.floor.tap()
+        assertFalse(r.floor.playing)
+    }
+
+    @Test fun theSongMenuHasPlayAllFirstAndShufflePlayLast() {
+        val r = rig(exercise)
+        val menu = r.floor.songChoices()
+        assertEquals(Texts.PLAY_ALL, menu.first().label)
+        assertTrue(menu.first().checked, "Play all is what is chosen until something else is")
+        assertEquals(Texts.SHUFFLE_PLAY, menu.last().label)
+        assertFalse(menu.last().checked)
+        assertFalse(menu.any { it.key == DanceFloor.UPLOAD }, "no Upload line where songs cannot be added")
+    }
+
     @Test fun aCompositionPlaysToItsEndAndSaysDone() {
         val r = rig(CompositionStore.QUICK_RECAP, tempo = 600.0)   // very fast, so that the test is short
-        r.floor.doubleTap()
+        r.floor.playPause()
         r.run(20000.0)
         assertFalse(r.floor.playing, "it stopped at its end")
         assertEquals(Texts.DONE, r.host.scene?.banner)
@@ -183,7 +229,7 @@ class DanceFloorTest {
     @Test fun anElementLoops() {
         val name = data.names.first { it.equals("tak turn", ignoreCase = true) }
         val r = rig(name, kind = Piece.ELEMENT, tempo = 240.0)
-        r.floor.doubleTap()
+        r.floor.playPause()
         r.run(15000.0)   // 60 beats: ten times round a six-beat element
         assertTrue(r.floor.playing, "an element goes on until it is paused")
         assertTrue(r.player.beatNow() > 50)

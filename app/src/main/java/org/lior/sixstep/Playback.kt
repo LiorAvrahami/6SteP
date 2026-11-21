@@ -15,8 +15,10 @@ import android.os.SystemClock
  *
  *  The plan lays the music along the dance once, for the song and the tempo chosen: the first track's first downbeat
  *  (BeatGrid.startBeatIndex) on dance beat 0, with four beats of it before (the count-in); each next track on the first
- *  element start at least two beats after the previous file runs out, the snare and hi-hat in between. A chosen song
- *  plays over and over; shuffle goes through all of them. So every dance beat has one place in the audio (segmentAt), and
+ *  element start at least two beats after the previous file runs out, the snare and hi-hat in between. "Play all" (the
+ *  default, user 2026-11-21) goes through the songs in the order they are stored, the first one first, and after the
+ *  last one comes the first again; a chosen song plays over and over; "shuffle play" goes through all of them in an
+ *  order drawn afresh. So every dance beat has one place in the audio (segmentAt), and
  *  play(b) opens a new player, seeks it to exactly that place and starts it there; stop() releases everything. A change
  *  of song, tempo or mute while playing is a stop and a play from the beat it is at. Muted: a steady clock, no sound.
  *  The voice reads the annotations with the music ducked under it; the snare and hi-hat go over the music when the
@@ -24,7 +26,8 @@ import android.os.SystemClock
 class Playback(private val ctx: Context) {
     companion object {
         val BPM_OFFSETS = intArrayOf(-40, -30, -20, -10, 0, 10, 20)
-        const val SHUFFLE = "shuffle"
+        const val ALL = MusicPlan.ALL        // every song, in the order they are stored
+        const val SHUFFLE = MusicPlan.SHUFFLE
         const val COUNT_IN = 4.0             // beats of the first track before the dance starts
         const val GAP = 2.0                  // a track starts on the first element start at least this many beats after the last one ran out
         const val END_LEAD = 0.25            // s: a track counts as over this long before its file ends (its completion callback comes late)
@@ -66,7 +69,8 @@ class Playback(private val ctx: Context) {
 
     var muted = prefs.getBoolean("muted", false)
         private set
-    var song: String = prefs.getString("song", SHUFFLE) ?: SHUFFLE
+    /** a track's key, ALL or SHUFFLE */
+    var song: String = prefs.getString("song", ALL) ?: ALL
         private set
     var bpmOffset = prefs.getInt("bpm_offset", 0)
         private set
@@ -106,10 +110,14 @@ class Playback(private val ctx: Context) {
         if (running && segment != null) metronome.enabled = overlay   // between two tracks the drums play anyway
     }
 
-    /** the chosen song, over and over; or every song, shuffled */
+    /** the chosen song, over and over; or every song: in the order they are stored, or shuffled */
     private fun reorder() {
         val chosen = tracks.firstOrNull { it.key == song }
-        order = if (chosen != null) listOf(chosen) else tracks.shuffled()
+        order = when {
+            chosen != null -> listOf(chosen)
+            song == SHUFFLE -> tracks.shuffled()
+            else -> tracks
+        }
         replan()
     }
 

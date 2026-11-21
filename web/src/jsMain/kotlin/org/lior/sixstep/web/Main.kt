@@ -55,7 +55,8 @@ object App {
             else -> Launcher()
         }
         current?.detach()
-        host.textContent = ""
+        host.textContent = ""   // the screen that was shown, and any window or message over it
+        Display.want(next.sideways)
         host.appendChild(next.root)
         current = next
         window.scrollTo(0.0, 0.0)

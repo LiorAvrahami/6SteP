@@ -25,10 +25,12 @@ class TextsTest {
             "elements" to Texts.ELEMENTS, "compositions" to Texts.COMPOSITIONS, "building_blocks" to Texts.BUILDING_BLOCKS,
             "left_free" to Texts.LEFT_FREE, "right_free" to Texts.RIGHT_FREE, "left_free_short" to Texts.LEFT_FREE_SHORT,
             "right_free_short" to Texts.RIGHT_FREE_SHORT, "choose_version" to Texts.CHOOSE_VERSION,
-            "play" to Texts.PLAY, "pause" to Texts.PAUSE, "tempo" to Texts.TEMPO, "song" to Texts.SONG, "shuffle_all" to Texts.SHUFFLE_ALL,
+            "play" to Texts.PLAY, "pause" to Texts.PAUSE, "tempo" to Texts.TEMPO, "song" to Texts.SONG, "play_all" to Texts.PLAY_ALL, "shuffle_play" to Texts.SHUFFLE_PLAY,
+            "edit" to Texts.EDIT, "editor_not_ready" to Texts.EDITOR_NOT_READY,
             "mute" to Texts.MUTE, "unmute" to Texts.UNMUTE, "back" to Texts.BACK, "start" to Texts.START,
             "start_position" to Texts.START_POSITION, "ready" to Texts.READY, "filler_suffix" to Texts.FILLER_SUFFIX, "done" to Texts.DONE,
-            "nothing_to_show" to Texts.NOTHING_TO_SHOW, "heart_note" to Texts.HEART_NOTE, "email_me" to Texts.EMAIL_ME, "close" to Texts.CLOSE,
+            "nothing_to_show" to Texts.NOTHING_TO_SHOW, "heart_note" to Texts.HEART_NOTE, "heart_beer" to Texts.HEART_BEER, "email_me" to Texts.EMAIL_ME,
+            "my_website" to Texts.MY_WEBSITE, "buy_beer" to Texts.BUY_BEER, "close" to Texts.CLOSE, "link_not_set" to Texts.LINK_NOT_SET,
             "set_overlay" to Texts.SET_OVERLAY, "set_snare" to Texts.SET_SNARE, "set_hihat" to Texts.SET_HIHAT, "set_voice" to Texts.SET_VOICE,
             "set_mute_note" to Texts.SET_MUTE_NOTE,
             // the ones with something filled in
@@ -37,5 +39,14 @@ class TextsTest {
             "shuffle_now" to Texts.shuffleNow("X").replace("X", "%1\$s"), "about" to Texts.about("X").replace("X", "%1\$s"),
         )
         for ((name, shared) in pairs) assertEquals(android(name), shared, "the text \"$name\"")
+    }
+
+    @Test fun wordsTheVoicesReadWronglyAreSpelledTheWayTheySound() {
+        assertEquals("yo-yo, 3 times", Texts.spoken("yoyo, 3 times"))
+        assertEquals("Yo-yo", Texts.spoken("Yoyo").replaceFirstChar { it.uppercaseChar() })
+        assertEquals("yo-yo", Texts.spoken("yo-yo"))
+        assertEquals("two yo-yos", Texts.spoken("two yoyos"))
+        assertEquals("leed underarm pass", Texts.spoken("lead underarm pass"))
+        assertEquals("side to side", Texts.spoken("side to side"))
     }
 }

@@ -8,10 +8,12 @@ import kotlin.math.roundToInt
 interface FloorPlayer {
     val playing: Boolean
     val muted: Boolean
-    /** a track's key, or MusicPlan.SHUFFLE */
+    /** a track's key, MusicPlan.ALL or MusicPlan.SHUFFLE */
     val song: String
     val bpmOffset: Int
     val tracks: List<Track>
+    /** the user can add songs of their own here (FloorHost.addSong opens the window for it) */
+    val canAddSongs: Boolean get() = false
     /** the music that was asked for is still being fetched or unpacked: the dance waits on the step it starts from */
     val loading: Boolean
     /** the dance beat now; until the music has really started, the beat it starts from */
@@ -62,6 +64,8 @@ interface FloorHost {
     /** the play, mute, tempo and song buttons have something new to show */
     fun buttons()
     fun message(text: String)
+    /** the window in which the user adds a song of their own (the song menu's "Upload…") */
+    fun addSong() {}
 }
 
 /** The one dance floor (the user's layout draft, 2026-10-28): every element, building block and composition is danced
@@ -71,8 +75,9 @@ interface FloorHost {
  *  Swipe left or right: the next or previous step. There is one way of stepping (user 2026-11-17): the feet travel to
  *  the step, and once they are there dashed arrows show the path each foot that stepped came by, with a small round
  *  arrow where a foot turns more than a quarter turn (both dancers at once). Swipe down: the top and bottom bars; a tap
- *  on the floor closes them. Double tap or the play button: play (the bars close). A tap while playing pauses; a swipe
- *  while playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
+ *  on the floor closes them. Double tap or the play button: play (the bars close). A tap while playing pauses, at
+ *  once (user 2026-11-21: "a single tap is enough"); a swipe while playing jumps to the next part, or back to the start
+ *  of this one (the previous one in its first 2 s).
  *  Bottom bar: every step of the piece, the current one framed, the annotations pointing at where they start; a tap on
  *  a step goes there. While a composition plays, each annotation (a "say:" text, the name of an entry) comes up at the
  *  top, and is read aloud, 2 beats before its element starts, and goes away just as the element starts. The voice says
@@ -95,10 +100,13 @@ class DanceFloor(
         // whatever the step (user 2026-11-17: a travel as long as its step made the half steps fast and the whole steps
         // slow, which was mostly confusing)
         const val STEP_BEATS = 1.0 / 3.0
+        const val DOUBLE_TAP_MS = 300.0       // two taps no further apart than this are a double tap
+        const val UPLOAD = "upload"           // the song menu's line that adds a song: not a song
     }
 
-    /** a line of the tempo or the song menu */
-    class Choice(val label: String, val checked: Boolean)
+    /** a line of the tempo or the song menu. `key`: what the line stands for (a song menu's); a line that is not
+     *  `checkable` does something instead of being chosen (the song menu's "Upload…") */
+    class Choice(val label: String, val checked: Boolean, val key: String = "", val checkable: Boolean = true)
 
     val piece: Piece? = Piece.find(data, store, kind, name, variant)
     /** why there is nothing to dance, when there is not */
@@ -134,6 +142,8 @@ class DanceFloor(
     val travelling: Boolean get() = travel != null
     private var frameAsked = false
     private var released = false
+    private var lastTap = Double.NEGATIVE_INFINITY   // when the last tap on the floor came, on the host's clock
+    private var tapPaused = false                    // that tap paused the dance: a second one close behind adds nothing
 
     init {
         pb.onChange = { host.buttons() }
@@ -180,8 +190,23 @@ class DanceFloor(
     fun swipe(forward: Boolean) { if (playing) skip(forward) else step(if (forward) 1 else -1) }
     fun swipeDown() = showBars()
     fun swipeUp() = hideBars()
-    fun tap() { if (barsShown) hideBars() else if (playing) pause() }
-    fun doubleTap() = playPause()
+
+    /** a tap on the floor, passed on the moment the finger lifts. It acts at once (user 2026-11-21: one tap pauses,
+     *  without waiting to see whether a second follows): it closes the bars when they are open, otherwise it pauses the
+     *  dance when it plays. A second tap close behind makes the two a double tap: play, or pause; when the first tap
+     *  has already paused, the second adds nothing. */
+    fun tap() {
+        val now = host.nowMs()
+        val second = now - lastTap <= DOUBLE_TAP_MS
+        lastTap = if (second) Double.NEGATIVE_INFINITY else now
+        if (second) {
+            if (!tapPaused) playPause()
+            tapPaused = false
+            return
+        }
+        tapPaused = false
+        if (barsShown) hideBars() else if (playing) { pause(); tapPaused = true }
+    }
     fun playPause() { if (playing) pause() else play() }
     fun toggleMute() { pb.setMuted(!pb.muted); host.buttons() }
     /** the page went out of sight, or the app into the background */
@@ -192,7 +217,7 @@ class DanceFloor(
     val loading: Boolean get() = playing && pb.loading
     /** the tempo button's number */
     fun tempoLabel(): String = pb.bpm().roundToInt().toString()
-    /** the song button's words */
+    /** the song button's words: the song that plays, or would play first */
     fun songLabel(): String {
         val title = pb.currentTrack()?.title ?: ""
         return if (pb.song == MusicPlan.SHUFFLE) Texts.shuffleNow(title) else title
@@ -208,18 +233,28 @@ class DanceFloor(
     }
     fun chooseTempo(i: Int) { pb.setBpmOffset(MusicPlan.BPM_OFFSETS[i]); host.buttons() }
 
-    /** the song: all of them shuffled, or one (the others follow it, shuffled) */
+    /** the song menu (user 2026-11-21): first "Play all", which is what plays unless something else is chosen: the songs
+     *  in the order they are stored, the first one first, round and round. Then each song by itself, in that order;
+     *  where songs can be added, "Upload…"; and last "Shuffle play". Nothing says which song is the best: it is
+     *  simply the first. */
     fun songChoices(): List<Choice> {
         val out = ArrayList<Choice>()
-        out.add(Choice(Texts.SHUFFLE_ALL, pb.song == MusicPlan.SHUFFLE))
+        val one = pb.tracks.any { it.key == pb.song }
+        out.add(Choice(Texts.PLAY_ALL, !one && pb.song != MusicPlan.SHUFFLE, MusicPlan.ALL))
         for (t in pb.tracks) {
             val hint = t.difficulty.substringBefore(":").substringBefore(",").trim()
             val b = Texts.bpm(t.bpm.roundToInt())
-            out.add(Choice(if (hint.isEmpty()) "${t.title} · $b" else "${t.title} · $b · $hint", pb.song == t.key))
+            out.add(Choice(if (hint.isEmpty()) "${t.title} · $b" else "${t.title} · $b · $hint", pb.song == t.key, t.key))
         }
+        if (pb.canAddSongs) out.add(Choice(Texts.UPLOAD, false, UPLOAD, checkable = false))
+        out.add(Choice(Texts.SHUFFLE_PLAY, pb.song == MusicPlan.SHUFFLE, MusicPlan.SHUFFLE))
         return out
     }
-    fun chooseSong(i: Int) { pb.chooseSong(if (i == 0) MusicPlan.SHUFFLE else pb.tracks[i - 1].key); host.buttons() }
+    /** a line of songChoices() was picked */
+    fun chooseSong(key: String) {
+        if (key == UPLOAD) { host.addSong(); return }
+        pb.chooseSong(key); host.buttons()
+    }
 
     // ------------------------------------------------------------------ beats: the clock's, the playing timeline's, the piece's
 

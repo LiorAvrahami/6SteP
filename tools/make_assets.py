@@ -43,10 +43,12 @@ with open(os.path.join(A, 'dance', 'skeletons.json'), 'w', encoding='utf-8') as 
 shutil.copyfile(os.path.join(SW, 'dance', 'compositions.json'), os.path.join(A, 'dance', 'compositions.json'))   # as written: revisions, quiet entries
 
 # ---- music and beat grids
+# The order here is the order the songs are stored in, and so the order "Play all" goes through them: it starts with the
+# first and comes back to it after the last (user 2026-11-21: Slow Your Roll, then Sunday Reflection, then Hot Swing).
 TR = [
-    ('hot', 'Hot Swing - Kevin MacLeod - 5min loop (144bpm, CC BY)', 'Hot Swing', 'Kevin MacLeod (incompetech.com)', 'CC BY 4.0'),
-    ('sunday', '15 - Laughing Manny - Sunday Reflection (127bpm)', 'Sunday Reflection', 'Laughing Manny & The Swinging Dicks', 'CC BY-NC-SA'),
     ('slow', '16 - Laughing Manny - Slow Your Roll (123bpm)', 'Slow Your Roll', 'Laughing Manny & The Swinging Dicks', 'CC BY-NC-SA'),
+    ('sunday', '15 - Laughing Manny - Sunday Reflection (127bpm)', 'Sunday Reflection', 'Laughing Manny & The Swinging Dicks', 'CC BY-NC-SA'),
+    ('hot', 'Hot Swing - Kevin MacLeod - 5min loop (144bpm, CC BY)', 'Hot Swing', 'Kevin MacLeod (incompetech.com)', 'CC BY 4.0'),
 ]
 tracks = []
 for key, base, title, artist, lic in TR:

@@ -6,13 +6,13 @@ plugins {
 }
 
 // What the page needs beside its code, taken from where the Android app keeps it: the dance data and the music (the
-// app's assets), the drums, the font, and the icons.
+// app's assets), the drums and the font. (The icons are in the page's own resources: design/make_ui_icons.py writes
+// them there, from the same table as the Android app's.)
 val webAssets by tasks.registering(Sync::class) {
     into(layout.buildDirectory.dir("webAssets"))
     from(rootProject.file("app/src/main/assets")) { include("dance/**", "music/**", "licenses/**") }
     from(rootProject.file("app/src/main/res/raw")) { into("sounds") }
     from(rootProject.file("app/src/main/res/font")) { into("font") }
-    from(rootProject.file("design/lucide")) { include("*.svg"); into("icons") }
     // which build this is (the release number on GitHub; "dev" when built by hand), shown on the settings page
     val build = System.getenv("BUILD_NUMBER") ?: "dev"
     inputs.property("build", build)

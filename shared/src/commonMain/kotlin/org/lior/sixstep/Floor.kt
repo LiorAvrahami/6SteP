@@ -33,6 +33,10 @@ class Scene(
  *  The one drawing of the dancers: the dance floor, the strips of step pictures and the launcher's little floor all use
  *  it. `density`: screen px per dp (1 on a web page, whose px already are that). */
 class FeetPainter(private val density: Double) {
+    /** one of the screen's own pixels, in the px this draws in: 1 where those are the same (an Android canvas), and
+     *  1 / devicePixelRatio on a web page. The grid's lines are that thin, and the few sizes that are plain screen
+     *  pixels in the Android app are measured in it, so that both fronts draw the same picture. */
+    var pixel = 1.0
     companion object {
         const val GRID = 50.0
         const val TURN_MARK = 90.0        // degrees: a step that turns its foot by more gets a turn mark (user 2026-11-16)
@@ -85,10 +89,10 @@ class FeetPainter(private val density: Double) {
     fun grid(d: Draw, l: Double, t: Double, r: Double, b: Double) {
         var x = floor((cx + (l - ox) / scale) / GRID) * GRID
         val x1 = cx + (r - ox) / scale
-        while (x <= x1) { val px = sx(x); d.line(px, t, px, b, Colors.FLOOR_GRID, 1.0); x += GRID }
+        while (x <= x1) { val px = sx(x); d.line(px, t, px, b, Colors.FLOOR_GRID, pixel); x += GRID }
         var y = floor((cy - (b - oy) / scale) / GRID) * GRID
         val y1 = cy - (t - oy) / scale
-        while (y <= y1) { val py = sy(y); d.line(l, py, r, py, Colors.FLOOR_GRID, 1.0); y += GRID }
+        while (y <= y1) { val py = sy(y); d.line(l, py, r, py, Colors.FLOOR_GRID, pixel); y += GRID }
     }
 
     /** the shoes, the lightest first so that the ones carrying weight are on top */
@@ -239,10 +243,10 @@ class FeetPainter(private val density: Double) {
         val py = DoubleArray(pts.size) { sy(pts[it].second) }
         var len = 0.0
         for (i in 1 until px.size) len += hypot(px[i] - px[i - 1], py[i] - py[i - 1])
-        if (len < 4) return
+        if (len < 4 * pixel) return
         val dark = darker(color)
-        val w = max(2.0, scale * 1.2)
-        val edge = max(1.0, scale * 0.35)
+        val w = max(2.0 * pixel, scale * 1.2)
+        val edge = max(1.0 * pixel, scale * 0.35)
         d.beginPath(); d.moveTo(px[0], py[0])
         for (i in 1 until px.size) d.lineTo(px[i], py[i])
         // the same dashes twice: black and wider, then the colour; the round caps give each dash its border at the ends too
@@ -312,6 +316,10 @@ class FloorPicture(density: Double) {
         const val CAMERA_TAU = 0.225     // s: how fast the camera glides after the couple (user 2026-10-19: twice as fast as 0.45)
     }
     private val painter = FeetPainter(density)
+    /** one of the screen's own pixels, in the px this draws in (FeetPainter.pixel) */
+    var pixel: Double
+        get() = painter.pixel
+        set(v) { painter.pixel = v }
 
     var scene: Scene? = null
         private set
@@ -433,18 +441,18 @@ class FloorPicture(density: Double) {
 
     private fun labels(d: Draw, s: Scene) {
         val w = width; val h = height
-        val titleSize = max(h * 0.045, 18.0)
+        val titleSize = max(h * 0.045, 18.0 * pixel)
         d.text(s.title, h * 0.03, h * 0.03 + titleSize, titleSize, s.titleColor ?: Colors.INK, FontWeight.BOLD, TextAlign.LEFT)
-        val countSize = max(h * 0.11, 32.0)
+        val countSize = max(h * 0.11, 32.0 * pixel)
         d.text(s.count, w - h * 0.03, h * 0.03 + countSize * 0.85, countSize, Colors.INK, FontWeight.BOLD, TextAlign.RIGHT)
         val banner = s.banner
         if (!banner.isNullOrBlank()) {
             // the annotation as it always looked, at the top under the title and the count, out of the dancers' way (user 2026-10-26)
-            val size = max(h * 0.12, 28.0)
+            val size = max(h * 0.12, 28.0 * pixel)
             val lines = banner.split('\n').flatMap { wrapText(d, it, size, FontWeight.BOLD, w * 0.9) }
             val bh = lines.size * size * 1.15
             val my = h * 0.15 + size * 0.5 + bh / 2   // the box's middle: its top just under the count
-            d.fillRoundRect(w * 0.04, my - bh / 2 - size * 0.5, w * 0.96, my + bh / 2 + size * 0.3, 24.0, withAlpha(Colors.BANNER, 0.78))
+            d.fillRoundRect(w * 0.04, my - bh / 2 - size * 0.5, w * 0.96, my + bh / 2 + size * 0.3, 24.0 * pixel, withAlpha(Colors.BANNER, 0.78))
             lines.forEachIndexed { i, ln -> d.text(ln, w / 2, my - bh / 2 + size * (i + 0.9) * 1.15, size, Colors.ACCENT, FontWeight.BOLD, TextAlign.CENTER) }
         }
     }

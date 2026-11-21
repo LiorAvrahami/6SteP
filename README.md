@@ -51,9 +51,11 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   are there a dashed arrow shows the path each foot that stepped came by, with a small round arrow in the dancer's
   colour beside it when the foot turns more than a quarter turn, showing which way (one way of stepping since
   2026-11-17; before, a button chose between a "flow" and a "schema" mode).
-  Swipe down: the bars; a tap on the floor closes them. Double tap or play: play (the bars close); a tap while playing pauses; a swipe while
+  Swipe down: the bars; a tap on the floor closes them. Double tap or play: play (the bars close); a tap while playing
+  pauses, at once; a swipe while
   playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
-  Top bar: play/pause, the tempo (the song's tempo variants), the song (shuffle, or one song over and over), mute
+  Top bar: play/pause, the tempo (the song's tempo variants), the song ("Play all": the songs in their stored order,
+  round and round, which is what plays unless something else is chosen; one song over and over; or "Shuffle play"), mute
   (music, drums and voice), edit (not on the phone yet). Every step has one place in the music (the plan
   of the songs along the dance), and play always starts afresh from the step on the screen: a new player sought to that
   place. Bottom bar: every step, the current one framed, the annotations
@@ -66,7 +68,8 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   links; the $ button opens "Buy me a Beer" (its words and the amounts) in the same look.
 - **Settings**: the snare and hi-hat over the music, the snare, the hi-hat, reading the annotations aloud.
 
-Icons: [Lucide](https://lucide.dev) (ISC licence), converted by `design/make_ui_icons.py` from `design/lucide/`. Font:
+Icons: [Lucide](https://lucide.dev) (ISC licence), converted by `design/make_ui_icons.py` from `design/lucide/`, for the
+Android app and for the web page alike. Font:
 [Inter](https://rsms.me/inter/) (SIL Open Font License). Both licences ship in `app/src/main/assets/licenses/`.
 Before pushing app changes, `python tools/check_app.py` checks resources, ids and leftovers (there is no Android SDK on
 the PC: GitHub compiles).

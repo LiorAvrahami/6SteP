@@ -34,8 +34,9 @@ import kotlin.math.roundToInt
  *  between a "flow" and a "schema" mode): the feet travel to the step, and once they are there dashed arrows show the
  *  path each foot that stepped came by, with a small round arrow where a foot turns more than a quarter turn (both
  *  dancers at once). Swipe down: the top and bottom bars; a tap on
- *  the floor closes them. Double tap or the play button: play (the bars close). A tap while playing pauses; a swipe
- *  while playing jumps to the next part, or back to the start of this one (the previous one in its first 2 s).
+ *  the floor closes them. Double tap or the play button: play (the bars close). A tap while playing pauses, at once
+ *  (user 2026-11-21: "a single tap is enough"); a swipe while playing jumps to the next part, or back to the start of
+ *  this one (the previous one in its first 2 s).
  *  Top bar: play/pause, the tempo, the song, mute (music, drums and voice), edit, back. Bottom bar: every step of
  *  the piece, the current one framed, the annotations pointing at where they start; a tap on a step goes there.
  *  While a composition plays, each annotation (a "say:" text, the name of an entry) comes up at the top, and is read
@@ -149,9 +150,21 @@ class DanceFloorActivity : AppCompatActivity() {
         val autoplay = intent.getBooleanExtra("autoplay", false)
 
         val gestures = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
+            private var tapPaused = false   // the first tap of a pair paused the dance: the second adds nothing
             override fun onDown(e: MotionEvent): Boolean = true
-            override fun onSingleTapConfirmed(e: MotionEvent): Boolean { if (barsShown) hideBars() else if (playing) pause(); return true }
-            override fun onDoubleTap(e: MotionEvent): Boolean { if (playing) pause() else play(); return true }
+            // a tap acts the moment the finger lifts (user 2026-11-21: one tap pauses, without waiting to see whether a
+            // second follows): it closes the bars when they are open, otherwise it pauses the dance when it plays
+            override fun onSingleTapUp(e: MotionEvent): Boolean {
+                tapPaused = false
+                if (barsShown) hideBars() else if (playing) { pause(); tapPaused = true }
+                return true
+            }
+            // a second tap close behind: play, or pause; when the first tap has already paused, nothing more
+            override fun onDoubleTap(e: MotionEvent): Boolean {
+                if (!tapPaused) { if (playing) pause() else play() }
+                tapPaused = false
+                return true
+            }
             override fun onFling(e1: MotionEvent?, e2: MotionEvent, vx: Float, vy: Float): Boolean {
                 if (e1 == null) return false
                 val dx = e2.x - e1.x; val dy = e2.y - e1.y
@@ -500,7 +513,7 @@ class DanceFloorActivity : AppCompatActivity() {
         val s = SpannableString(bpm + "\nBPM")
         s.setSpan(RelativeSizeSpan(0.6f), bpm.length + 1, s.length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
         rateBtn.text = s
-        val title = pb.currentTrack()?.title ?: ""
+        val title = pb.currentTrack()?.title ?: ""   // the song that plays, or would play first
         songBtn.text = if (pb.song == Playback.SHUFFLE) getString(R.string.shuffle_now, title) else title
     }
 
@@ -519,22 +532,22 @@ class DanceFloorActivity : AppCompatActivity() {
         m.show()
     }
 
-    /** the song: all of them shuffled, or one (the others follow it, shuffled) */
+    /** the song menu (user 2026-11-21): first "Play all", which is what plays unless something else is chosen: the songs
+     *  in the order they are stored, the first one first, round and round. Then each song by itself, in that order, and
+     *  last "Shuffle play". Nothing says which song is the best: it is simply the first. */
     private fun songMenu() {
         val m = PopupMenu(this, songBtn)
-        m.menu.add(0, 0, 0, getString(R.string.shuffle_all)).isCheckable = true
+        val keys = listOf(Playback.ALL) + pb.tracks.map { it.key } + listOf(Playback.SHUFFLE)
+        m.menu.add(0, 0, 0, getString(R.string.play_all)).isCheckable = true
         for ((i, t) in pb.tracks.withIndex()) {
             val hint = t.difficulty.substringBefore(":").substringBefore(",").trim()
             val label = getString(R.string.bpm, t.bpm.roundToInt()).let { b -> if (hint.isEmpty()) "${t.title} · $b" else "${t.title} · $b · $hint" }
             m.menu.add(0, i + 1, i + 1, label).isCheckable = true
         }
+        m.menu.add(0, keys.size - 1, keys.size - 1, getString(R.string.shuffle_play)).isCheckable = true
         m.menu.setGroupCheckable(0, true, true)
-        val sel = if (pb.song == Playback.SHUFFLE) 0 else pb.tracks.indexOfFirst { it.key == pb.song } + 1
-        m.menu.findItem(sel)?.isChecked = true
-        m.setOnMenuItemClickListener { item ->
-            pb.chooseSong(if (item.itemId == 0) Playback.SHUFFLE else pb.tracks[item.itemId - 1].key)
-            updateButtons(); true
-        }
+        m.menu.findItem(keys.indexOf(pb.song).coerceAtLeast(0))?.isChecked = true   // a choice that is not there any more: all
+        m.setOnMenuItemClickListener { item -> pb.chooseSong(keys[item.itemId]); updateButtons(); true }
         m.show()
     }
 

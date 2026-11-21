@@ -203,7 +203,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
 - **The redesign (2026-10-28).** The user drew the app in Lunacy: `design/app_layout.free` (a zip of JSON; each page has a
   hidden text layer "Description of page" saying how it works) and PNGs of its pages in `design/app_layout_design_screenshots/`.
   Pages: Launcher, Launcher tutorial (help mode), Dancefloor, Explore, Heart, Settings (left empty). Icons are Lucide
-  (ISC): `design/make_ui_icons.py` turns the SVGs in `design/lucide/` into `res/drawable/ic_*.xml`. The font is Inter
+  (ISC): `design/make_ui_icons.py` turns the SVGs in `design/lucide/` into `res/drawable/ic_*.xml` and, since
+  2026-11-21, into the web page's `web/src/jsMain/resources/icons/*.svg` (one table: the same line widths, the heart
+  filled red and the gear grey in both). The font is Inter
   (SIL OFL) in `res/font/`. Colours are the draft's (`Ui.kt`). Licences in `assets/licenses/`.
 - **Files** (`app/src/main/java/org/lior/sixstep/`): `DanceData.kt` (skeletons, states, elements with starting
   conditions, compositions with sub-compositions, "x N" and "say:" entries, `CompositionStore` merging the asset file
@@ -226,8 +228,12 @@ commit (there is no diff step any more: the editor's file is the only version). 
   beat this is in the audio"). The plan lays the songs along the dance once, for the chosen song and tempo: the first
   track's first downbeat (`BeatGrid.startBeatIndex`) on dance beat 0 with four beats of it before (the count-in), each
   next track on the first element start at least 2 beats after the previous file runs out (250 ms before its end), the
-  snare and hi-hat in between. A chosen song repeats; shuffle goes through all of them in a random order fixed for the
-  session. `segmentAt(b)` is the lookup: every dance beat has one place in one file. `play(b)` stops everything, opens a
+  snare and hi-hat in between. "Play all" (the default since 2026-11-21) goes through the songs in the order they are
+  stored, the first one first, and after the last comes the first again; a chosen song repeats; "shuffle play" goes
+  through all of them in a random order fixed for the session. The stored order is the order of `TR` in
+  `tools/make_assets.py`, set by the user (2026-11-21: "The best song is Slow Your Roll. After that, Sunday Reflection,
+  and after that, Hot Swing ... you don't write anywhere which song is best and which is not. This is just the order
+  that these songs are stored"). `segmentAt(b)` is the lookup: every dance beat has one place in one file. `play(b)` stops everything, opens a
   new MediaPlayer, seeks it to b's place, starts it when the seek reports back, runs the dance on a `TempoClock` from
   that instant and hands over to the `MusicClock` (the player's position through the beat grid) after 220 ms with a
   `SlewClock` fading the difference out over 1.2 s; the next track is opened in the gap and started on its planned beat.
@@ -240,10 +246,14 @@ commit (there is no diff step any more: the editor's file is the only version). 
   Swipe left or right: the next or previous stop (the start position one beat before count 1, then every instant a foot
   lands; it wraps round): the feet travel there (`step()`: every travel takes `STEP_BEATS`, a third of a beat, and plays
   that stretch of the dance at an even rate), and once they are there the stop's dashed arrows come, both dancers at
-  once (one way of stepping since 2026-11-17; the flow and schema modes and their button are gone). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap or a
-  double tap while playing pauses; a swipe while playing jumps to the next part or back (the old player's 2 s rule,
+  once (one way of stepping since 2026-11-17; the flow and schema modes and their button are gone). Swipe down: the bars, a tap closes them; double tap or play: play (the bars close); a tap while
+  playing pauses at once, the moment the finger lifts (user 2026-11-21: "you don't need to double tap in order to
+  pause. A single tap is enough": until then a tap waited 0.3 s to see whether a second one followed, which felt as if
+  nothing had happened; now a tap acts at once and a second one close behind makes a double tap, which adds nothing
+  when the first has already paused: `DanceFloor.tap()`, and `onSingleTapUp` in the activity); a swipe while playing jumps to the next part or back (the old player's 2 s rule,
   `BACK_REPLAY_SECONDS`): a composition's entries, any other piece's elements. Top bar: play/pause, tempo (the 7 offsets
-  of the song's variants, the same offset for every song), song (shuffle, or one song over and over), mute (music,
+  of the song's variants, the same offset for every song), song (the menu: "Play all" first, each song in the stored
+  order, "Shuffle play" last; the button shows the song that plays), mute (music,
   drums and voice; a change of any of these while playing is a stop and a play from the same beat), edit (a "not implemented yet" note).
   Bottom bar: every stop, the current one framed and followed while playing, the annotations (a composition's "say:"
   texts and entry names; a building block's element names) as khaki callouts; tap a stop to go there. Compositions play
@@ -254,7 +264,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   (`chainedLoop`), otherwise from the start position again after 2 beats (an even period keeps the music's bars). The
   daily exercise opens playing; everything else opens paused with the bars shown. The system bars are hidden on the floor.
 - **Launcher.** The daily exercise's tile shows how long it takes (its beats plus a 4-beat count-in at the chosen song's
-  tempo and offset, or the songs' average for shuffle); the little floor dances the "quick recap" at 1.5 times that
+  tempo and offset; the first song's for "play all"; the songs' average for shuffle: `MusicPlan.startTempo`); the little floor dances the "quick recap" at 1.5 times that
   tempo (user 2026-10-28: "all the elements that we learned one after the other without repetitions": made in the app
   from the daily exercise, every entry once, the quiet bridges kept, so it follows the exercise when that changes); help swaps
   the little floor for the draft's two explanations and draws arrows to the tiles (`HelpArrows`).
@@ -278,7 +288,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   This was the fix for "the music and the annotations both go dim sometimes" (2026-10-19); the diagnosis also named the
   phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
 - **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on` (the settings page);
-  `bpm_offset`, `song` (a track key or `shuffle`), `muted` (the dance floor's top bar; `strategic`, the schema mode, is no longer read since 2026-11-17);
+  `bpm_offset`, `song` (a track key, `all` (the default) or `shuffle`), `muted` (the dance floor's top bar; `strategic`, the schema mode, is no longer read since 2026-11-17);
   `explore_open_elements`, `explore_open_compositions`, `explore_open_blocks`, `explore_version_<kind>_<name>`. Gone with the redesign: the exploration
   floor's free `bpm` slider (the tempo is the song's), the main screen's switches and the player's options bar.
 - **Shipped compositions and the phone's copy.** `CompositionStore` reads the phone's own file when there is one and only
@@ -437,6 +447,13 @@ commit (there is no diff step any more: the editor's file is the only version). 
   A tap on a step in the bottom bar, a pause and going round the end stay cuts to the stop at rest, with its arrows.
   A swipe back plays the travel backwards and then shows the arrows of the stop it arrives at; the user was asked
   whether they would rather see that step replayed forwards. Nobody has seen it on a phone.
+  2026-11-21, after the user had tried the web page on their phone ("this is very good"), in both fronts: one tap
+  pauses at once (see the dance floor above); the voice says "yo-yo" for the element whose name is written "YOYO"
+  (`Texts.spoken`, which the Android `Speaker` now uses too; the user: "the word yo-yo is pronounced wrong. Maybe put
+  an apostrophe there or something"; how it sounds now has not been heard by anybody yet); the songs are stored in
+  the order Slow Your Roll, Sunday Reflection, Hot Swing, "Play all" is the first and default choice of the song menu
+  and "Shuffle play" its last (see Playback above; whoever had never chosen a song gets "Play all" now, a chosen
+  "shuffle" stays). In the web page only: every screen laid out as the app's (section 10).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
@@ -497,7 +514,8 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   explore, settings, the heart page), `FloorScreen.kt` (the dance floor's screen: two canvases, the bars, the gestures;
   arrow keys and the space bar on a keyboard), `Sound.kt` (`WebAssets`: the files; `WebPlayer`: the sound), `Platform.kt`
   (the canvas behind `Draw`, the local storage under the Android preferences' names). `web/build.gradle.kts` copies the
-  dance data, the music, the drums, the font and the icons from where the Android app keeps them. The music starts
+  dance data, the music, the drums and the font from where the Android app keeps them; the icons are in the page's own
+  resources, written by `design/make_ui_icons.py`. The music starts
   coming in the page's first second, in the background (user 2026-11-21: "you should start loading it the second that
   the app opens ... it should also be possible to load it on demand"): `WebPlayer.preload()` runs as soon as the tracks
   are known, before anything is shown, and again when the song or the tempo is changed. It fetches every music file
@@ -509,18 +527,39 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   (`WebAssets.bytes`: one download per file). Measured in the headless browser: the first music request 0.1 s after
   the page opens, 21 files each once, none on a second visit. `window.sixstep` reports
   what the floor shows, for tests from outside.
+- **The page looks as the app does** (user 2026-11-21, with a picture of each launcher: "The web app looks slightly
+  different from the app. For example ... the heart in the app is filled in along with the gear"). Every web screen is
+  now laid out from the app's own layout file, with its numbers (a dp there is a px in `style.css`; a line of Inter
+  takes about 1.4 times its size on Android, the font's own padding included, hence the `line-height`s), its fonts and
+  its icons: the launcher (`activity_main.xml`: the title above the icon in each tile, the time at the bottom right,
+  the "Quick recap" label at the top left, the help view's two coloured explanations with dark blue arrows to the
+  tiles' icons), explore (`explore_header.xml`, `explore_row.xml`: the triangle after the heading, rows 92 high, the
+  pictures 300 wide, the versions as pills or, when they do not fit, the raised button with its count and list, the
+  always-shown scroll bar), settings (the switch at the right, Android's own), the heart page (upright, the three
+  square buttons, "Buy me a Beer"), the dance floor's bar (with the edit button) and its menus (as Android's own popup
+  menus: a plain sheet, a round mark at the end of each line). The floor's grid lines are one screen pixel wide, as
+  on Android (`FeetPainter.pixel`: the few sizes that are plain screen pixels in the Android drawing are measured in
+  it; on a web page it is `1 / devicePixelRatio`, and `CanvasDraw.line` puts such a line exactly on a row of pixels).
+  **What the page has and the app has not:** a back button on explore, settings and the heart page (on a phone the
+  system's back button leaves the full screen first), and the settings page's "Full screen" switch (it was a fourth
+  button on the launcher for a day). Checked against the user's picture of the Android launcher and against the
+  layout files, in the headless browser at the phone's size (914 x 411 px, 2.625 screen pixels per px); the Android
+  screens other than the launcher were not seen here, only their layout files.
 - **Sideways and full screen** (user 2026-11-21: "it's not in landscape ... can we make it full screen?"; `Display` in
   `Platform.kt`). A page cannot simply tell a phone to turn. On the first tap of a visit on a phone or tablet
   (`(pointer: coarse)`) it asks for the full screen and, with it, for landscape (`screen.orientation.lock`, which
-  Android's Chrome grants to a full-screen page); the launcher has a full-screen button where the browser has a full
-  screen to give. Put on the home screen, the page gets both from `manifest.webmanifest` (`display: fullscreen`,
+  Android's Chrome grants to a full-screen page; on the user's phone the page stayed upright and turned itself, see
+  below). The heart page is upright, as in the app: `Screen.sideways` is false for it, `Display.want()` asks the phone
+  for portrait, and where the screen stays sideways the box is turned a quarter the other way (the class
+  `turned-back`). Put on the home screen, the page gets both from `manifest.webmanifest` (`display: fullscreen`,
   `orientation: landscape`; the icons are written by `design/make_icon.py`). Wherever the phone still shows the page
   upright (the browser refuses, as an iPhone's is believed to, or the phone's rotation is locked), the page turns
   itself: its one box, `#app`, is laid out sideways and drawn turned a quarter (the class `turned`; held with the
   phone's top to the left, as an Android app in landscape). A computer's window is left alone (a tall one gets the
   launcher's upright layout, the class `upright`). Because the box may lie turned: sizes in the styles follow the box
-  (`--aw`, `--ah`, `--safe-l`, `--safe-r`), not the screen; a touch's place is asked of `Display.x()`, `y()` and
-  `xIn()`, never of the event; pages scroll inside the box (`.page`), not the document; and `touch-action` on the
+  (`--aw`, `--ah`, and `--safe-l`, `-r`, `-t`, `-b` for a notch), not the screen; a touch's place is asked of
+  `Display.x()`, `y()` and `xIn()`, never of the event; pages scroll inside the box, not the document; windows and
+  messages over a page (`Modal`, `toast`) are put into the box too, so that they lie as it does; and `touch-action` on the
   explore rows' pictures is `pan-x` when turned, because its axes are the screen's. Checked in headless Chromium as an
   upright phone: the layout, taps, swipes, the strip, finger scrolling of the list and dragging a row (finger tests
   must start on an element that is on the screen: a first version of the test scrolled its target away and "found"

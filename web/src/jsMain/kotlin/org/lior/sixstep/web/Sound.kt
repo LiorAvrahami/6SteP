@@ -233,7 +233,7 @@ class WebPlayer(private val assets: WebAssets) : FloorPlayer {
     private var voicePrimed = false
 
     init {
-        plan.song = Prefs.str("song", MusicPlan.SHUFFLE)
+        plan.song = Prefs.str("song", MusicPlan.ALL)
         plan.bpmOffset = Prefs.int("bpm_offset", 0)
         readSettings()
         sample("sounds/snare.wav") { snare = it }

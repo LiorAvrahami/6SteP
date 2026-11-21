@@ -40,6 +40,10 @@ class StripPainter(private val density: Double) {
     var offset = 0.0
 
     private val painter = FeetPainter(density)
+    /** one of the screen's own pixels, in the px this draws in (FeetPainter.pixel) */
+    var pixel: Double
+        get() = painter.pixel
+        set(v) { painter.pixel = v }
     private var centres = DoubleArray(0)
     private var boxW = DoubleArray(0)
     private var boxH = DoubleArray(0)
