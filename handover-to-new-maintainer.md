@@ -543,6 +543,23 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   menus: a plain sheet, a round mark at the end of each line). The floor's grid lines are one screen pixel wide, as
   on Android (`FeetPainter.pixel`: the few sizes that are plain screen pixels in the Android drawing are measured in
   it; on a web page it is `1 / devicePixelRatio`, and `CanvasDraw.line` puts such a line exactly on a row of pixels).
+  **Text sizes** (user, the same day: "Also, they are more bold, and the location of the time of the daily exercise
+  is different": both were true of the page of the day before and were already put right, but measuring the
+  user's picture of the Android launcher against the page showed one more thing): on the user's phone all the
+  app's text is 1.10 times as large as the layout files say, because an Android app's text sizes are "sp" and follow
+  the phone's font-size setting, and the page's did not. Now `index.html` asks the browser for that setting
+  (`<meta name="text-scale" content="scale">`) and every text size in `style.css` is multiplied by it (`--sp`, from
+  `env(preferred-text-scale)`: 1 where a browser does not tell); boxes and icons keep their sizes, as in the app.
+  In the session's browser the setting can be pretended (`Emulation.setEmulatedOSTextScale` over the DevTools
+  protocol; it snaps to Android's steps, so 1.1 becomes 1.15); whether the user's own browser passes it on has not
+  been seen. Text is also placed as Android places it: a line is 1.21 times the size, and a text box has the font's
+  own padding above its first line (0.137 of the size: `--pad`). A browser rounds a line's place inside its line box
+  to a whole px, so single words can sit 1 px off. **How the launcher was measured:** the page in a browser of the
+  size of the app's area on the user's phone (831 x 387 px at 2.625 screen pixels per px: their screen less the
+  camera strip, the status bar and the navigation bar), with `--sp` set to 1.1 and the song and tempo that give the
+  picture's "3:35 min", laid over the picture: every box edge within 2 px of the 2400 x 1080 picture, every word and
+  icon within 4 px (1.5 dp), the ink of every word and icon within 5 %. The other screens have no picture to measure
+  against.
   **What the page has and the app has not:** a back button on explore, settings and the heart page (on a phone the
   system's back button leaves the full screen first), and the settings page's "Full screen" switch (it was a fourth
   button on the launcher for a day). Checked against the user's picture of the Android launcher and against the

@@ -85,8 +85,9 @@ fun alertBox(text: String) {
     m.open()
 }
 
-/** the largest whole text size from `max` down to `min` px at which `inner` is no taller (and no wider) than the room
- *  inside `outer`, as an Android text that sizes itself */
+/** the largest whole text size from `max` down to `min` at which `inner` is no taller (and no wider) than the room
+ *  inside `outer`, as an Android text that sizes itself. The sizes are the app's "sp": px times the phone's text size
+ *  setting where the browser tells it (--sp in style.css). */
 fun fitText(outer: HTMLElement, inner: HTMLElement, min: Int, max: Int) {
     val cs = window.getComputedStyle(outer)
     fun px(v: String): Double = v.removeSuffix("px").toDoubleOrNull() ?: 0.0
@@ -95,7 +96,7 @@ fun fitText(outer: HTMLElement, inner: HTMLElement, min: Int, max: Int) {
     if (roomH <= 0 || roomW <= 0) return
     var size = max
     while (true) {
-        inner.style.fontSize = "${size}px"
+        inner.style.fontSize = "calc(${size}px * var(--sp))"
         if (size <= min || (inner.offsetHeight <= roomH + 0.5 && inner.scrollWidth <= roomW + 0.5)) break
         size--
     }
