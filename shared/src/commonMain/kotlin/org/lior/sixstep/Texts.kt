@@ -68,6 +68,22 @@ object Texts {
     const val PAY_URL = ""          // with %d for the amount in dollars
     val BEER_AMOUNTS = intArrayOf(5, 15, 30)
 
+    // the window in which the listener adds a song of their own (the web front, for now)
+    const val UPLOAD_TITLE = "Upload a song"
+    const val UPLOAD_WORDS = "6SteP knows the steps to these songs, but cannot bring their music. If you have one of them as a file on this device, choose it here and dance to it. The file stays on this device."
+    const val CHOOSE_FILE = "Choose a file…"
+    fun listening(percent: Int): String = "Listening to the song… $percent%"
+    fun songAdded(title: String): String = "This is $title. It is one of your songs now."
+    fun songForNow(title: String): String = "This is $title. This device would not keep the file, so it is one of your songs until the page is closed."
+    const val SONG_UNKNOWN = "6SteP does not know the steps to this recording yet. Send the song to $EMAIL and ask for it to be mapped."
+    fun songOtherVersion(title: String): String = "This sounds like $title, but it is not the recording that 6SteP knows: another version, or one that is cut differently. Send the song to $EMAIL and ask for it to be mapped."
+    const val WRITE_EMAIL = "Write the email"
+    /** the email's words, as the user gave them (2026-11-19) */
+    fun mapRequest(name: String): String = "hi, please map out the song named $name for me, thanks!"
+    const val SONG_UNREADABLE = "This file could not be read as music."
+    const val SONG_NOT_KEPT = "The song could not be kept on this device."
+    const val ADDED = "added"
+
     // settings
     const val SET_OVERLAY = "Snare and hi-hat over the music"
     const val SET_SNARE = "Snare (between songs, and over the music when that is on)"

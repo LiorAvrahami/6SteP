@@ -106,16 +106,15 @@ down without doing it. When one is finished, move it to "Done" with the date and
   activity as a `FloorHost`, `Playback` as a `FloorPlayer`. The sound last (handover section 10).
 - **Context:** until this is done, a change to the dance floor has to be made in both places.
 
-### Adding songs: the listener's own files
-- **Added:** 2026-11-19 and 2026-11-20, by the user.
-- **What:** "there will be a button in the options to add songs, when clicked this will open a file selection page and
-  when a song is selected it is hashed and compared to the songs that the app mapped out their steps ... if the song
-  is not mapped then the user is instructed to send it to my email (and write the email and add a button that opens
-  an email with the text "hi, please map out the song named *** for me, thanks!"". "added songs don't change tempo."
-- **Context:** the recognition is prototyped and tested (`music/tools/song_match_proto.py`, handover section 10): the
-  length plus the song's pattern of loudness. Still to do: port it to `shared/`, keep the fingerprints of the mapped
-  songs with their beat grids, the button and the file picker in both fronts, where an added song is kept (the web
-  page can lose it after a week on an iPhone), and how the user maps a song that is sent to them (the beat annotator).
+### Adding songs: what is left
+- **Added:** 2026-11-19 and 2026-11-20, by the user; the web page got "Upload…" on 2026-11-21 (v62, handover section 10).
+- **What is left:** the same in the Android app (a file picker, the file's sound through `MediaCodec`, a copy in the
+  app's storage, `Playback` taking tracks from there; the recognition is shared code). A way to remove an added song.
+  More songs than "Like It Is" (the user sends the recording, the maintainer maps it: handover section 10). The
+  artist of "Like It Is", for the window's list.
+- **Not yet seen by anybody:** the real "Like It Is" being recognised (the session has its beat map and onset curve,
+  not its sound). If the user's own file is refused, ask which words the window showed: "sounds like" means the
+  curve half fits (another cut or release), "does not know" means it does not fit at all.
 
 ### The web front: what the Android app has and the page does not yet
 - **Added:** 2026-11-20, by the maintainer.
@@ -127,6 +126,12 @@ down without doing it. When one is finished, move it to "Done" with the date and
   copies them. If the user wants them in the app's own look (black outlines, the pink highlight), change both.
 
 ## Done
+
+- **2026-11-21, v62 (web page):** "Adding songs: the listener's own files": the song menu's "Upload…", the window
+  that lists the supported songs, the file chooser, the recognition by onset curve, the email for an unknown song.
+- **2026-11-21, v61:** one tap pauses at once; "Play all" first and "Shuffle play" last in the song menu, the songs
+  in the user's order; the voice says "yo-yo"; the web page laid out as the app, the heart page's website and beer
+  buttons and the help view's arrows included.
 
 - **2026-11-16, v40:** "Underarm circle: fix the foot placement": placed by the user.
 - **2026-11-16, v40:** "Yoyo": YOYO (12 beats, side to side), written by the user from the "send out and bring

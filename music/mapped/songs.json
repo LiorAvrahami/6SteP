@@ -1,0 +1,13 @@
+{
+ "note": "The songs 6SteP knows the beats of but does not bring along: the listener adds their own copy (the song menu's Upload). Each has its beat grid and its onset curve here (music/tools/onset_curve.py), never its audio. tools/make_assets.py takes them into the app.",
+ "songs": [
+  {
+   "key": "like_it_is",
+   "title": "Like It Is",
+   "artist": "",
+   "grid": "Like It Is - beatgrid (tap-corrected).json",
+   "onsets": "Like It Is - onsets.json",
+   "difficulty": ""
+  }
+ ]
+}

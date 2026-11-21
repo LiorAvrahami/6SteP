@@ -19,7 +19,8 @@ dancers' feet, and every element, building block and composition to step through
 
 - `gradle :shared:jvmTest` tests the engine: everything shipped can be danced, and the shared texts say what the Android
   app's say. `python tools/check_engine.py` also compares the engine with the Python model (`dance/model.py`), step by
-  step.
+  step, and `python tools/check_songs.py` the recognition of a listener's own song file with the Python tool that makes
+  the shipped curves.
 - `gradle :web:jsBrowserDistribution` writes the page to `web/build/dist/js/productionExecutable` (serve that folder
   with any static web server to try it).
 - `SIXSTEP_SKIP_ANDROID=1` in the environment leaves the Android app out of the build, where Google's package site and
@@ -85,6 +86,14 @@ and the even counts).
 Every track also ships time-stretched to -40, -30, -20, -10, +10 and +20 BPM with the pitch unchanged (Rubber Band R3,
 rendered offline by the Swing5 project's `music/tools/make_variants.py`; 96 kbps mono). The beat grid of a track is scaled
 by the same factor in the app, so the steps and the metronome stay on the beat at every tempo.
+
+**The listener's own songs (the web page, since v62).** Other songs do not ship: the app knows their beats, and the
+listener adds their own copy. The song menu's "Upload…" opens a window that lists those songs (for now "Like It Is") and
+a button that opens the device's file chooser. The page listens to the chosen file, recognises the song by its rhythm
+(its onset curve: `shared/.../Onsets.kt`, `music/tools/onset_curve.py`), finds where the music starts in this copy, and
+keeps the file on the device; from then on it is one of the songs, at its own tempo only. A file that is not a known
+song leads to an email that asks for it to be mapped. What the app knows of such a song is in `music/mapped/` (its beat
+grid and its onset curve, never its audio).
 
 ## Signing
 

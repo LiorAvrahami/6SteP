@@ -223,15 +223,18 @@ class DanceFloor(
         return if (pb.song == MusicPlan.SHUFFLE) Texts.shuffleNow(title) else title
     }
 
-    /** the tempo: the song's tempo variants, from 40 BPM slower to 20 BPM faster (the same offset for every song) */
+    /** the tempo: the song's tempo variants, from 40 BPM slower to 20 BPM faster (the same offset for every song). A
+     *  song that has only its own tempo (one that the listener added) has only that line. */
     fun tempoChoices(): List<Choice> {
         val t = pb.currentTrack() ?: return emptyList()
-        return MusicPlan.BPM_OFFSETS.map { off ->
+        val plays = t.variantFor(pb.bpmOffset).offset
+        return MusicPlan.BPM_OFFSETS.filter { off -> t.variants.isEmpty() || t.variants.any { it.offset == off } }.map { off ->
             val bpm = t.variantFor(off).bpm.roundToInt()
-            Choice(if (off == 0) Texts.bpmOriginal(bpm) else Texts.bpm(bpm), off == pb.bpmOffset)
+            Choice(if (off == 0) Texts.bpmOriginal(bpm) else Texts.bpm(bpm), off == plays, off.toString())
         }
     }
-    fun chooseTempo(i: Int) { pb.setBpmOffset(MusicPlan.BPM_OFFSETS[i]); host.buttons() }
+    /** a line of tempoChoices() was picked */
+    fun chooseTempo(key: String) { key.toIntOrNull()?.let { pb.setBpmOffset(it); host.buttons() } }
 
     /** the song menu (user 2026-11-21): first "Play all", which is what plays unless something else is chosen: the songs
      *  in the order they are stored, the first one first, round and round. Then each song by itself, in that order;

@@ -2,6 +2,21 @@
 
 **Current state (2026-10-17):** the app uses the three tracks in `music/chosen/`, interchangeably: Laughing Manny "Sunday Reflection" (127), Laughing Manny "Slow Your Roll" (123), and Kevin MacLeod "Hot Swing" (144, the 5:15 loop built below). Everything below this note is the history of how they were chosen. All folders it mentions (`raw/`, `out/`, `candidates/`, `sweep_*/`, the Hot Swing loop plans and the sweep scripts) were moved out of `music/` during cleanup and are not needed. Still live in `music/tools/`: `swingratio.py` (swing test), `jump_tracked.py` (beat-tracked structure map), `build.py` and `verify.py` (splicing and checking loops).
 
+## Songs that do not ship: `mapped/` and the onset curve (`tools/onset_curve.py`)
+
+Some songs may not be shipped with the app; the listener adds their own copy (the web page's song menu, "Upload…",
+2026-11-21). For such a song the app needs two things, both in `music/mapped/` and listed in `music/mapped/songs.json`:
+its beat grid (as for any track, see below), and its onset curve: how hard the music hits every 10 ms, by which the app
+recognises the listener's file and finds where the music starts in it.
+
+```
+python -P tools/onset_curve.py "<the song's file>" "mapped/<name> - onsets.json"
+```
+(ffmpeg reads the file; the curve is always made at 48 kHz.) Then add the song to `mapped/songs.json`, run
+`python tools/make_assets.py` from the repo, and check with `python tools/check_songs.py`. The song's file itself stays
+out of the repository. The only such song so far is "Like It Is", whose grid and curve were made on 2026-10-29 from the
+user's own file.
+
 ## Beat grid tool: where every count of a track is (`tools/beatgrid.py`)
 
 Footwork has to be placed on the music's counts, so each track needs a beat grid: the time of beat 0, the

@@ -177,7 +177,8 @@ sounds, then commit and push the app. It finds the repo root from its own locati
 `app/src/main/assets` and `app/src/main/res`:
 `dance/skeletons.json`, `dance/compositions.json`, `dance/tracks.json` (title, artist, licence, bpm, duration, file,
 grid, `difficulty`, `grid_kind`, and `variants`: a list of `{offset, bpm, tempo, file}` with offset 0 pointing at the
-original file), `dance/beatgrids/<key>.json` (slimmed grids), `music/<key>.mp3` and `music/<key>_<offset>.mp3`, the
+original file), `dance/beatgrids/<key>.json` (slimmed grids), `music/<key>.mp3` and `music/<key>_<offset>.mp3`, the songs that the
+listener can add from their own files (`dance/songs.json` and `dance/onsets/<key>.json`, from `music/mapped/`: section 10), the
 synthesised `res/raw/snare.wav` and `res/raw/hihat.wav`, and, until v11, the launcher icon from `6SteP/design/icons/option1_feet_on_floor.png`.
 Since v11 the icon is made by `6SteP/design/make_icon.py` (the vinyl of option 3, a "6" in its lower half standing in front
 of the label, a blue foot on the 6's lower-left corner pointing 45 degrees up and left, a pink foot at 55 degrees to the
@@ -289,7 +290,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
 - **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on` (the settings page);
   `bpm_offset`, `song` (a track key, `all` (the default) or `shuffle`), `muted` (the dance floor's top bar; `strategic`, the schema mode, is no longer read since 2026-11-17);
-  `explore_open_elements`, `explore_open_compositions`, `explore_open_blocks`, `explore_version_<kind>_<name>`. Gone with the redesign: the exploration
+  `explore_open_elements`, `explore_open_compositions`, `explore_open_blocks`, `explore_version_<kind>_<name>`. The web page keeps the same names in the browser's local storage (prefix `6step.`),
+  and `user_songs` for the songs the listener added. Gone with the redesign: the exploration
   floor's free `bpm` slider (the tempo is the song's), the main screen's switches and the player's options bar.
 - **Shipped compositions and the phone's copy.** `CompositionStore` reads the phone's own file when there is one and only
   adds shipped compositions it does not know. Since v9 a shipped composition carries a `revision`; a higher one replaces the
@@ -589,18 +591,79 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   Double first. The JavaScript bundle assigns its module to `globalThis.<module name>` after `main` has run. Kotlin
   2.2 no longer takes `kotlinOptions { }` in the Android module (`kotlin { compilerOptions { } }`).
 
-**Still to build** (the user's decisions of 2026-11-19 and 2026-11-20; see `TODO.md`):
+**The listener's own songs: "Upload…"** (web page, 2026-11-21, v62). The user's decisions (2026-11-19, 2026-11-20):
+no streaming; the three free songs ship with the app; other songs (their example: "Like It Is") the listener gets
+themselves and adds from a file; the file "is hashed and compared to the songs that the app mapped out their steps (we
+need some simple hash ... that is not broken by compression)"; an unknown song leads to an email to the user ("hi,
+please map out the song named *** for me, thanks!"); **added songs do not change tempo**. And on 2026-11-21: "In the
+music selection drop-down, there should be an option "upload.." when pressed it will open a dialog in the same theme as
+the app that lists the supported tracks, and an open file dialogue where the user selects a local file to be used. the
+first and only option for now will be like it is".
 
-- **Adding songs.** No streaming. The three free songs ship with the app; other songs (their example: "Like It Is")
-  the listener gets themselves. The options get an "add songs" button that opens a file picker; the chosen file is
-  recognised against the songs whose steps are mapped; if it is not mapped, the listener is told to send it to the
-  user's email, with a button that opens an email saying "hi, please map out the song named *** for me, thanks!".
-  **Added songs do not change tempo** (user 2026-11-20). The recognition is prototyped and tested in
-  `music/tools/song_match_proto.py`: the song's rhythm of loudness (at 8 kHz mono, the rise of the energy from one
-  10 ms block to the next over the first 90 s: 9 KB a song), matched by sliding it along each mapped song's (within
-  15 s), plus the length. 24 re-compressed and shifted copies of the three bundled songs were all recognised and the
-  shift of their start found to within 0.3 ms; speed-changed versions were rejected. Not tested: a copy from another
-  release of a recording. Length alone (the user's first idea) cannot say where extra silence sits.
+- **What the listener sees.** The song menu: "Play all", each song, "Upload…", "Shuffle play". "Upload…" stops the
+  dance and opens a window in the look of the heart page's beer window (`UploadWindow` in `web/.../Upload.kt`): the
+  songs that can be added, each with its length, and "Choose a file…", which opens the device's file chooser. The
+  page listens to the file (a percentage runs) and then says one of: "This is <song>. It is one of your songs now."
+  (the song is chosen at once, and is in the song menu from then on, with one line in the tempo menu: its own tempo;
+  "Play all" plays it after the bundled ones); "6SteP does not know the steps to this recording yet. Send the song to
+  <the email> and ask for it to be mapped." with a "Write the email" button (the user's words, the file's name filled
+  in); "This sounds like <song>, but it is not the recording that 6SteP knows ..." (the beginning fits and the rest
+  does not: another version or cut), with the same button; or "This file could not be read as music."
+- **The known songs** are in `music/mapped/songs.json`, each with its beat grid and its onset curve in that folder,
+  never its audio; `tools/make_assets.py` writes them into the app as `dance/songs.json`, `dance/beatgrids/<key>.json`
+  and `dance/onsets/<key>.json`. **"Like It Is" is the only one.** Its tap-corrected beat grid and its onset curve
+  were found on the branch `spotify-sync-test` (2026-10-29: a test page of the Android app that lined the dance up
+  with the user's own Spotify by listening; the branch is not merged and nothing else was taken from it); they were
+  made from the user's file `Like_it_is.wav` (172.8 s, 128.7 BPM, swing 0.69). **Nobody here has the recording, so
+  the page has never been tried on the real song**, and its artist is not known here (the window shows the title
+  and the length only): ask the user. The grid's bar phase was guessed by the tracker ("unreliable on syncopated
+  music"): if the counts sit a beat off on this song, the user's ear has to say which beat is the 1.
+- **How a file is recognised** (`shared/.../Onsets.kt`; the method is the Spotify test page's, `OnsetSync.kt` on
+  that branch, made into shared code). The "hash that compression does not break" is the song's **onset curve**: how
+  hard the music hits every 10 ms (the sound as one channel at 48 kHz, a Hann window of 2048 samples every 480,
+  `log(1 + 1000 |X|)`, the rises of the bins from 150 Hz to 6 kHz summed, less its moving average over half a
+  second). `music/tools/onset_curve.py` makes a song's curve (through ffmpeg, always at 48 kHz: the browser unpacks a
+  file at that rate too, in an `OfflineAudioContext`); the page makes the file's with `Onsets.Meter`, a slice at a
+  time so that it stays alive (about 2 s for a three-minute song on the session's machine; a phone will take a few
+  times that). The file's curve is slid along each known song's, up to 15 s either way (`Onsets.fit`): `score` is how
+  alike they are over the song's first 90 s at the best place, `shift` that place in seconds (how much later the
+  music starts in the file; the top of the peak is found between two frames with a parabola), `whole` how alike they
+  are over all of the song that the file holds, `cover` how much of the song it holds. The file is the song when
+  score and whole are at least 0.5 and cover at least 0.9. Measured on 2026-11-21 with the three bundled songs, 24
+  copies (MP3, AAC and Opus down to 64 kbit/s, one channel, 22 and 44.1 kHz, quieter, silence added, the start cut
+  off): every copy scored 0.86 to 0.99 against its own song and at most 0.11 against another, and the shift was found
+  to within 1.2 ms; the same tune 10 BPM faster or slower scored at most 0.07; the 50-second original of Hot Swing
+  against the 5-minute loop made from it scored 0.70 on the beginning, which is why the whole song has to line up.
+  Not measured: another release or remaster of a recording (it will most likely be refused, and then say "sounds
+  like"). The shift is measured on the sound as this browser unpacks it, which is also what it plays, so a player's
+  own habit with a file (an MP3 re-wrapped by ffmpeg starts 11.0 ms earlier everywhere; the page found 10.6 ms) is
+  taken care of. An earlier prototype (the rise of loudness at 8 kHz) was dropped for this.
+- **Where an added song is kept** (`WebAssets` in `Sound.kt`): the file in a cache of its own on the device
+  (`6step-user-1`, under "user/<key>"; never sent anywhere), and in the page's storage (`user_songs`) which song it
+  is, its shift and its length. When the page opens, every such song whose file is still there becomes a `Track`
+  again (one variant: its own tempo) with the known song's grid moved by the shift (`BeatGrid.shifted`; it ends where
+  the mapped recording ends). A browser may throw the file away when the device is short of room (an iPhone's after
+  a week without a visit); then the song is simply gone from the menu and can be added again. The page asks the
+  browser to keep it (`navigator.storage.persist`), which it may refuse. Without a cache the song lives until the
+  page is closed, and the window says so. There is no way yet to remove an added song.
+- **How it was checked:** `tools/check_songs.py` (the Kotlin curve against the Python tool's on the three bundled
+  songs, frame by frame: never more than 1 of 255 apart; six copies recognised with their shifts, three files that
+  are not the songs refused); `OnsetsTest` (the same on sounds made in the test, which run on GitHub too); and the
+  page in the headless browser with a stand-in known song (the 50-second Hot Swing original, added to a copy of the
+  built page for the test only): the menu, the window, a file that is not music, an unknown song with its email, a
+  re-compressed copy with 0.7337 s of silence added (recognised, shift 0.7323 s), the song chosen and playing at its
+  tempo, still there after a reload, a shorter cut said to "sound like" it, and the song gone when its file is
+  deleted from the cache.
+- **To map another song:** the user sends its recording; make its beat grid (`music/tools/beatgrid.py`, the beat
+  annotator for the ear's corrections), its curve (`python -P music/tools/onset_curve.py <file> "music/mapped/<name> -
+  onsets.json"`), add it to `music/mapped/songs.json`, run `tools/make_assets.py`, and release. The recording itself
+  must not be committed.
+
+**Still to build** (see `TODO.md`):
+
+- **Adding songs on Android.** The web page has it (above); the Android app's song menu has no "Upload…" yet. It
+  needs a file picker, the file's sound as numbers (`MediaExtractor` and `MediaCodec`, resampled to 48 kHz), a copy of
+  the file in the app's storage, and `Playback` taking tracks from there; the recognition itself is shared code.
 - **A lead-in of two rock triple triples after a swipe while playing** (assessed 2026-11-19, the user's answers
   2026-11-20: only after swipes, the part's name still not read aloud; use their new face-to-face rock and triple
   steps instead of a bridge). Write it once, in `shared/.../DanceFloor.kt`.

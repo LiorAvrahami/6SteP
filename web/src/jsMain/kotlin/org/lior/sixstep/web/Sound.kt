@@ -7,10 +7,15 @@ import org.lior.sixstep.CompositionStore
 import org.lior.sixstep.DanceData
 import org.lior.sixstep.DrumPattern
 import org.lior.sixstep.FloorPlayer
+import org.lior.sixstep.Json
+import org.lior.sixstep.KnownSong
 import org.lior.sixstep.MusicPlan
+import org.lior.sixstep.OnsetCurve
 import org.lior.sixstep.Texts
 import org.lior.sixstep.Track
+import org.lior.sixstep.TrackVariant
 import kotlin.math.max
+import kotlin.math.min
 
 // ------------------------------------------------------------------ the browser's sound system, as far as the page uses it
 
@@ -46,16 +51,33 @@ external interface AudioBufferSourceNode : AudioNode {
  *  in that same first second (user 2026-11-21: "you should start loading it the second that the app opens"), in the
  *  background: every file is fetched behind whatever the page is doing and kept on the device (the browser's cache
  *  for pages, the Cache API; in memory where a browser has none). A file that is needed before it has come is fetched
- *  at once; when its background fetch is already under way, the two wait for the one download. */
+ *  at once; when its background fetch is already under way, the two wait for the one download.
+ *
+ *  A song that the listener added from their own files (the song menu's "Upload", user 2026-11-21) is kept on the
+ *  device too: its file in a cache of its own (`6step-user-1`, under the name "user/<song>"; it never leaves the
+ *  device), and in the page's storage which song it is and how much later its music starts than in the mapped
+ *  recording (`user_songs`). When the page opens, every such song whose file is still there becomes a track again,
+ *  after the bundled ones. A browser may throw the file away when the device runs short of room (an iPhone's after a
+ *  week without a visit): then the song is simply gone from the menu, and can be added again. */
 class WebAssets {
     companion object {
-        const val AT_ONCE = 2   // music files fetched side by side in the background
+        const val AT_ONCE = 2       // music files fetched side by side in the background
+        const val USER = "user/"    // where a song of the listener's own is kept; never fetched from the net
     }
+
+    /** a song of the listener's own: which known song it is, how much later its music starts, how long the file is */
+    class UserSong(val key: String, val shift: Double, val seconds: Double)
 
     lateinit var data: DanceData
     lateinit var store: CompositionStore
     lateinit var tracks: List<Track>
     val grids = HashMap<String, BeatGrid>()
+    /** the songs the page knows the beats of but does not bring: the listener can add their own copy */
+    var known: List<KnownSong> = emptyList()
+        private set
+    private val curves = HashMap<String, OnsetCurve>()
+    private var userCache: dynamic = null
+    private var noUserCache = false
 
     private val caches: dynamic = try { window.asDynamic().caches } catch (e: Throwable) { null }
     private var cache: dynamic = null
@@ -73,20 +95,22 @@ class WebAssets {
      *  `done(null)`: everything is read, otherwise what could not be */
     fun load(onTracks: () -> Unit, done: (String?) -> Unit) {
         var sk: String? = null; var co: String? = null
-        var tracksRead = false; var gridsLeft = -1
+        var tracksRead = false; var gridsLeft = -1; var songsRead = false
         var failed: String? = null; var finished = false
         fun check() {
             if (finished) return
             val f = failed
             if (f != null) { finished = true; done(f); return }
             val s = sk; val c = co
-            if (s == null || c == null || !tracksRead || gridsLeft != 0) return
+            if (s == null || c == null || !tracksRead || gridsLeft != 0 || !songsRead) return
             finished = true
             try { data = DanceData.parse(s); store = CompositionStore(c) } catch (e: Throwable) { done(e.message ?: "the dance data"); return }
-            done(null)
+            restoreUserSongs { done(null) }
         }
         text("dance/skeletons.json") { t -> if (t == null) failed = "dance/skeletons.json" else sk = t; check() }
         text("dance/compositions.json") { t -> if (t == null) failed = "dance/compositions.json" else co = t; check() }
+        // the songs that can be added: the page works without the list
+        text("dance/songs.json") { t -> known = if (t == null) emptyList() else try { KnownSong.parseAll(t) } catch (e: Throwable) { emptyList() }; songsRead = true; check() }
         text("dance/tracks.json") { t ->
             val list = if (t == null) null else try { Track.parseAll(t) } catch (e: Throwable) { null }
             if (list == null) { failed = "dance/tracks.json"; check(); return@text }
@@ -112,6 +136,7 @@ class WebAssets {
      *  kept. Whoever asks for a file that is already on its way waits for that one fetch. */
     fun bytes(url: String, done: (ArrayBuffer?) -> Unit) {
         memory[url]?.let { done(it); return }
+        if (url.startsWith(USER)) { userBytes(url, done); return }
         coming[url]?.let { it.add(done); return }
         val waiting = arrayListOf(done)
         coming[url] = waiting
@@ -135,7 +160,7 @@ class WebAssets {
     /** bring these music files to the device behind whatever the page is doing, in this order, a few at a time; files
      *  asked for again move to the front */
     fun fetchInBackground(urls: List<String>) {
-        for (u in urls.reversed()) { queue.remove(u); queue.add(0, u) }
+        for (u in urls.reversed()) if (!u.startsWith(USER)) { queue.remove(u); queue.add(0, u) }   // the listener's own songs are on the device already
         pump()
     }
 
@@ -151,6 +176,106 @@ class WebAssets {
                     if (hit != null && jsTypeOf(hit) != "undefined") next()   // on the device already: nothing to read
                     else bytes(url) { next() }
                 }, { _: dynamic -> bytes(url) { next() } })
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------ the listener's own songs
+
+    private fun withUserCache(then: (dynamic) -> Unit) {
+        if (userCache != null || noUserCache || noCache) { then(userCache); return }
+        try {
+            caches.open("6step-user-1").then({ c: dynamic -> userCache = c; then(c) }, { _: dynamic -> noUserCache = true; then(null) })
+        } catch (e: Throwable) { noUserCache = true; then(null) }
+    }
+
+    private fun userBytes(url: String, done: (ArrayBuffer?) -> Unit) {
+        withUserCache { c ->
+            if (c == null) { done(null); return@withUserCache }
+            c.match(url).then({ hit: dynamic ->
+                if (hit != null && jsTypeOf(hit) != "undefined") hit.arrayBuffer().then({ ab: ArrayBuffer -> done(ab) }, { _: dynamic -> done(null) })
+                else done(null)
+            }, { _: dynamic -> done(null) })
+        }
+    }
+
+    private fun readUserSongs(): List<UserSong> = try {
+        val a = Json.obj(Prefs.str("user_songs", "{\"songs\":[]}")).arr("songs")
+        (0 until a.size).map { i -> val o = a.obj(i); UserSong(o.str("key"), o.num("shift"), o.num("seconds")) }
+    } catch (e: Throwable) { emptyList() }
+
+    private fun writeUserSongs(list: List<UserSong>) {
+        Prefs.put("user_songs", "{\"songs\":[" + list.joinToString(",") { "{\"key\":\"${it.key}\",\"shift\":${it.shift},\"seconds\":${it.seconds}}" } + "]}")
+    }
+
+    /** a song of the listener's own as a track: the known song's name and beat grid, the grid moved to where the music
+     *  is in their file. It has one tempo: its own (user 2026-11-20: "added songs don't change tempo"). */
+    private fun addUserTrack(k: KnownSong, u: UserSong, grid: BeatGrid) {
+        val file = USER + k.key
+        grids[k.key] = grid.shifted(u.shift, min(u.seconds, grid.duration + u.shift))
+        val t = Track(k.key, k.title, k.artist, "", k.bpm, u.seconds, file, k.gridPath, k.difficulty, listOf(TrackVariant(0, k.bpm, 1.0, file)))
+        tracks = tracks.filter { it.key != k.key } + t
+    }
+
+    /** when the page opens: the listener's songs whose files are still on the device become tracks again */
+    private fun restoreUserSongs(done: () -> Unit) {
+        val list = readUserSongs().filter { u -> known.any { it.key == u.key } }
+        if (list.isEmpty()) { done(); return }
+        var left = list.size
+        val still = ArrayList<UserSong>()
+        fun one() { if (--left == 0) { writeUserSongs(list.filter { it in still }); done() } }
+        for (u in list) {
+            val k = known.first { it.key == u.key }
+            userBytes(USER + u.key) { ab ->
+                if (ab == null) one()   // the browser has thrown the file away: the song is gone from the menu
+                else text(k.gridPath) { g ->
+                    if (g != null) try { addUserTrack(k, u, BeatGrid.parse(g)); still.add(u) } catch (e: Throwable) {}
+                    one()
+                }
+            }
+        }
+    }
+
+    /** the onset curve of a known song, read when it is first asked for */
+    fun curve(k: KnownSong, done: (OnsetCurve?) -> Unit) {
+        curves[k.key]?.let { done(it); return }
+        text(k.onsetsPath) { t ->
+            val c = if (t == null) null else try { OnsetCurve.parse(t) } catch (e: Throwable) { null }
+            if (c != null) curves[k.key] = c
+            done(c)
+        }
+    }
+
+    /** the songs the listener has added */
+    fun hasUserSong(key: String): Boolean = tracks.any { it.key == key && it.file.startsWith(USER) }
+
+    /** Keep a file of the listener's as the known song k: the file on the device, the song among the tracks.
+     *  `shift`: how many seconds later the music starts in the file than in the mapped recording; `seconds`: the
+     *  file's length. done(true): it is kept for good; done(false): the device would not keep it, so it is one of the
+     *  songs only until the page is closed; done(null): it could not be added at all. */
+    fun addUserSong(k: KnownSong, bytes: ArrayBuffer, type: String, shift: Double, seconds: Double, done: (Boolean?) -> Unit) {
+        val url = USER + k.key
+        val u = UserSong(k.key, shift, seconds)
+        text(k.gridPath) { g ->
+            val grid = if (g == null) null else try { BeatGrid.parse(g) } catch (e: Throwable) { null }
+            if (grid == null) { done(null); return@text }
+            fun finish(kept: Boolean) {
+                if (!kept) memory[url] = bytes
+                addUserTrack(k, u, grid)
+                if (kept) writeUserSongs(readUserSongs().filter { it.key != k.key } + u)
+                done(kept)
+            }
+            withUserCache { c ->
+                if (c == null) { finish(false); return@withUserCache }
+                try {
+                    val make: dynamic = js("(function (b, t) { return new Response(b, { headers: { 'Content-Type': t || 'application/octet-stream' } }); })")
+                    c.put(url, make(bytes, type)).then({ _: dynamic ->
+                        memory.remove(url)
+                        // ask the browser not to throw the song away when the device runs short of room; it may say no
+                        try { val st: dynamic = window.navigator.asDynamic().storage; if (st != null && jsTypeOf(st.persist) == "function") st.persist() } catch (e: Throwable) {}
+                        finish(true)
+                    }, { _: dynamic -> finish(false) })
+                } catch (e: Throwable) { finish(false) }
             }
         }
     }
@@ -184,6 +309,7 @@ class WebPlayer(private val assets: WebAssets) : FloorPlayer {
     private var hihat: AudioBuffer? = null
 
     override val tracks: List<Track> get() = plan.tracks
+    override val canAddSongs: Boolean get() = assets.known.isNotEmpty()
     override var muted = Prefs.bool("muted", false)
         private set
     override val song: String get() = plan.song
@@ -435,6 +561,13 @@ class WebPlayer(private val assets: WebAssets) : FloorPlayer {
 
     /** a change while playing: a stop, and a play from the beat it is at */
     private fun again() { if (running) play(beatNow()) else onChange?.invoke() }
+
+    /** the listener added a song (WebAssets.addUserSong): it is one of the tracks now */
+    fun tracksChanged() {
+        plan.tracks = assets.tracks
+        again()
+        preload()
+    }
 
     /** every music file, in the order it is wanted on the device: the songs of the plan at the chosen tempo (the one
      *  that plays first first), then the other tempos, the nearest to the chosen one first. With the phone's data

@@ -33,6 +33,11 @@ class BeatGrid(val bpm: Double, val beat: Double, val swing: Double, val duratio
         g.phase = phase; g.offset = offset
         return g
     }
+    /** the same grid for a copy of the music that starts `by` seconds later (earlier when negative) and is `seconds`
+     *  long: a song that the listener added from their own files, whose start is not where the mapped recording's is */
+    fun shifted(by: Double, seconds: Double): BeatGrid =
+        BeatGrid(bpm, beat, swing, seconds, DoubleArray(beats.size) { beats[it] + by }, DoubleArray(bars.size) { bars[it] + by })
+
     companion object {
         /** a grid from the text of its file (dance/beatgrids/<track>.json: the beats annotated by ear when that was done) */
         fun parse(text: String): BeatGrid {
@@ -48,7 +53,8 @@ class BeatGrid(val bpm: Double, val beat: Double, val swing: Double, val duratio
 class TrackVariant(val offset: Int, val bpm: Double, val tempo: Double, val file: String)
 
 class Track(val key: String, val title: String, val artist: String, val licence: String, val bpm: Double, val duration: Double, val file: String, val gridPath: String, val difficulty: String = "", val variants: List<TrackVariant> = emptyList()) {
-    /** the variant `offset` BPM away from the original, or the nearest one there is */
+    /** the variant `offset` BPM away from the original, or the nearest one there is (a song that the listener added has
+     *  only itself: it does not change tempo, user 2026-11-20) */
     fun variantFor(offset: Int): TrackVariant = variants.minByOrNull { abs(it.offset - offset) } ?: TrackVariant(0, bpm, 1.0, file)
 
     companion object {

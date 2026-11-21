@@ -40,7 +40,10 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     private val strip = StripPainter(1.0).apply { barColor = Colors.BAR; calloutBandDp = BAND; cellWidthDp = 64.0; gapDp = 8.0 }
 
     private val playBtn = iconButton("play", Texts.PLAY) { floor.playPause() }
-    private val rateBtn = el("button", "rate press") { title = Texts.TEMPO; onclick = { it.stopPropagation(); menu(this, floor.tempoChoices()) { i -> floor.chooseTempo(i) }; null } }
+    private val rateBtn = el("button", "rate press") {
+        title = Texts.TEMPO
+        onclick = { it.stopPropagation(); val choices = floor.tempoChoices(); menu(this, choices) { i -> floor.chooseTempo(choices[i].key) }; null }
+    }
     private val songLabel = el("span")
     private val songBtn = el("button", "song press") {
         title = Texts.SONG
@@ -297,6 +300,13 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     }
 
     override fun message(text: String) = toast(text)
+
+    /** the song menu's "Upload…": the dance stops, and the window in which a song of the listener's own is added
+     *  opens; a song that was added is the one that plays from then on */
+    override fun addSong() {
+        floor.hidden()
+        UploadWindow { key -> floor.chooseSong(key) }.open()
+    }
 
     // ------------------------------------------------------------------ the tempo and song menus
 

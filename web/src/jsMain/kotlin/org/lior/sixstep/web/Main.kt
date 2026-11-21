@@ -23,6 +23,8 @@ object App {
         // the music starts coming the moment the tracks are known, before anything is shown (user 2026-11-21)
         assets.load({ player = WebPlayer(assets); player.preload() }) { failed ->
             if (failed != null) { host.textContent = ""; host.appendChild(el("div", "boot", "6SteP could not read $failed. Check the connection and reload the page.") { style.fontSize = "18px"; style.padding = "24px"; style.textAlign = "center" }); return@load }
+            // the songs the listener added on an earlier visit are tracks again by now: the player learns of them
+            if (assets.tracks.size != player.tracks.size) player.tracksChanged()
             window.addEventListener("hashchange", { route() })
             // the font first, so that the first drawing already has it; never longer than a moment
             var routed = false

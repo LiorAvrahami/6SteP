@@ -77,6 +77,25 @@ for t in tracks:
     t['variants'] = vs
 json.dump({'tracks': tracks}, open(os.path.join(A, 'dance', 'tracks.json'), 'w'), indent=1)
 
+# ---- the songs the app knows the beats of but does not bring along (music/mapped/songs.json, user 2026-11-19: "the other
+# songs such as "like it is" the user will have to download themselves"): the listener adds their own copy with the song
+# menu's "Upload". The app recognises the copy by the song's onset curve (music/tools/onset_curve.py) and plays it on
+# the song's beat grid. Only the grid and the curve ship: the rhythm, never the audio.
+MAPPED = os.path.join(SW, 'music', 'mapped')
+os.makedirs(os.path.join(A, 'dance', 'onsets'), exist_ok=True)
+known = []
+for s in json.load(open(os.path.join(MAPPED, 'songs.json'), encoding='utf-8'))['songs']:
+    key = s['key']
+    if key in [t['key'] for t in tracks] or key in [k['key'] for k in known]:
+        _sys.exit('REFUSING: two songs with the key %r (music/mapped/songs.json)' % key)
+    g = json.load(open(os.path.join(MAPPED, s['grid']), encoding='utf-8'))
+    o = json.load(open(os.path.join(MAPPED, s['onsets']), encoding='utf-8'))
+    json.dump({k: g[k] for k in ('bpm', 'beat', 't0', 'swing', 'duration', 'beats', 'bars') if k in g}, open(os.path.join(A, 'dance', 'beatgrids', key + '.json'), 'w'))
+    json.dump({'rate': o['rate'], 't0': o['t0'], 'values': o['values']}, open(os.path.join(A, 'dance', 'onsets', key + '.json'), 'w'), separators=(',', ':'))
+    known.append({'key': key, 'title': s['title'], 'artist': s.get('artist', ''), 'bpm': round(g['bpm'], 1), 'duration': g['duration'],
+                  'grid': 'dance/beatgrids/' + key + '.json', 'onsets': 'dance/onsets/' + key + '.json', 'difficulty': s.get('difficulty', '')})
+json.dump({'songs': known}, open(os.path.join(A, 'dance', 'songs.json'), 'w'), indent=1)
+
 # ---- metronome sounds: a snare drum (the 1) and a closed hi-hat (the & and the 2), synthesised, 44.1 kHz 16-bit mono
 def wav(path, samples):
     s = np.clip(samples, -1, 1)
@@ -115,4 +134,4 @@ for old in ('thump.wav', 'tick.wav'):  # the previous kick-like thump and sine t
 # ---- the launcher icon is not made here: design/make_icon.py draws it (the user's design, since v11). The five
 # workshop options in design/icons/option*.png were drawn by an earlier version of this script and are kept as they are.
 
-print('assets ready:', len(tracks), 'tracks,', sum(os.path.getsize(os.path.join(A, 'music', f)) for f in os.listdir(os.path.join(A, 'music'))) // 1048576, 'MB of music in', len(os.listdir(os.path.join(A, 'music'))), 'files')
+print('assets ready:', len(tracks), 'tracks,', len(known), 'more that the listener can add,', sum(os.path.getsize(os.path.join(A, 'music', f)) for f in os.listdir(os.path.join(A, 'music'))) // 1048576, 'MB of music in', len(os.listdir(os.path.join(A, 'music'))), 'files')
