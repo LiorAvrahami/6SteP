@@ -46,6 +46,9 @@ object Texts {
     const val READY = "ready"
     const val FILLER_SUFFIX = " — triple step filler"
     const val LEAD_IN_SUFFIX = " — lead-in"   // the rock triple triples before a part that a swipe went to
+    /** the floor's title during those rock triple triples: the element danced, and the part they lead to, so that the
+     *  screen says where a swipe went from its first moment ("rock step — lead-in to send out and bring back") */
+    fun leadIn(element: String, part: String): String = element + LEAD_IN_SUFFIX + (if (part.isEmpty()) "" else " to $part")
     const val DONE = "Done!"
     const val NOTHING_TO_SHOW = "nothing to show"
     const val LOADING_MUSIC = "Loading the music…"   // the web front only: a song that has not arrived yet

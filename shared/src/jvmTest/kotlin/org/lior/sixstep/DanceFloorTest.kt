@@ -170,14 +170,17 @@ class DanceFloorTest {
             assertEquals(-1, r.host.current, "during the lead-in no step of the piece is the current one")
             assertEquals(0, sc.arrows.size)
         }
-        val rock = "rock step" + Texts.LEAD_IN_SUFFIX; val triple = "triple step" + Texts.LEAD_IN_SUFFIX
+        // each named with the part it leads to, from the first moment on
+        val rock = "rock step — lead-in to send out and bring back"; val triple = "triple step — lead-in to send out and bring back"
+        assertEquals(Texts.leadIn("rock step", "send out and bring back"), rock)
+        assertEquals("rock step — lead-in", Texts.leadIn("rock step", ""), "a part without a name: only that it is a lead-in")
         assertEquals(listOf(rock, triple, rock, triple), titles, "what the dancers dance on their way in")
         assertEquals(listOf("1", "2", "3", "3&", "4", "5", "5&", "6", "1", "2", "3", "3&", "4", "5", "5&", "6"), counts)
         assertTrue(abs(bannerUp!! - 28.0) < 0.1, "the part's name comes up 2 beats before the part: at beat $bannerUp")
         assertEquals("send out and bring back", r.host.scene?.banner)
         // the part itself: the composition's own picture again, its name gone, its steps framed below
         r.run(200.0)
-        assertFalse(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX), "at beat ${r.player.beatNow()} the part is danced: ${r.host.scene?.title}")
+        assertFalse(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX), "at beat ${r.player.beatNow()} the part is danced: ${r.host.scene?.title}")
         assertNull(r.host.scene?.banner, "the name is gone once the part has started")
         assertTrue(r.host.current > 0)
         assertEquals(spokenBefore, r.player.spoken.size, "the part a swipe went to is not read aloud")
@@ -205,21 +208,21 @@ class DanceFloorTest {
         r.run(300.0); r.floor.swipe(false)
         assertTrue(abs(r.player.beatNow() - 0.0) < 0.05, "a part 6 beats into the dance is entered from beat 0: ${r.player.beatNow()}")
         r.run(1000.0)
-        assertTrue(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX))
+        assertTrue(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX))
         // and once more: the very beginning
         r.floor.swipe(false)
         assertTrue(abs(r.player.beatNow() - 0.0) < 0.05)
         r.run(500.0)
-        assertFalse(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX), "the beginning is the piece itself: ${r.host.scene?.title}")
+        assertFalse(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX), "the beginning is the piece itself: ${r.host.scene?.title}")
         // a pause in a lead-in: the dance stands on the first step of the part it was going to
         r.floor.swipe(true); r.run(1000.0)                     // towards "side to side" again
-        assertTrue(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX))
+        assertTrue(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX))
         r.floor.tap()
         assertFalse(r.floor.playing)
         val stood = r.host.current
         assertTrue(r.host.scene!!.title.contains("side to side"), "paused in a lead-in, the dance stands on the part's first step: ${r.host.scene?.title}")
         assertEquals("3", r.host.scene?.count, "which is the first step of side to side's triple step")
-        assertFalse(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX))
+        assertFalse(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX))
         // play from there: the part, announced as from any start
         val spoken = r.player.spoken.size
         r.floor.tap()
@@ -229,7 +232,7 @@ class DanceFloorTest {
         assertTrue(r.player.spoken.size > spoken, "started on a part's first step by hand, its name is read")
         // a tap on a step of the bottom bar while it plays goes straight there, without a lead-in
         r.floor.tapStop(60); r.run(100.0)
-        assertFalse(r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX))
+        assertFalse(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX))
         assertTrue(r.host.current >= 60)
     }
 
@@ -248,11 +251,11 @@ class DanceFloorTest {
                 if (abs(r.player.beatNow() - before) < 1e-9) break   // no part after the last one
                 parts++
                 tick()
-                if (!r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX)) { repeat(600) { tick() }; continue }   // a part without a lead-in
+                if (!r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX)) { repeat(600) { tick() }; continue }   // a part without a lead-in
                 withLead++
                 var last = r.host.scene!!
                 var guard = 0
-                while (r.host.scene!!.title.endsWith(Texts.LEAD_IN_SUFFIX) && guard++ < 20000) { last = r.host.scene!!; tick() }
+                while (r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX) && guard++ < 20000) { last = r.host.scene!!; tick() }
                 val first = r.host.scene!!
                 for ((foot, p) in first.feet) {
                     val q = last.feet[foot]!!

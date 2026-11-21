@@ -59,7 +59,7 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   of this one (the previous one in its first 2 s). In a composition the dancers get to the part by a lead-in: two rock
   triple triples (one where only that much dance comes before the part) on the spot where the part starts, in the
   position it starts from, side by side or face to face, flowing into the part's first step; the title says
-  "rock step — lead-in", "triple step — lead-in".
+  what is danced and where it leads ("rock step — lead-in to send out and bring back").
   Top bar: play/pause, the tempo (the song's tempo variants), the song ("Play all": the songs in their stored order,
   round and round, which is what plays unless something else is chosen; one song over and over; or "Shuffle play"), mute
   (music, drums and voice), back. Every step has one place in the music (the plan

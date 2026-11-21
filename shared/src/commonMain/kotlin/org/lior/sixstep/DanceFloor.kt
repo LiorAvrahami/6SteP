@@ -159,9 +159,9 @@ class DanceFloor(
      *  land on the same spots). The clock and the music simply run through the `beats` beats before the part. */
     private class LeadIn(val tl: Timeline, val frame: Frame, val beats: Double)
 
-    /** a swipe's part being approached: part `part` starts at clock beat `end`; until then the dancers dance `lead`, or,
-     *  where there is none (see leadIn), the composition's own last beats before the part */
-    private class Approach(val part: Int, val end: Double, val lead: LeadIn?)
+    /** a swipe's part being approached: part `part` (called `name` on the screen) starts at clock beat `end`; until then
+     *  the dancers dance `lead`, or, where there is none (see leadIn), the composition's own last beats before the part */
+    private class Approach(val part: Int, val end: Double, val lead: LeadIn?, val name: String)
     private var approach: Approach? = null
     private val leads = HashMap<Int, LeadIn>()       // made when first needed, by part
     private val noLead = HashSet<Int>()              // parts that cannot have one
@@ -580,7 +580,9 @@ class DanceFloor(
         val target = when { i < 0 -> 0.0; lead != null -> start - lead.beats; else -> start - jumpLead }
         pb.play(target)   // from scratch, as any start
         if (!pb.playing) { standAt(if (lead != null) start else target); return }   // the sound is busy (a call)
-        approach = if (i < 0) null else Approach(i, start, lead)
+        // what the part is called, for the title of its lead-in: the words of its annotation, as the bottom bar writes them
+        val name = cues.firstOrNull { kotlin.math.abs(it.first - start) < 1e-6 }?.let { phrases(it.second).joinToString(" · ") } ?: ""
+        approach = if (i < 0) null else Approach(i, start, lead, name)
         hold = Double.NEGATIVE_INFINITY; banner = null
         // the annotations of what the rock triple triples stand in for are not shown: the next one is the part's own
         lastCue = cues.indexOfLast { it.first < (if (lead != null) start else target) - 0.01 }
@@ -645,13 +647,15 @@ class DanceFloor(
         return LeadIn(Timeline(fitted, swing), frame, times * one.length)
     }
 
-    /** the picture while the dancers dance a part's lead-in, at clock beat b: no step of the piece is framed below */
+    /** the picture while the dancers dance a part's lead-in, at clock beat b: no step of the piece is framed below, and
+     *  the title names the part from the first moment (the part's big annotation only comes for the last two beats, as
+     *  any annotation does, because it covers the dancers) */
     private fun leadScene(a: Approach, lead: LeadIn, b: Double): Scene {
         val u = b - (a.end - lead.beats)   // the beat of the little dance
         val el = lead.tl.elementAt(u)
         val feet = LinkedHashMap<String, Placement>()
         for ((key, p) in lead.tl.feetAt(u)) feet[key] = lead.frame.apply(p)
-        return Scene(feet, weightsAt(lead.tl, u), (el?.name ?: "") + Texts.LEAD_IN_SUFFIX, if (u < 0) "" else lead.tl.countLabel(u), emptyList(), banner, Colors.FILLER)
+        return Scene(feet, weightsAt(lead.tl, u), Texts.leadIn(el?.name ?: "", a.name), if (u < 0) "" else lead.tl.countLabel(u), emptyList(), banner, Colors.FILLER)
     }
 
     /** a composition's annotations, by the clock itself (so the first can come up during the count-in): each comes up

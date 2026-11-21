@@ -274,9 +274,11 @@ commit (there is no diff step any more: the editor's file is the only version). 
   have left a foot elsewhere than a rock triple triple leaves it (up to 8.5 cm in the daily exercise), so each
   foot's last step of the lead-in lands where the composition has that foot, and nothing jumps at the hand-over
   (`DanceFloorTest.aLeadInFlowsIntoItsPartWithoutAJump`: every part of the shipped compositions, 0.01 cm at most).
-  During the lead-in the title is the element's name with " — lead-in" (`Texts.LEAD_IN_SUFFIX`) in the filler
-  colour, no step is framed in the bottom bar, and the part's name comes up for the last 2 beats, written and not
-  read aloud; a swipe forward goes to the part after the one being approached, a swipe back to the one before it; a
+  During the lead-in the title is the element's name, " — lead-in to " and the part's name (`Texts.leadIn`: "rock
+  step — lead-in to send out and bring back"; since v67, so that the screen says where a swipe went from its first
+  moment, as it did when a swipe landed 2 beats before the part) in the filler colour, no step is framed in the
+  bottom bar, and the part's big annotation comes up for the last 2 beats only, as any annotation does (it covers
+  the dancers), written and not read aloud; a swipe forward goes to the part after the one being approached, a swipe back to the one before it; a
   pause stands on the part's first step. A tap on a step in the bottom bar goes straight there, without a lead-in
   (the user, 2026-11-20). Elements and building blocks, which loop, jump as before (a guess: the user spoke of
   compositions). Top bar: play/pause, tempo (the 7 offsets
