@@ -44,6 +44,13 @@ class Launcher : Screen {
     private var helpOn = false
     private val snippet = el("div", "snippet box")
     private val help = el("div", "snippet box") { hidden = true; style.padding = "10px"; style.fontSize = "14px"; style.lineHeight = "1.4" }
+    private val fullBtn = iconButton("maximize", Texts.FULL_SCREEN, "box press") { Display.toggle() }.also { it.style.background = "#fff" }
+    private val showFull: () -> Unit = {
+        val on = Display.isFullscreen()
+        (fullBtn.firstChild as HTMLElement).setAttribute("src", if (on) "icons/minimize.svg" else "icons/maximize.svg")
+        fullBtn.title = if (on) Texts.LEAVE_FULL_SCREEN else Texts.FULL_SCREEN
+        fullBtn.setAttribute("aria-label", fullBtn.title)
+    }
 
     init {
         val store = App.assets.store; val data = App.assets.data
@@ -70,6 +77,8 @@ class Launcher : Screen {
         small.add(iconButton("heart", Texts.HEART, "box press") { App.go("heart") }.also { it.style.background = "var(--heart)" })
         small.add(iconButton("settings", Texts.SETTINGS, "box press") { App.go("settings") }.also { it.style.background = "var(--gear)" })
         small.add(iconButton("circle-question-mark", Texts.HELP, "box press") { setHelp(!helpOn) }.also { it.style.background = "var(--help)" })
+        // the full screen, where the browser has one to give (an iPhone's does not: there the page goes on the home screen)
+        if (Display.canFullscreen()) { small.add(fullBtn); showFull() }
         side.add(small)
         root.add(side)
 
@@ -128,8 +137,8 @@ class Launcher : Screen {
         window.requestAnimationFrame { tick() }
     }
 
-    override fun attach() { start() }
-    override fun detach() { running = false }
+    override fun attach() { Display.onFullscreenChange(showFull); showFull(); start() }
+    override fun detach() { Display.removeListener(showFull); running = false }
 }
 
 // ------------------------------------------------------------------ explore
@@ -208,12 +217,12 @@ class Explore : Screen {
         v.add(pics)
 
         // drag the pictures sideways; a tap opens the floor. The other rows go back to where they began.
-        var down = false; var dragging = false; var downX = 0.0; var lastX = 0.0
-        canvas.addEventListener("pointerdown", { e -> e as MouseEvent; down = true; dragging = false; downX = e.clientX.toDouble(); lastX = downX })
+        var down = false; var dragging = false; var downX = 0.0; var downY = 0.0; var lastX = 0.0
+        canvas.addEventListener("pointerdown", { e -> e as MouseEvent; down = true; dragging = false; downX = Display.x(e); downY = Display.y(e); lastX = downX })
         canvas.addEventListener("pointermove", { e ->
             e as MouseEvent
             if (!down) return@addEventListener
-            val x = e.clientX.toDouble()
+            val x = Display.x(e)
             if (!dragging && abs(x - downX) > 8) {
                 dragging = true; lastX = x
                 try { canvas.asDynamic().setPointerCapture(e.asDynamic().pointerId) } catch (t: Throwable) {}
@@ -221,7 +230,11 @@ class Explore : Screen {
             }
             if (dragging) { rs.strip.offset = (rs.strip.offset - (x - lastX)).coerceIn(0.0, rs.strip.maxOffset()); lastX = x; draw(rs, recentre = false) }
         })
-        canvas.addEventListener("pointerup", { if (down) { down = false; if (!dragging) open(); dragging = false } })
+        // a tap opens the floor; a finger that moved (scrolling the list, say) is not a tap
+        canvas.addEventListener("pointerup", { e ->
+            e as MouseEvent
+            if (down) { down = false; if (!dragging && abs(Display.x(e) - downX) < 10 && abs(Display.y(e) - downY) < 10) open(); dragging = false }
+        })
         canvas.addEventListener("pointercancel", { down = false; dragging = false })
 
         show(chosen)

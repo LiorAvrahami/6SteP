@@ -501,6 +501,22 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   that is needed is fetched and unpacked first (`loading`, a spinner), the rest is fetched into the browser's Cache
   API in the background (`6step-music-1`; a changed music file would need a new cache name). `window.sixstep` reports
   what the floor shows, for tests from outside.
+- **Sideways and full screen** (user 2026-11-21: "it's not in landscape ... can we make it full screen?"; `Display` in
+  `Platform.kt`). A page cannot simply tell a phone to turn. On the first tap of a visit on a phone or tablet
+  (`(pointer: coarse)`) it asks for the full screen and, with it, for landscape (`screen.orientation.lock`, which
+  Android's Chrome grants to a full-screen page); the launcher has a full-screen button where the browser has a full
+  screen to give. Put on the home screen, the page gets both from `manifest.webmanifest` (`display: fullscreen`,
+  `orientation: landscape`; the icons are written by `design/make_icon.py`). Wherever the phone still shows the page
+  upright (the browser refuses, as an iPhone's is believed to, or the phone's rotation is locked), the page turns
+  itself: its one box, `#app`, is laid out sideways and drawn turned a quarter (the class `turned`; held with the
+  phone's top to the left, as an Android app in landscape). A computer's window is left alone (a tall one gets the
+  launcher's upright layout, the class `upright`). Because the box may lie turned: sizes in the styles follow the box
+  (`--aw`, `--ah`, `--safe-l`, `--safe-r`), not the screen; a touch's place is asked of `Display.x()`, `y()` and
+  `xIn()`, never of the event; pages scroll inside the box (`.page`), not the document; and `touch-action` on the
+  explore rows' pictures is `pan-x` when turned, because its axes are the screen's. Checked in headless Chromium as an
+  upright phone: the layout, taps, swipes, the strip, finger scrolling of the list and dragging a row (finger tests
+  must start on an element that is on the screen: a first version of the test scrolled its target away and "found"
+  two bugs that were not there). The real full screen and the phone's turning could not be checked here.
 - **How it was checked:** `tools/check_engine.py` (the Kotlin engine against the Python model: 3 compositions, 5 blocks,
   23 elements, every step at the same time and place); the page in the cloud session's headless Chromium with
   Playwright (serve `web/build/dist/js/productionExecutable`, open `#floor/composition/<name>/0`, read

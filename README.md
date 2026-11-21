@@ -5,7 +5,9 @@ dancers' feet, and every element, building block and composition to step through
 
 - **Android**: the APK is built by GitHub Actions on every push to `main` and attached to a release:
   **https://github.com/LiorAvrahami/6SteP/releases/latest** — download `6SteP.apk` on the phone and open it.
-- **Web**: the same build publishes the page at **https://lioravrahami.github.io/6SteP/** (any phone or computer).
+- **Web**: the same build publishes the page at **https://lioravrahami.github.io/6SteP/** (any phone or computer). On a
+  phone it is sideways and, after the first tap, full screen where the browser allows; "Add to Home screen" in the
+  browser's menu makes it open like an app.
 
 ## One engine, two fronts (since 2026-11-20)
 

@@ -64,7 +64,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     private var lastFrame = 0.0
     private var stripTouched = -1e9      // when the user last handled the strip
     private var stripDown = false; private var stripDragging = false
-    private var stripDownX = 0.0; private var stripLastX = 0.0; private var stripLastT = 0.0
+    private var stripDownX = 0.0; private var stripDownY = 0.0; private var stripLastX = 0.0; private var stripLastT = 0.0
 
     // the floor's gestures
     private var downX = 0.0; private var downY = 0.0; private var isDown = false
@@ -89,12 +89,12 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         // the floor: where the touch went down and where it came up
         stage.canvas.addEventListener("pointerdown", { e ->
             e as MouseEvent
-            isDown = true; downX = e.clientX.toDouble(); downY = e.clientY.toDouble()
+            isDown = true; downX = Display.x(e); downY = Display.y(e)
             // the floor keeps the touch until it lifts, also when it ends over a bar
             try { stage.canvas.asDynamic().setPointerCapture(e.asDynamic().pointerId) } catch (t: Throwable) {}
             App.player.unlock(); closeMenu()
         })
-        stage.canvas.addEventListener("pointerup", { e -> e as MouseEvent; if (isDown) { isDown = false; gesture(e.clientX - downX, e.clientY - downY) } })
+        stage.canvas.addEventListener("pointerup", { e -> e as MouseEvent; if (isDown) { isDown = false; gesture(Display.x(e) - downX, Display.y(e) - downY) } })
         stage.canvas.addEventListener("pointercancel", { isDown = false })
 
         // the strip under its band: drag it, or tap a step
@@ -102,13 +102,13 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
             e as MouseEvent
             App.player.unlock(); closeMenu()
             stripDown = true; stripDragging = false; gliding = false; flingV = 0.0
-            stripDownX = e.clientX.toDouble(); stripLastX = stripDownX; stripLastT = nowMs(); stripTouched = stripLastT
+            stripDownX = Display.x(e); stripDownY = Display.y(e); stripLastX = stripDownX; stripLastT = nowMs(); stripTouched = stripLastT
             try { touch.asDynamic().setPointerCapture(e.asDynamic().pointerId) } catch (t: Throwable) {}
         })
         touch.addEventListener("pointermove", { e ->
             e as MouseEvent
             if (!stripDown) return@addEventListener
-            val x = e.clientX.toDouble(); val now = nowMs()
+            val x = Display.x(e); val now = nowMs()
             if (!stripDragging && abs(x - stripDownX) > 8) { stripDragging = true; stripLastX = x; stripLastT = now }
             if (stripDragging) {
                 val dx = x - stripLastX; val dt = (now - stripLastT).coerceAtLeast(1.0)
@@ -124,8 +124,8 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
                 stripDown = false; stripTouched = nowMs()
                 if (stripDragging) { stripDragging = false; if (nowMs() - stripLastT > 80) flingV = 0.0; ask() }
                 else {
-                    val k = strip.cellAt(e.clientX - stripStage.canvas.getBoundingClientRect().left)
-                    if (k >= 0) floor.tapStop(k)
+                    val k = strip.cellAt(Display.xIn(e, stripStage.canvas))
+                    if (k >= 0 && abs(Display.y(e) - stripDownY) < 12) floor.tapStop(k)   // a finger that moved is not a tap
                 }
             }
         }

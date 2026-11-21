@@ -11,17 +11,24 @@
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { margin: 0; height: 100%; background: var(--launcher); color: #000; font-family: "Inter", system-ui, sans-serif; font-weight: 600;
-  overscroll-behavior: none; }
-#app { height: 100%; }
+  overscroll-behavior: none; overflow: hidden; }
+/* The whole page is this one box. It fills the screen; on a phone held upright (as far as the browser knows) it lies
+   turned a quarter, so that the page is sideways as the Android app is (Display in Platform.kt sets its size then, and
+   the class "turned"). --aw and --ah are a hundredth of the box's width and height; --safe-l and --safe-r the room a
+   notch needs at the box's left and right. */
+:root { --aw: 1vw; --ah: 1vh; --safe-l: env(safe-area-inset-left); --safe-r: env(safe-area-inset-right); }
+:root.turned { --safe-l: env(safe-area-inset-top); --safe-r: env(safe-area-inset-bottom); }
+#app { position: fixed; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; }
+.turned #app { transform-origin: top left; transform: rotate(90deg) translateY(-100%); }
 button { font: inherit; color: inherit; cursor: pointer; }
 .boot { height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 40px; }
 .box { border: 2.5px solid #000; border-radius: 6px; }
 .press { transition: filter 0.1s; } .press:active { filter: brightness(0.86); }
 
 /* ---- the launcher */
-.launcher { min-height: 100%; background: var(--launcher); display: flex; gap: 16px; padding: 16px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+.launcher { height: 100%; overflow-y: auto; background: var(--launcher); display: flex; gap: 16px; padding: 16px; padding-left: max(16px, var(--safe-l)); padding-right: max(16px, var(--safe-r)); }
 .launcher .side { flex: 0 0 34%; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.launcher .logo { background: var(--title); font-weight: 800; font-size: clamp(26px, 6vw, 44px); text-align: center; padding: 6px 0; }
+.launcher .logo { background: var(--title); font-weight: 800; font-size: clamp(26px, calc(var(--aw) * 6), 44px); text-align: center; padding: 6px 0; }
 .launcher .snippet { flex: 1 1 auto; min-height: 110px; background: #fff; position: relative; overflow: hidden; }
 .launcher .snippet canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 .launcher .snippet .cap { position: absolute; left: 8px; bottom: 6px; font-size: 12px; font-weight: 800; color: #555; }
@@ -30,17 +37,15 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .launcher .small img { width: 28px; height: 28px; }
 .launcher .tiles { flex: 1 1 auto; display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .launcher .tile { flex: 1 1 0; min-height: 120px; display: flex; align-items: center; gap: 18px; padding: 14px 22px; text-align: left; }
-.launcher .tile img { width: clamp(48px, 12vh, 84px); height: clamp(48px, 12vh, 84px); flex: 0 0 auto; }
-.launcher .tile .name { font-weight: 800; font-size: clamp(22px, 4.6vw, 38px); line-height: 1.1; }
-.launcher .tile .time { font-weight: 700; font-size: clamp(15px, 2.4vw, 20px); margin-top: 6px; }
-@media (orientation: portrait) {
-  .launcher { flex-direction: column; }
-  .launcher .side { flex: 0 0 auto; }
-  .launcher .snippet { min-height: 150px; flex: 0 0 150px; }
-}
+.launcher .tile img { width: clamp(48px, calc(var(--ah) * 12), 84px); height: clamp(48px, calc(var(--ah) * 12), 84px); flex: 0 0 auto; }
+.launcher .tile .name { font-weight: 800; font-size: clamp(22px, calc(var(--aw) * 4.6), 38px); line-height: 1.1; }
+.launcher .tile .time { font-weight: 700; font-size: clamp(15px, calc(var(--aw) * 2.4), 20px); margin-top: 6px; }
+.upright .launcher { flex-direction: column; }
+.upright .launcher .side { flex: 0 0 auto; }
+.upright .launcher .snippet { min-height: 150px; flex: 0 0 150px; }
 
 /* ---- pages that scroll: explore, settings, the heart page */
-.page { min-height: 100%; background: var(--page); padding: 12px 14px 28px 14px; padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+.page { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--page); padding: 12px 14px 28px 14px; padding-left: max(14px, var(--safe-l)); padding-right: max(14px, var(--safe-r)); }
 .page.plain { background: var(--launcher); }
 .page .head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
 .page .head h1 { font-size: 26px; font-weight: 800; margin: 0; flex: 1 1 auto; }
@@ -61,6 +66,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .pill.on { background: #000; color: #fff; }
 .row .pics { flex: 1 1 auto; min-width: 0; position: relative; background: #fff; border: 1px solid var(--row-edge); border-left: 0; border-radius: 0 10px 10px 0; overflow: hidden; }
 .row .pics canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+.turned .row .pics canvas { touch-action: pan-x; }   /* the list scrolls along the screen's width when the page lies turned */
 .setting { display: flex; align-items: center; gap: 14px; background: #fff; padding: 12px 14px; margin: 10px 0; text-align: left; width: 100%; font-weight: 700; font-size: 16px; }
 .setting .sw { flex: 0 0 auto; width: 46px; height: 26px; border-radius: 13px; border: 2.5px solid #000; background: #fff; position: relative; }
 .setting .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 17px; height: 17px; border-radius: 50%; background: #000; transition: transform 0.12s; }
@@ -71,9 +77,9 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .linkbtn img { width: 26px; height: 26px; }
 
 /* ---- the dance floor */
-.floor { position: fixed; inset: 0; background: #fff; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.floor { position: absolute; inset: 0; background: #fff; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .floor canvas.stage { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
-.topbar { position: absolute; left: 0; right: 0; top: 0; height: 64px; background: var(--bar); display: flex; align-items: center; gap: 10px; padding: 0 16px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right));
+.topbar { position: absolute; left: 0; right: 0; top: 0; height: 64px; background: var(--bar); display: flex; align-items: center; gap: 10px; padding: 0 16px; padding-left: max(16px, var(--safe-l)); padding-right: max(16px, var(--safe-r));
   transform: translateY(-100%); transition: transform 0.2s; }
 .floor.bars .topbar { transform: none; }
 .topbar .iconbtn { flex: 0 0 auto; }

@@ -1,0 +1,15 @@
+{
+  "name": "6SteP",
+  "short_name": "6SteP",
+  "description": "Swing-dance practice: the steps, on the music",
+  "start_url": ".",
+  "scope": ".",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#F7E6E8",
+  "theme_color": "#F7E6E8",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

@@ -19,6 +19,7 @@ object App {
     private val host: HTMLElement get() = document.getElementById("app") as HTMLElement
 
     fun start() {
+        Display.start()
         assets.load { failed ->
             if (failed != null) { host.textContent = ""; host.appendChild(el("div", "boot", "6SteP could not read $failed. Check the connection and reload the page.") { style.fontSize = "18px"; style.padding = "24px"; style.textAlign = "center" }); return@load }
             player = WebPlayer(assets)

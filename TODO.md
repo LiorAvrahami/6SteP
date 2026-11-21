@@ -119,9 +119,9 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ### The web front: what the Android app has and the page does not yet
 - **Added:** 2026-11-20, by the maintainer.
-- **What:** the help view's arrows on the launcher, the heart page's website and beer buttons, an icon and a name for
-  "add to home screen", working without a connection once opened (a service worker), the voice of the Android app
-  (the page uses the browser's own voice).
+- **What:** the help view's arrows on the launcher, the heart page's website and beer buttons, working without a
+  connection once opened (a service worker), the voice of the Android app (the page uses the browser's own voice).
+  (Done 2026-11-21: sideways and full screen, and an icon and a name for "add to home screen".)
 
 ## Done
 

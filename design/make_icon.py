@@ -1,7 +1,7 @@
 """The launcher icon: the vinyl of option 3 with a "6" (as in option 2) in its lower half and one foot of each colour
 on the 6 (user 2026-10-19). Draws at 4x and downsamples. Writes design/icons/icon.png (512) and the mipmaps.
 
-    python design/make_icon.py            # icon.png and the mipmaps
+    python design/make_icon.py            # icon.png, the mipmaps and the web page's icons
     python design/make_icon.py --preview  # icon.png only
 """
 import math, os, sys
@@ -137,6 +137,15 @@ def write_mipmaps(icon, fg_art):
         fg.paste(sq, ((fg_size - inner) // 2, (fg_size - inner) // 2), sq)
         fg.save(os.path.join(folder, 'ic_launcher_foreground.png'))
 
+def write_web_icons(icon):
+    """the web front's icons (its manifest, the browser tab, an iPhone's home screen), from the same picture"""
+    out = os.path.join(HERE, '..', 'web', 'src', 'jsMain', 'resources')
+    for size in (512, 192, 180):
+        im = icon.resize((size, size), Image.LANCZOS)
+        if size == 180:   # an iPhone's home screen wants no transparency
+            bg = Image.new('RGBA', (size, size), CREAM); bg.alpha_composite(im.convert('RGBA')); im = bg.convert('RGB')
+        im.save(os.path.join(out, 'icon-%d.png' % size))
+
 if __name__ == '__main__':
     preview = '--preview' in sys.argv
     out = os.path.join(HERE, 'icons')
@@ -145,5 +154,7 @@ if __name__ == '__main__':
     if preview:
         render(label=True, top=304, bottom=440).save(os.path.join(out, 'icon_under_label.png'))
         render(label=False, top=262, bottom=440).save(os.path.join(out, 'icon_no_label.png'))
-    else: write_mipmaps(a, render(label=True, top=256, bottom=440, plate=False))
+    else:
+        write_mipmaps(a, render(label=True, top=256, bottom=440, plate=False))
+        write_web_icons(a)
     print('written')

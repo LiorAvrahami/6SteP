@@ -8,10 +8,12 @@ import org.lior.sixstep.Draw
 import org.lior.sixstep.FontWeight
 import org.lior.sixstep.TextAlign
 import org.w3c.dom.CanvasRenderingContext2D
+import org.w3c.dom.Element
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLImageElement
 import org.w3c.dom.Node
+import org.w3c.dom.events.MouseEvent
 import kotlin.math.PI
 
 // ------------------------------------------------------------------ the page's elements
@@ -45,6 +47,115 @@ fun iconButton(name: String, label: String, cls: String = "iconbtn press", onCli
     }
 
 fun nowMs(): Double = window.performance.now()
+
+// ------------------------------------------------------------------ how the page sits on the screen
+
+/** The page is sideways, as the Android app is, and full screen where the browser allows it (user 2026-11-21).
+ *
+ *  A page cannot simply tell a phone to turn. What it can do: on the first tap of a visit it asks for the full screen,
+ *  and with that for landscape (Android's Chrome grants both; put on the home screen, the page gets them from its
+ *  manifest without asking). Wherever the phone still shows the page upright (the browser refuses, or the phone's
+ *  rotation is locked), the page turns itself: its one box (#app) is laid out sideways and drawn turned a quarter, so
+ *  that it is landscape for whoever holds the phone sideways, top to the left, as an Android app in landscape is held.
+ *  A computer's window is left as it is.
+ *
+ *  Because the box may lie turned, a touch's place is not asked of the event but of x(), y() and xIn() here. */
+object Display {
+    /** the page's box is drawn turned a quarter: the browser's screen is upright, the page is sideways */
+    var turned = false
+        private set
+    private var tapped = false
+    private val listeners = ArrayList<() -> Unit>()
+
+    fun start() {
+        update()
+        window.addEventListener("resize", { update() })
+        window.addEventListener("orientationchange", { update() })
+        document.addEventListener("fullscreenchange", { update(); for (l in listeners.toList()) l() })
+        document.addEventListener("webkitfullscreenchange", { update(); for (l in listeners.toList()) l() })
+        document.addEventListener("click", { firstTap() }, true)
+    }
+
+    /** told when the page enters or leaves the full screen */
+    fun onFullscreenChange(l: () -> Unit) { listeners.add(l) }
+    fun removeListener(l: () -> Unit) { listeners.remove(l) }
+
+    /** a phone or a tablet: something that is held and touched, and so can be turned */
+    private fun handheld(): Boolean = try { window.matchMedia("(pointer: coarse)").matches } catch (e: Throwable) { false }
+
+    private fun update() {
+        val app = document.getElementById("app") as? HTMLElement ?: return
+        val root = document.documentElement as? HTMLElement ?: return
+        val w = window.innerWidth.toDouble(); val h = window.innerHeight.toDouble()
+        turned = handheld() && h > w
+        if (turned) { root.classList.add("turned"); app.style.width = "${h}px"; app.style.height = "${w}px" }
+        else { root.classList.remove("turned"); app.style.width = ""; app.style.height = "" }
+        // a box that really is upright (a tall window on a computer) gets the launcher's upright layout
+        if (!turned && h > w) root.classList.add("upright") else root.classList.remove("upright")
+        val bw = if (turned) h else w; val bh = if (turned) w else h
+        root.style.setProperty("--aw", "${bw / 100}px"); root.style.setProperty("--ah", "${bh / 100}px")
+    }
+
+    /** where a touch is along the page's own width (x) and height (y); only differences of these mean something */
+    fun x(e: MouseEvent): Double = if (turned) e.clientY.toDouble() else e.clientX.toDouble()
+    fun y(e: MouseEvent): Double = if (turned) -e.clientX.toDouble() else e.clientY.toDouble()
+    /** how far a touch is from an element's left edge, in the page's own px */
+    fun xIn(e: MouseEvent, el: Element): Double {
+        val r = el.getBoundingClientRect()
+        return if (turned) e.clientY - r.top else e.clientX - r.left
+    }
+
+    fun canFullscreen(): Boolean {
+        val el: dynamic = document.documentElement
+        return jsTypeOf(el.requestFullscreen) == "function" || jsTypeOf(el.webkitRequestFullscreen) == "function"
+    }
+
+    fun isFullscreen(): Boolean {
+        val d: dynamic = document
+        val e: dynamic = if (jsTypeOf(d.fullscreenElement) != "undefined") d.fullscreenElement else d.webkitFullscreenElement
+        return e != null && jsTypeOf(e) != "undefined"
+    }
+
+    /** opened from the home screen: the page already has the screen to itself */
+    private fun installed(): Boolean = try {
+        window.matchMedia("(display-mode: fullscreen)").matches || window.matchMedia("(display-mode: standalone)").matches ||
+            window.navigator.asDynamic().standalone == true
+    } catch (e: Throwable) { false }
+
+    /** ask the phone for landscape; it says yes only to a page that has the full screen (or is on its way to it) */
+    private fun lock() {
+        try {
+            val o: dynamic = window.screen.asDynamic().orientation
+            if (o != null && jsTypeOf(o) != "undefined" && jsTypeOf(o.lock) == "function") o.lock("landscape").then({ _: dynamic -> }, { _: dynamic -> })
+        } catch (e: Throwable) {}
+    }
+
+    /** the full screen, and landscape with it; only from a tap */
+    fun enter() {
+        val el: dynamic = document.documentElement
+        try {
+            val p: dynamic = if (jsTypeOf(el.requestFullscreen) == "function") el.requestFullscreen(js("({ navigationUI: 'hide' })")) else el.webkitRequestFullscreen()
+            if (p != null && jsTypeOf(p) != "undefined" && jsTypeOf(p.then) == "function") p.then({ _: dynamic -> lock() }, { _: dynamic -> })
+        } catch (e: Throwable) {}
+        lock()
+    }
+
+    fun leave() {
+        val d: dynamic = document
+        try { if (jsTypeOf(d.exitFullscreen) == "function") d.exitFullscreen() else if (jsTypeOf(d.webkitExitFullscreen) == "function") d.webkitExitFullscreen() } catch (e: Throwable) {}
+    }
+
+    fun toggle() { if (isFullscreen()) leave() else enter() }
+
+    /** the first tap of a visit on a phone: the full screen and landscape, once. Left again, it stays left until the
+     *  launcher's button is used (a page that kept going back to the full screen could not be got out of). */
+    private fun firstTap() {
+        if (tapped) return
+        tapped = true
+        if (!handheld()) return
+        if (installed()) lock() else if (canFullscreen() && !isFullscreen()) enter()
+    }
+}
 
 // ------------------------------------------------------------------ what the page remembers (the browser's local storage)
 
