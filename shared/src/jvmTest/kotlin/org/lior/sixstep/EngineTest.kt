@@ -88,6 +88,15 @@ class EngineTest {
         assertTrue(r.errors.isEmpty(), "$name: ${r.errors}")
         assertEquals("facing", r.startState); assertEquals("facing", r.endState)
         assertEquals(listOf("rock step", "triple step", "triple step"), r.elements.map { it.name })
+        // counted as a six-count is (the user had the two face-to-face triple steps renumbered on 2026-11-21: "fix it";
+        // they were written 1, 1&, 2)
+        val counts = ArrayList<String>()
+        for (st in r.steps) if (st.dancer == 'L' && counts.lastOrNull() != st.count) counts.add(st.count)
+        assertEquals(listOf("1", "2", "3", "3&", "4", "5", "5&", "6"), counts, "$name is counted")
+        for (v in data.variants("triple step")) {
+            val own = v.steps.filter { it.dancer == 'L' }.map { it.count }.distinct()
+            assertTrue(own == listOf("3", "3&", "4") || own == listOf("5", "5&", "6"), "a triple step is counted 3 & 4 or 5 & 6: ${v.startState} → ${v.endState}, ${v.leaderFreeStart} free: $own")
+        }
         val ex = ExploreModel(data, store)
         assertTrue(ex.blocks.any { it.name == name }, "it is listed with the building blocks: ${ex.blocks.map { it.name }}")
         assertTrue(ex.compositions.none { it.name == name })

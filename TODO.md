@@ -98,6 +98,8 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-21, v70:** the two face-to-face triple steps are counted 3, 3&, 4 and 5, 5&, 6 (they were written 1, 1&, 2;
+  the user: "fix it"). Only the labels changed.
 - **2026-11-21, v69:** the web page reads with Google's voice, as the Android app (the browser's own voice when
   Google does not answer); the lead-in after a swipe is two triple steps on the spot, four beats, instead of the rock
   triple triples of v66 (the user: "just 2 triple steps ... completely in place ... more like a pause"); "Rock

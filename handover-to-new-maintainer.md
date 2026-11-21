@@ -108,8 +108,14 @@ rules), `old handovers/handover-questions-and-answers.md` (their answers; author
   parentheses where they are quiet bridges; every composition dances the same steps as before (compared step by
   step with `dance/model.py`: 1032 in the exercise, 376 in the quick recap). A composition that a phone kept from
   the time it had an editor may still say "underarm bringback": `Entry.RENAMED` reads it as the pass back to side
-  by side (`EngineTest`). This was the maintainer's reading of the user's sentence and was put to them as a
-  question; if they meant new footwork, that is theirs to write in the editor.
+  by side (`EngineTest`). This was the maintainer's reading of the user's sentence; asked, the user confirmed it
+  the same day ("yes").
+  **The two face-to-face triple steps** (the user's, 2026-11-20) were written with the counts 1, 1&, 2. At the
+  user's word (2026-11-21: "fix it") they are counted like every other triple step since v70: 3, 3&, 4 with his
+  left foot free, 5, 5&, 6 with his right. Only the count labels of the two files changed; every step lands at the
+  same time and place (the building block "Rock Tripple Tripple facing" reads 1 2 3 3& 4 5 5& 6 now; nothing else
+  uses them). Rule 3 of section 2 stands: these edits to `dance/skeletons/` (a name, twelve count labels) were asked
+  for by the user in so many words, and the files were kept as the editor writes them.
 - **Rules** (checked by `check.py`, no exceptions beyond an explicit close hold): a weighted foot never moves or rotates;
   a dancer's feet never more than 70 cm apart; the two dancers' shoe outlines at least 4 cm apart (until 2026-10-19: 20 cm circles) and 20 cm body circles never overlap; hands
   in reach (65 cm, a guess); the end state reached. `check.py --storyboard` draws every skeleton to `dance/out/` and you
@@ -285,7 +291,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   `makeLeadIn` and `leadScene` in `DanceFloor`; this form since v69). The clock, and the music with it, starts 4
   beats before the part (`LEAD_BEATS`). For those beats every foot stays where the composition has it just before
   the part (the place each foot last landed on), and each dancer's weight goes from one leg to the other in the
-  rhythm of two triple steps (counted 3 & 4, 5 & 6), beginning on the foot that is free there (the one the dancer
+  rhythm of two triple steps (counted 3 & 4, 5 & 6: confirmed by the user), beginning on the foot that is free there (the one the dancer
   takes the part's first step with), so that the same foot is free again when the part starts. The user's words
   (2026-11-21): "the lead in is going to be just 2 triple steps ... completely in place. The legs don't need to move
   at all. So wherever the legs are at the beginning of the element that we just swiped to, in place ... You just
@@ -536,6 +542,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   2026-11-21, a third round (v69), four points: the web page reads with Google's voice (section 10); the lead-in is
   two triple steps on the spot instead of rock triple triples ("The dance floor" above); "Rock Tripple Tripple
   facing" is a building block; the underarm bringback is a version of the follower underarm pass (section 3).
+  v70: the user's answers to that round's questions ("yes", "yes", "fix it"): the two face-to-face triple steps are
+  counted 3 & 4 and 5 & 6 (section 3).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
