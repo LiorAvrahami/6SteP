@@ -375,7 +375,9 @@ class Explore : Screen {
 
 // ------------------------------------------------------------------ settings and the heart page
 
-/** Settings (the app's activity_settings.xml): what is heard when the dance floor's mute button is off. */
+/** Settings (the app's activity_settings.xml). First, whether a swipe while a composition plays leads in with rock
+ *  triple triples (user 2026-11-21: "make this feature toggleable in the settings so that it's possible to disable
+ *  it"); then, a little apart, what is heard when the dance floor's mute button is off. */
 class Settings : Screen {
     override val root: HTMLElement = el("div", "settings")
 
@@ -398,6 +400,7 @@ class Settings : Screen {
             var on = Prefs.bool(key, fallback)
             switch(label, { on }) { on = !on; Prefs.put(key, on) }
         }
+        bind(Texts.SET_LEAD_IN, "lead_in", true)   // first: on a phone the page is longer than the screen, and this one is looked for
         bind(Texts.SET_OVERLAY, "metronome_over_music", false)
         bind(Texts.SET_SNARE, "snare_on", true)
         bind(Texts.SET_HIHAT, "hihat_on", true)

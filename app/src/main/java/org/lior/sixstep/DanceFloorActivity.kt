@@ -116,6 +116,8 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
     override fun bars(shown: Boolean) { barsWanted = shown; moveBars() }
     override fun buttons() { updateButtons() }
     override fun message(text: String) { Toast.makeText(this, text, Toast.LENGTH_LONG).show() }
+    /** the settings page's switch for the rock triple triples after a swipe (on unless it was switched off) */
+    override val leadIn: Boolean get() = getSharedPreferences("6step", MODE_PRIVATE).getBoolean("lead_in", true)
 
     // ------------------------------------------------------------------ the bars
 

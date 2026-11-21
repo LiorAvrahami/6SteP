@@ -95,6 +95,8 @@ object Texts {
     const val SET_HIHAT = "Hi-hat (between songs, and over the music when that is on)"
     const val SET_VOICE = "Read the annotations aloud"
     const val SET_MUTE_NOTE = "The mute button on the dance floor silences everything at once: the music, the drums and the voice."
+    // the switch for the lead-in (user 2026-11-21: "make this feature toggleable in the settings"); its words are the maintainer's
+    const val SET_LEAD_IN = "After a swipe while playing: rock triple triples before the part"
     fun about(version: String): String = "6SteP $version · font: Inter (SIL Open Font License) · icons: Lucide (ISC License)"
 
     private val LEAD = Regex("\\blead\\b", RegexOption.IGNORE_CASE)

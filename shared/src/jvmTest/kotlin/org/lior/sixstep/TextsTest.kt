@@ -31,7 +31,7 @@ class TextsTest {
             "heart_note" to Texts.HEART_NOTE, "heart_beer" to Texts.HEART_BEER, "email_me" to Texts.EMAIL_ME,
             "my_website" to Texts.MY_WEBSITE, "buy_beer" to Texts.BUY_BEER, "close" to Texts.CLOSE, "link_not_set" to Texts.LINK_NOT_SET,
             "set_overlay" to Texts.SET_OVERLAY, "set_snare" to Texts.SET_SNARE, "set_hihat" to Texts.SET_HIHAT, "set_voice" to Texts.SET_VOICE,
-            "set_mute_note" to Texts.SET_MUTE_NOTE,
+            "set_mute_note" to Texts.SET_MUTE_NOTE, "set_lead_in" to Texts.SET_LEAD_IN,
             // the ones with something filled in
             "minutes" to Texts.minutes(187).replace("3:07", "%1\$d:%2\$02d"), "about" to Texts.about("X").replace("X", "%1\$s"),
         )

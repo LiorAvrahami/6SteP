@@ -299,6 +299,8 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     }
 
     override fun message(text: String) = toast(text)
+    /** the settings page's switch for the rock triple triples after a swipe (on unless it was switched off) */
+    override val leadIn: Boolean get() = Prefs.bool("lead_in", true)
 
     /** the song menu's "Upload…": the dance stops, and the window in which a song of the listener's own is added
      *  opens; a song that was added is the one that plays from then on */

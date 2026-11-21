@@ -66,6 +66,10 @@ interface FloorHost {
     fun message(text: String)
     /** the window in which the user adds a song of their own (the song menu's "Upload…") */
     fun addSong() {}
+    /** the settings' switch "after a swipe while playing: rock triple triples before the part" (user 2026-11-21: "make
+     *  this feature toggleable in the settings so that it's possible to disable it"); on unless it was switched off.
+     *  Asked at every swipe, so that a change on the settings page counts at once. */
+    val leadIn: Boolean get() = true
 }
 
 /** The one dance floor (the user's layout draft, 2026-10-28): every element, building block and composition is danced
@@ -540,7 +544,7 @@ class DanceFloor(
     /** while playing: to the next part, or back to the start of this one (the previous one in its first seconds) */
     private fun skip(forward: Boolean) {
         val b = pb.beatNow()
-        if (cycle() > 0) { skipInLoop(forward, b); return }
+        if (cycle() > 0 || !host.leadIn) { skipStraight(forward, b); return }
         // a composition: its parts, one by one. While the dancers are still on their way into a part (the rock triple
         // triples before it), that part is the one we are in: forward goes to the one after it, back to the one before.
         val coming = approach?.takeIf { b < it.end }
@@ -555,17 +559,24 @@ class DanceFloor(
         jumpTo(to)
     }
 
-    /** an element or a building block, which loops: a swipe goes straight to its next or previous element */
-    private fun skipInLoop(forward: Boolean, b: Double) {
-        val near = partsNear(b)
+    /** A swipe that goes straight to a part, as every swipe did before 2026-11-21: in an element or a building block,
+     *  which loop (their parts are their elements); and in a composition when the lead-in is switched off in the
+     *  settings. A composition's part is landed on ANNOUNCE_LEAD beats before it starts (`jumpLead`), in the
+     *  composition's own last steps before it, where its annotation comes up: it is on the screen for those beats and
+     *  gone when the part starts (user 2026-11-16), written and not read aloud. A part counts as the one we are in from
+     *  the moment a swipe would land on it. */
+    private fun skipStraight(forward: Boolean, b: Double) {
+        val near = partsNear(b).map { it - jumpLead }   // where a swipe lands for each part
         val target = if (forward) (near.firstOrNull { it > b + 0.05 } ?: return) else {
             val cur = near.lastOrNull { it <= b + 0.05 } ?: 0.0
             if (b - cur > BACK_REPLAY_SECONDS * pb.bpm() / 60.0) cur else (near.lastOrNull { it < cur - 0.05 } ?: 0.0)
         }
         approach = null
         pb.play(target)   // from scratch, as any start
-        if (!pb.playing) { standAt(target); return }
+        if (!pb.playing) { standAt(target); return }   // the sound is busy (a call)
         hold = Double.NEGATIVE_INFINITY; banner = null
+        lastCue = cues.indexOfLast { it.first < target - 0.01 }
+        silentUntil = target + jumpLead + 0.05   // the part the swipe went to is written, not read aloud
     }
 
     /** Go to part `i` of the composition that plays (-1: its very beginning). The dancers get there by the part's

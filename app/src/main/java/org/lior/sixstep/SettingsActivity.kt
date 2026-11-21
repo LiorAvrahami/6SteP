@@ -8,7 +8,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.materialswitch.MaterialSwitch
 
 /** Settings (the draft leaves the page empty): what used to be switches on the old main screen and chips in the old
- *  player's bar. The dance floor's mute button silences everything at once; these choose what is heard when it does not. */
+ *  player's bar. The dance floor's mute button silences everything at once; these choose what is heard when it does not.
+ *  Above them, one switch that is not about sound: whether a swipe while a composition plays leads in with rock triple
+ *  triples (user 2026-11-21: "make this feature toggleable in the settings so that it's possible to disable it"). */
 class SettingsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,6 +24,7 @@ class SettingsActivity : AppCompatActivity() {
             s.isChecked = prefs.getBoolean(key, fallback)
             s.setOnCheckedChangeListener { _, on -> prefs.edit().putBoolean(key, on).apply() }
         }
+        bind(R.id.setLeadIn, "lead_in", true)   // the rock triple triples after a swipe while a composition plays (DanceFloorActivity.leadIn)
         bind(R.id.setOverlay, "metronome_over_music", false)
         bind(R.id.setSnare, "snare_on", true)
         bind(R.id.setHihat, "hihat_on", true)

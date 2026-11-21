@@ -26,6 +26,7 @@ class DanceFloorTest {
         var callouts: List<Pair<Int, String>> = emptyList()
         var current = -1
         var bars = false
+        override var leadIn = true   // the settings' switch for the rock triple triples after a swipe
         val banners = ArrayList<Pair<String, Double>>()   // every banner as it came up, with nothing else: filled by the test
         private val frames = ArrayList<() -> Unit>()
         override fun nowMs() = clock.ms
@@ -268,6 +269,48 @@ class DanceFloorTest {
             assertTrue(parts > 0 || c.name.contains("facing"), "${c.name} has parts to swipe to")
             assertTrue(worst < 1.0, "${c.name}: a foot jumps $worst cm where the lead-in hands over to $worstAt")
         }
+    }
+
+    /** the settings' switch off (user 2026-11-21: "make this feature toggleable ... so that it's possible to disable
+     *  it"): a swipe goes straight to the part, as every swipe did before the lead-in existed */
+    @Test fun withTheLeadInSwitchedOffASwipeGoesStraightToThePart() {
+        val r = rig(exercise)
+        r.host.leadIn = false
+        r.floor.playPause()
+        r.run(5000.0)   // into "side to side" (beat 6 to 30)
+        val spokenBefore = r.player.spoken.size
+        r.floor.swipe(true)
+        assertTrue(abs(r.player.beatNow() - 28.0) < 0.05, "the swipe lands 2 beats before the part at 30: ${r.player.beatNow()}")
+        r.run(100.0)
+        val sc = r.host.scene!!
+        assertFalse(sc.title.contains(Texts.LEAD_IN_SUFFIX), "no rock triple triples: the composition's own last steps (${sc.title})")
+        assertEquals("send out and bring back", sc.banner, "the part's name is up at once")
+        assertTrue(r.host.current > 0, "a step of the piece is framed below")
+        r.run(1100.0)   // past beat 30
+        assertNull(r.host.scene?.banner, "the name is gone once the part has started")
+        assertTrue(r.host.scene!!.title.startsWith("send out"), "the part is danced: ${r.host.scene?.title}")
+        assertEquals(spokenBefore, r.player.spoken.size, "the part a swipe went to is written, not read aloud")
+        // back, in the part's first seconds: the part before, again 2 beats ahead of it
+        r.floor.swipe(false)
+        assertTrue(abs(r.player.beatNow() - 4.0) < 0.05, "back in a part's first seconds goes to the part before: ${r.player.beatNow()}")
+        // forward twice in a row: a part each time
+        r.floor.swipe(true)
+        assertTrue(abs(r.player.beatNow() - 28.0) < 0.05, "forward: ${r.player.beatNow()}")
+        r.floor.swipe(true)
+        assertTrue(abs(r.player.beatNow() - 64.0) < 0.05, "and forward again, to the part at 66: ${r.player.beatNow()}")
+        r.run(100.0)
+        assertFalse(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX))
+        // well into a part, back goes to its own start
+        r.run(4000.0)   // beat 72.2: more than 2 s after the swipe landed
+        r.floor.swipe(false)
+        assertTrue(abs(r.player.beatNow() - 64.0) < 0.05, "back, well into the part: its own start again: ${r.player.beatNow()}")
+        // switched on again, the next swipe leads in with rock triple triples
+        r.run(2000.0)   // into the part
+        r.host.leadIn = true
+        r.floor.swipe(true)
+        assertTrue(abs(r.player.beatNow() - 150.0) < 0.05, "switched on again, a swipe lands 12 beats before the part at 162: ${r.player.beatNow()}")
+        r.run(50.0)
+        assertTrue(r.host.scene!!.title.contains(Texts.LEAD_IN_SUFFIX), "and the dancers lead in: ${r.host.scene?.title}")
     }
 
     @Test fun aTapPlaysAndATapPauses() {

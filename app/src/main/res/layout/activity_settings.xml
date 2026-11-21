@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Settings (the draft leaves this page empty): the sound choices that used to be on the old main screen and in the old
-     player's bar. -->
+<!-- Settings (the draft leaves this page empty): the switch for the lead-in after a swipe, then the sound choices that
+     used to be on the old main screen and in the old player's bar. -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -23,11 +23,26 @@
             android:textSize="30sp"
             android:fontFamily="@font/inter_extrabold" />
 
+        <!-- first, where it is seen without scrolling: the rock triple triples after a swipe while a composition plays
+             (user 2026-11-21); the sound switches stand a little apart from it -->
+        <com.google.android.material.materialswitch.MaterialSwitch
+            android:id="@+id/setLeadIn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:minHeight="56dp"
+            android:text="@string/set_lead_in"
+            android:textColor="#000000"
+            android:textSize="16sp"
+            android:fontFamily="@font/inter_semibold" />
+
         <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/setOverlay"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="18dp"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:minHeight="56dp"

@@ -107,6 +107,8 @@ down without doing it. When one is finished, move it to "Done" with the date and
   website and beer buttons hidden for now; the web page takes the full screen by itself at any tap, with the
   launcher's button to leave it; the Android dance floor on the shared `DanceFloor`.
 - **2026-11-21, v67:** the lead-in's title names the part it leads to, from the swipe's first moment.
+- **2026-11-21, v68:** the lead-in can be switched off on the settings page (the user: "make this feature toggleable
+  in the settings so that it's possible to disable it"); off, a swipe goes straight to the part as before v66.
 - **2026-11-21, v62 (web page):** "Adding songs: the listener's own files": the song menu's "Upload…", the window
   that lists the supported songs, the file chooser, the recognition by onset curve, the email for an unknown song.
 - **2026-11-21, v61:** one tap pauses at once; "Play all" first and "Shuffle play" last in the song menu, the songs

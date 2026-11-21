@@ -59,7 +59,8 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   of this one (the previous one in its first 2 s). In a composition the dancers get to the part by a lead-in: two rock
   triple triples (one where only that much dance comes before the part) on the spot where the part starts, in the
   position it starts from, side by side or face to face, flowing into the part's first step; the title says
-  what is danced and where it leads ("rock step — lead-in to send out and bring back").
+  what is danced and where it leads ("rock step — lead-in to send out and bring back"). A switch on the settings page
+  turns the lead-in off.
   Top bar: play/pause, the tempo (the song's tempo variants), the song ("Play all": the songs in their stored order,
   round and round, which is what plays unless something else is chosen; one song over and over; or "Shuffle play"), mute
   (music, drums and voice), back. Every step has one place in the music (the plan
@@ -72,7 +73,9 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   music dips to 60 percent under a spoken annotation and comes back right after it.
 - **Heart**: upright, as the user drew it (the rest of the app is sideways): the note and the email button. The
   draft's two other buttons, the website and "Buy me a Beer", are built and hidden for now (`Texts.HEART_MORE`).
-- **Settings**: the snare and hi-hat over the music, the snare, the hi-hat, reading the annotations aloud.
+- **Settings**: the lead-in after a swipe while a composition plays (on unless switched off: then a swipe goes straight
+  to the part, 2 beats ahead of it); then the snare and hi-hat over the music, the snare, the hi-hat, reading the
+  annotations aloud.
 
 Icons: [Lucide](https://lucide.dev) (ISC licence), converted by `design/make_ui_icons.py` from `design/lucide/`, for the
 Android app and for the web page alike. Font:

@@ -289,7 +289,13 @@ commit (there is no diff step any more: the editor's file is the only version). 
   the dancers), written and not read aloud; a swipe forward goes to the part after the one being approached, a swipe back to the one before it; a
   pause stands on the part's first step. A tap on a step in the bottom bar goes straight there, without a lead-in
   (the user, 2026-11-20). Elements and building blocks, which loop, jump as before (a guess: the user spoke of
-  compositions). Top bar: play/pause, tempo (the 7 offsets
+  compositions). **The lead-in can be switched off** (user, the same day, once they had it: "make this feature
+  toggleable in the settings so that it's possible to disable it"; v68): the first switch of the settings page,
+  "After a swipe while playing: rock triple triples before the part" (the maintainer's words), on unless switched
+  off (`lead_in` in the preferences; `FloorHost.leadIn`, which the floor asks at every swipe). Off, a swipe is what
+  it was before v66 (`skipStraight`, which is also what elements and building blocks always do): it lands 2 beats
+  before the part, in the composition's own last steps, with the part's name up at once. The switch is first on the
+  page because on a phone the page is a little longer than the screen. Top bar: play/pause, tempo (the 7 offsets
   of the song's variants, the same offset for every song), song (the menu: "Play all" first, each song in the stored
   order, "Shuffle play" last; the button shows the song that plays), mute (music,
   drums and voice; a change of any of these while playing is a stop and a play from the same beat), back. (The edit button, which only
@@ -327,7 +333,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   and ignores "may duck" requests, so the system never dims the whole app; a real loss (a call) pauses the workout.
   This was the fix for "the music and the annotations both go dim sometimes" (2026-10-19); the diagnosis also named the
   phone's output limiter reacting to music + voice + metronome at full scale, hence the headroom.
-- **Preferences** (`6step`): `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on` (the settings page);
+- **Preferences** (`6step`): `lead_in`, `metronome_over_music`, `speak_annotations`, `snare_on`, `hihat_on` (the settings page);
   `bpm_offset`, `song` (a track key, `all` (the default) or `shuffle`), `muted` (the dance floor's top bar; `strategic`, the schema mode, is no longer read since 2026-11-17);
   `explore_open_elements`, `explore_open_compositions`, `explore_open_blocks`, `explore_version_<kind>_<name>`. The web page keeps the same names in the browser's local storage (prefix `6step.`),
   and `user_songs` for the songs the listener added. Gone with the redesign: the exploration
@@ -504,7 +510,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   launcher has the full-screen button back (section 10); and the Android dance floor now runs the shared `DanceFloor`
   (section 10), which is how the tap and the lead-in reached both fronts as one piece of code. The user had written
   that the single tap for play and the lead-in were "not addressed" in v61 to v65 (section 2, rule 10).
-  v67: the lead-in's title names the part it leads to.
+  v67: the lead-in's title names the part it leads to. v68: a switch on the settings page turns the lead-in off.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
