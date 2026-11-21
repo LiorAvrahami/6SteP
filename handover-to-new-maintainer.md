@@ -697,9 +697,16 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   **How it was checked:** in the headless browser with Google's address answered by the test itself, three ways (a
   clip; a refusal; no answer): the 11 phrases of the exercise fetched ahead, each once, without a referrer; the
   first one read by the clip at beat 4; the browser's voice at once after a refusal, and 1.2 s late when nothing
-  answers; nothing asked of Google when reading aloud is off or the floor is muted. **The real address had not been
-  reached from the cloud session when v69 was released:** its network refuses `translate.google.com` (the proxy
-  answers 403), and the user was asked to allow that one host.
+  answers; nothing asked of Google when reading aloud is off or the floor is muted. **And against Google's real
+  address** (the same day, after the user allowed the cloud session to reach `translate.google.com`: see "In the
+  cloud session" below): asked directly, it answers a clip (`audio/mpeg`, 24 kHz, about 23 KB a phrase) when no
+  referrer is sent, and **404 when the request names another site as its referrer**, so the page's no-referrer
+  setting is what makes it work; it sends `Cache-Control: no-store`, so a browser fetches the clips anew on every
+  visit (11 small requests when the exercise opens), and no CORS header, so the page can play a clip but not read
+  it (hence audio elements, not the sound system that plays the music). Asked by the built page in the headless
+  browser, with nothing answered by the test: 11 of 11 clips came, and the first two annotations were read by
+  Google's clips on their beats (`window.sixstepVoice.how` "google"), the browser's own voice never asked. Nobody
+  has heard it on a phone yet.
 - **How it was checked:** `tools/check_engine.py` (the Kotlin engine against the Python model: 2 compositions, 6 blocks,
   23 elements, every step at the same time and place); the page in the cloud session's headless Chromium with
   Playwright (serve `web/build/dist/js/productionExecutable`, open `#floor/composition/<name>/0`, read
@@ -721,7 +728,12 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
 - **In the cloud session:** `SIXSTEP_SKIP_ANDROID=1 gradle :shared:jvmTest :web:jsBrowserDistribution` works (Maven
   Central answers 429 now and then: run it again). Google's package site (`dl.google.com`) is not reachable, so the
   Android app cannot be compiled there; GitHub compiles it. `*.github.io` is not reachable either: the published page
-  cannot be opened from the session.
+  cannot be opened from the session. Since 2026-11-21 the user has a cloud environment named "6SteP" for this repository
+  (made at the maintainer's request, approved by the user on a card): the default settings plus one allowed host,
+  `translate.google.com`, for trying the voice. A session started in the "Default" environment cannot reach it (the
+  proxy answers 403); pick "6SteP" when starting one, or ask as that session did. A browser started by a test goes
+  through the session's proxy only when told to (`chromium.launch({ proxy: { server: process.env.HTTPS_PROXY, bypass:
+  'localhost,127.0.0.1' } })`).
 - **Pitfalls met:** **the app and the shared engine share the package `org.lior.sixstep`, so no class may exist in
   both.** Build 58 failed for that (`Arrow`, `Scene` and `FeetPainter` were in `FloorView.kt` and in the new shared
   `Floor.kt`): the Kotlin compiler says nothing, a debug build passes (and at run time one of the two would win), and
