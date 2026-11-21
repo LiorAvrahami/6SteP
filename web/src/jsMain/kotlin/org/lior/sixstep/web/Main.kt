@@ -20,17 +20,15 @@ object App {
 
     fun start() {
         Display.start()
-        assets.load { failed ->
+        // the music starts coming the moment the tracks are known, before anything is shown (user 2026-11-21)
+        assets.load({ player = WebPlayer(assets); player.preload() }) { failed ->
             if (failed != null) { host.textContent = ""; host.appendChild(el("div", "boot", "6SteP could not read $failed. Check the connection and reload the page.") { style.fontSize = "18px"; style.padding = "24px"; style.textAlign = "center" }); return@load }
-            player = WebPlayer(assets)
             window.addEventListener("hashchange", { route() })
             // the font first, so that the first drawing already has it; never longer than a moment
             var routed = false
             val go = { if (!routed) { routed = true; route() } }
             try { document.asDynamic().fonts.load("700 20px Inter").then({ _: dynamic -> document.asDynamic().fonts.load("800 13px Inter") }).then({ _: dynamic -> document.asDynamic().fonts.load("600 10px Inter") }).then({ _: dynamic -> go() }, { _: dynamic -> go() }) } catch (e: Throwable) { go() }
             window.setTimeout({ go() }, 1500)
-            // the rest of the music comes to the device in the background
-            window.setTimeout({ assets.fetchInBackground(player.wanted()) }, 4000)
         }
     }
 

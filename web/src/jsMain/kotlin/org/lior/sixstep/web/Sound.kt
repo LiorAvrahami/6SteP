@@ -42,10 +42,16 @@ external interface AudioBufferSourceNode : AudioNode {
 
 // ------------------------------------------------------------------ the files
 
-/** The dance data, the tracks and their grids, read once when the page opens; and the music files, each fetched when it
- *  is first needed and, where the browser has a cache for pages (the Cache API), kept there. The rest of the music is
- *  fetched into that cache in the background, so that a song chosen later is already on the device. */
+/** The page's files. The dance data, the tracks and their grids are read when the page opens. The music starts coming
+ *  in that same first second (user 2026-11-21: "you should start loading it the second that the app opens"), in the
+ *  background: every file is fetched behind whatever the page is doing and kept on the device (the browser's cache
+ *  for pages, the Cache API; in memory where a browser has none). A file that is needed before it has come is fetched
+ *  at once; when its background fetch is already under way, the two wait for the one download. */
 class WebAssets {
+    companion object {
+        const val AT_ONCE = 2   // music files fetched side by side in the background
+    }
+
     lateinit var data: DanceData
     lateinit var store: CompositionStore
     lateinit var tracks: List<Track>
@@ -53,81 +59,99 @@ class WebAssets {
 
     private val caches: dynamic = try { window.asDynamic().caches } catch (e: Throwable) { null }
     private var cache: dynamic = null
-    private val queue = ArrayList<String>()   // music still to fetch in the background, in order
-    private var fetching = false
+    private var noCache = caches == null || jsTypeOf(caches) == "undefined"
+    private val memory = HashMap<String, ArrayBuffer>()                           // a browser without a page cache: the files themselves
+    private val coming = HashMap<String, ArrayList<(ArrayBuffer?) -> Unit>>()     // a file being read or fetched now, and who waits for it
+    private val queue = ArrayList<String>()                                       // music still to fetch in the background, in order
+    private var busy = 0                                                          // background fetches under way
 
     private fun text(url: String, done: (String?) -> Unit) {
         window.fetch(url).then({ r -> if (r.ok) r.text().then({ done(it) }, { done(null) }) else done(null) }, { done(null) })
     }
 
-    /** read everything but the music; `done(null)` when it worked, otherwise what could not be read */
-    fun load(done: (String?) -> Unit) {
-        text("dance/skeletons.json") { sk ->
-            if (sk == null) { done("dance/skeletons.json"); return@text }
-            text("dance/compositions.json") { co ->
-                if (co == null) { done("dance/compositions.json"); return@text }
-                text("dance/tracks.json") { tr ->
-                    if (tr == null) { done("dance/tracks.json"); return@text }
-                    try {
-                        data = DanceData.parse(sk); store = CompositionStore(co); tracks = Track.parseAll(tr)
-                    } catch (e: Throwable) { done(e.message ?: "the dance data"); return@text }
-                    var left = tracks.size
-                    if (left == 0) { done(null); return@text }
-                    var failed: String? = null
-                    for (t in tracks) text(t.gridPath) { g ->
-                        if (g == null) failed = t.gridPath else try { grids[t.key] = BeatGrid.parse(g) } catch (e: Throwable) { failed = t.gridPath }
-                        if (--left == 0) done(failed)
-                    }
-                }
+    /** read everything but the music, all at once. `onTracks`: the tracks are known (the music can start coming);
+     *  `done(null)`: everything is read, otherwise what could not be */
+    fun load(onTracks: () -> Unit, done: (String?) -> Unit) {
+        var sk: String? = null; var co: String? = null
+        var tracksRead = false; var gridsLeft = -1
+        var failed: String? = null; var finished = false
+        fun check() {
+            if (finished) return
+            val f = failed
+            if (f != null) { finished = true; done(f); return }
+            val s = sk; val c = co
+            if (s == null || c == null || !tracksRead || gridsLeft != 0) return
+            finished = true
+            try { data = DanceData.parse(s); store = CompositionStore(c) } catch (e: Throwable) { done(e.message ?: "the dance data"); return }
+            done(null)
+        }
+        text("dance/skeletons.json") { t -> if (t == null) failed = "dance/skeletons.json" else sk = t; check() }
+        text("dance/compositions.json") { t -> if (t == null) failed = "dance/compositions.json" else co = t; check() }
+        text("dance/tracks.json") { t ->
+            val list = if (t == null) null else try { Track.parseAll(t) } catch (e: Throwable) { null }
+            if (list == null) { failed = "dance/tracks.json"; check(); return@text }
+            tracks = list; tracksRead = true
+            onTracks()
+            gridsLeft = list.size
+            if (gridsLeft == 0) check()
+            for (tr in list) text(tr.gridPath) { g ->
+                if (g == null) failed = tr.gridPath else try { grids[tr.key] = BeatGrid.parse(g) } catch (e: Throwable) { failed = tr.gridPath }
+                gridsLeft--; check()
             }
         }
     }
 
     private fun withCache(then: (dynamic) -> Unit) {
-        if (cache != null || caches == null || caches == undefined) { then(cache); return }
+        if (cache != null || noCache) { then(cache); return }
         try {
-            caches.open("6step-music-1").then({ c: dynamic -> cache = c; then(c) }, { _: dynamic -> then(null) })
-        } catch (e: Throwable) { then(null) }
+            caches.open("6step-music-1").then({ c: dynamic -> cache = c; then(c) }, { _: dynamic -> noCache = true; then(null) })
+        } catch (e: Throwable) { noCache = true; then(null) }
     }
 
-    private fun fetchBytes(url: String, store: dynamic, done: (ArrayBuffer?) -> Unit) {
-        window.fetch(url).then({ r ->
-            if (!r.ok) { done(null); return@then }
-            if (store != null) try { store.put(url, r.clone()) } catch (e: Throwable) {}
-            r.arrayBuffer().then({ done(it) }, { done(null) })
-        }, { done(null) })
-    }
-
-    /** the bytes of a music file: from the page cache when it is there, otherwise fetched (and put there) */
+    /** the bytes of a file: at once when they are on the device (the page cache, or memory), otherwise fetched now and
+     *  kept. Whoever asks for a file that is already on its way waits for that one fetch. */
     fun bytes(url: String, done: (ArrayBuffer?) -> Unit) {
+        memory[url]?.let { done(it); return }
+        coming[url]?.let { it.add(done); return }
+        val waiting = arrayListOf(done)
+        coming[url] = waiting
+        fun finish(ab: ArrayBuffer?) { coming.remove(url); for (w in waiting) w(ab) }
+        fun fromNetwork(c: dynamic) {
+            window.fetch(url).then({ r ->
+                if (!r.ok) { finish(null); return@then }
+                if (c != null) try { c.put(url, r.clone()) } catch (e: Throwable) {}
+                r.arrayBuffer().then({ ab -> if (c == null) memory[url] = ab; finish(ab) }, { finish(null) })
+            }, { finish(null) })
+        }
         withCache { c ->
-            if (c == null) { fetchBytes(url, null, done); return@withCache }
+            if (c == null) { fromNetwork(null); return@withCache }
             c.match(url).then({ hit: dynamic ->
-                if (hit != null && hit != undefined) hit.arrayBuffer().then({ ab: ArrayBuffer -> done(ab) }, { _: dynamic -> fetchBytes(url, c, done) })
-                else fetchBytes(url, c, done)
-            }, { _: dynamic -> fetchBytes(url, c, done) })
+                if (hit != null && jsTypeOf(hit) != "undefined") hit.arrayBuffer().then({ ab: ArrayBuffer -> finish(ab) }, { _: dynamic -> fromNetwork(c) })
+                else fromNetwork(c)
+            }, { _: dynamic -> fromNetwork(c) })
         }
     }
 
-    /** fetch these music files into the page cache, one after the other, behind whatever the page is doing; files asked
-     *  for again move to the front */
+    /** bring these music files to the device behind whatever the page is doing, in this order, a few at a time; files
+     *  asked for again move to the front */
     fun fetchInBackground(urls: List<String>) {
-        if (caches == null || caches == undefined) return   // nowhere to keep them: each is fetched when it is needed
         for (u in urls.reversed()) { queue.remove(u); queue.add(0, u) }
         pump()
     }
 
     private fun pump() {
-        if (fetching || queue.isEmpty()) return
-        fetching = true
-        val url = queue.removeAt(0)
-        withCache { c ->
-            if (c == null) { fetching = false; queue.clear(); return@withCache }
-            val next = { fetching = false; window.setTimeout({ pump() }, 150) }
-            c.match(url).then({ hit: dynamic ->
-                if (hit != null && hit != undefined) next()
-                else window.fetch(url).then({ r -> if (r.ok) c.put(url, r).then({ _: dynamic -> next() }, { _: dynamic -> next() }) else next() }, { next() })
-            }, { _: dynamic -> next() })
+        while (busy < AT_ONCE && queue.isNotEmpty()) {
+            val url = queue.removeAt(0)
+            if (memory.containsKey(url) || coming.containsKey(url)) continue   // here already, or on its way
+            busy++
+            val next = { busy--; pump() }
+            withCache { c ->
+                if (c == null) bytes(url) { next() }   // no page cache: the file itself is kept in memory
+                else c.match(url).then({ hit: dynamic ->
+                    if (hit != null && jsTypeOf(hit) != "undefined") next()   // on the device already: nothing to read
+                    else bytes(url) { next() }
+                }, { _: dynamic -> bytes(url) { next() } })
+            }
         }
     }
 }
@@ -393,12 +417,14 @@ class WebPlayer(private val assets: WebAssets) : FloorPlayer {
     override fun chooseSong(key: String) {
         plan.song = key; Prefs.put("song", key)
         again()
+        preload()
     }
 
     override fun setBpmOffset(off: Int) {
         if (off == plan.bpmOffset) return
         plan.bpmOffset = off; Prefs.put("bpm_offset", off)
         again()
+        preload()
     }
 
     override fun setMuted(m: Boolean) {
@@ -410,11 +436,25 @@ class WebPlayer(private val assets: WebAssets) : FloorPlayer {
     /** a change while playing: a stop, and a play from the beat it is at */
     private fun again() { if (running) play(beatNow()) else onChange?.invoke() }
 
-    /** the music files to have on the device first: the songs of the plan at the chosen tempo, then every other tempo */
+    /** every music file, in the order it is wanted on the device: the songs of the plan at the chosen tempo (the one
+     *  that plays first first), then the other tempos, the nearest to the chosen one first. With the phone's data
+     *  saver on, only the songs at the chosen tempo: the others come when they are asked for. */
     fun wanted(): List<String> {
-        val first = plan.files()
-        val rest = tracks.flatMap { t -> t.variants.map { it.file } }.filter { it !in first }
+        val first = plan.files().distinct()
+        val saver = try { window.navigator.asDynamic().connection.saveData == true } catch (e: Throwable) { false }
+        if (saver) return first
+        val rest = tracks.flatMap { t -> t.variants.map { v -> Pair(kotlin.math.abs(v.offset - plan.bpmOffset), v.file) } }
+            .sortedBy { it.first }.map { it.second }.filter { it !in first }.distinct()
         return first + rest
+    }
+
+    /** from the first second of the page, and again when the song or the tempo is changed: the song that will play
+     *  first is fetched and unpacked, so that play starts at once, and all the other music is fetched behind it. What
+     *  is asked for before it has come is fetched at once (music(), with the loading sign). */
+    fun preload() {
+        val files = wanted()
+        assets.fetchInBackground(files)
+        files.firstOrNull()?.let { f -> music(f) {} }
     }
 
     // ------------------------------------------------------------------ the voice

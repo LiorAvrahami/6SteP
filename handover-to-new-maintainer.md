@@ -497,9 +497,17 @@ github pages"). The web version is at **https://lioravrahami.github.io/6SteP/**.
   explore, settings, the heart page), `FloorScreen.kt` (the dance floor's screen: two canvases, the bars, the gestures;
   arrow keys and the space bar on a keyboard), `Sound.kt` (`WebAssets`: the files; `WebPlayer`: the sound), `Platform.kt`
   (the canvas behind `Draw`, the local storage under the Android preferences' names). `web/build.gradle.kts` copies the
-  dance data, the music, the drums, the font and the icons from where the Android app keeps them. The music: the song
-  that is needed is fetched and unpacked first (`loading`, a spinner), the rest is fetched into the browser's Cache
-  API in the background (`6step-music-1`; a changed music file would need a new cache name). `window.sixstep` reports
+  dance data, the music, the drums, the font and the icons from where the Android app keeps them. The music starts
+  coming in the page's first second, in the background (user 2026-11-21: "you should start loading it the second that
+  the app opens ... it should also be possible to load it on demand"): `WebPlayer.preload()` runs as soon as the tracks
+  are known, before anything is shown, and again when the song or the tempo is changed. It fetches every music file
+  into the browser's Cache API (`6step-music-1`; a changed music file would need a new cache name; in memory where a
+  browser has no such cache), two at a time, in the order they are wanted: the song that plays first (which is also
+  unpacked, so that play starts at once), the other songs at the chosen tempo, then the other tempos, the nearest
+  first; with the phone's data saver on, only the songs at the chosen tempo. A file that is asked for before it has
+  come is fetched at once (`loading`, the spinner), and waits for its background fetch when that is already under way
+  (`WebAssets.bytes`: one download per file). Measured in the headless browser: the first music request 0.1 s after
+  the page opens, 21 files each once, none on a second visit. `window.sixstep` reports
   what the floor shows, for tests from outside.
 - **Sideways and full screen** (user 2026-11-21: "it's not in landscape ... can we make it full screen?"; `Display` in
   `Platform.kt`). A page cannot simply tell a phone to turn. On the first tap of a visit on a phone or tablet
