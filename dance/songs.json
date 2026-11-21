@@ -1,0 +1,14 @@
+{
+ "songs": [
+  {
+   "key": "like_it_is",
+   "title": "Like It Is",
+   "artist": "",
+   "bpm": 128.7,
+   "duration": 172.8,
+   "grid": "dance/beatgrids/like_it_is.json",
+   "onsets": "dance/onsets/like_it_is.json",
+   "difficulty": ""
+  }
+ ]
+}

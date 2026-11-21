@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="theme-color" content="#F7E6E8">
+  <!-- the page's text follows the phone's font-size setting, as an Android app's does (style.css: --sp) -->
+  <meta name="text-scale" content="scale">
+  <!-- the page asks Google for the voice's clips (Sound.kt: the voice) without saying which page asks: a request that
+       names another site is believed to be refused there -->
+  <meta name="referrer" content="no-referrer">
+  <title>6SteP</title>
+  <!-- put on a phone's home screen, the page opens like an app: full screen and, on Android, sideways -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon-192.png">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="6SteP">
+  <!-- the number after "v=" is the build's (web/build.gradle.kts puts it there): a new build has new addresses for
+       its styles and its code, so that a browser never shows a new page with old code it had kept, or the other way
+       round -->
+  <link rel="stylesheet" href="style.css?v=70">
+</head>
+<body>
+  <div id="app"><div class="boot">6SteP!</div></div>
+  <script src="sixstep.js?v=70"></script>
+</body>
+</html>

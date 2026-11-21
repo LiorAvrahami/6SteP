@@ -1,0 +1,197 @@
+/* The web front's look: the Android app's own, screen by screen (the user's layout draft: flat pastel boxes with black
+   outlines). Each screen follows the app's layout file; a dp there is a px here.
+   Text sits where Android puts it. A line of Inter is 1.21 times its size there (the font's ascent and descent), and
+   an Android text box has the font's own padding on top of that: 0.137 of the size above its first line (Inter's
+   tallest glyph reaches 1.106 above the baseline, its ascent is 0.969), nothing below its last. Hence "line-height:
+   1.21; padding-top: 0.137em" on every text that is a text box of the app (--pad). A browser puts a line's glyphs a
+   whole px up or down inside its line box (Chrome rounds half the difference down), so a word can still sit a px off;
+   where the user's picture of the Android launcher showed that (the title, the "Quick recap" label), the numbers
+   here were set by measuring against that picture (2026-11-21, tools: a browser at 831 x 387 px, 2.625 screen pixels
+   per px, text size 1.1: every edge and every word within 4 px of the 2400 x 1080 picture). */
+@font-face { font-family: "Inter"; font-weight: 400; src: url("font/inter_regular.ttf") format("truetype"); font-display: block; }
+@font-face { font-family: "Inter"; font-weight: 600; src: url("font/inter_semibold.ttf") format("truetype"); font-display: block; }
+@font-face { font-family: "Inter"; font-weight: 700; src: url("font/inter_bold.ttf") format("truetype"); font-display: block; }
+@font-face { font-family: "Inter"; font-weight: 800; src: url("font/inter_extrabold.ttf") format("truetype"); font-display: block; }
+
+:root {
+  --launcher: #F7E6E8; --page: #F7D1D5; --title: #F9E297; --daily: #BF819E; --explore: #B4C7DC; --heart: #FFA6A6;
+  --gear: #DBDBDB; --help: #BED1BA; --bar: #D3D3D3; --row: #F7C1C7; --row-edge: rgba(97, 86, 86, 0.46); --version: #E6AEB5;
+  --heart-box: #F8BEC2; --primary: #2E6EE6;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; background: var(--launcher); color: #000; font-family: "Inter", system-ui, sans-serif; font-weight: 600;
+  overscroll-behavior: none; overflow: hidden; }
+/* The whole page is this one box. It fills the screen; where the phone shows the page the other way round than the
+   screen shown wants it, the box lies turned a quarter (Display in Platform.kt sets its size then, and the class
+   "turned" or "turned-back"). --aw and --ah are a hundredth of the box's width and height; --safe-l, -r, -t and -b the
+   room a notch needs at the box's own left, right, top and bottom. */
+:root { --aw: 1vw; --ah: 1vh; --safe-l: env(safe-area-inset-left, 0px); --safe-r: env(safe-area-inset-right, 0px);
+  --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px); }
+/* --sp: what an "sp" of the app's layouts is in px. An Android app's text follows the phone's font-size setting (on
+   the user's phone it makes all the app's text a tenth larger), and so does the page's, wherever the browser tells
+   a page that setting (index.html asks for it with the "text-scale" meta tag); elsewhere it is 1. Every text size in
+   this file is multiplied by it; the sizes of boxes and icons are not, as in the app. */
+:root { --sp: env(preferred-text-scale, 1); --pad: 0.137em; }
+:root.turned { --safe-l: env(safe-area-inset-top, 0px); --safe-r: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-right, 0px); --safe-b: env(safe-area-inset-left, 0px); }
+:root.turned-back { --safe-l: env(safe-area-inset-bottom, 0px); --safe-r: env(safe-area-inset-top, 0px);
+  --safe-t: env(safe-area-inset-left, 0px); --safe-b: env(safe-area-inset-right, 0px); }
+#app { position: fixed; left: 0; top: 0; width: 100%; height: 100%; overflow: hidden; }
+.turned #app { transform-origin: top left; transform: rotate(90deg) translateY(-100%); }
+.turned-back #app { transform-origin: top left; transform: rotate(-90deg) translateX(-100%); }
+button { font: inherit; color: inherit; cursor: pointer; }
+[hidden] { display: none !important; }
+.boot { height: 100%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: calc(40px * var(--sp)); }
+/* a box: a fill, a black outline, slightly rounded corners (the app's Ui.box) */
+.box { border: 2.5px solid #000; border-radius: 6px; }
+.press { transition: filter 0.1s; } .press:active { filter: brightness(0.8); }
+/* a raised box, something to press: a black outline over a solid black shadow down and to the right (Ui.raised) */
+.raised { background: var(--version); border: 2px solid #000; border-radius: 12px; box-shadow: 3px 3px 0 #000; }
+/* a small square button with an icon: the dance floor's bar, and the page's own back buttons */
+.iconbtn { flex: 0 0 auto; width: 48px; height: 48px; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: transparent; border: 2.5px solid #000; border-radius: 11px; }
+.iconbtn img { width: 28px; height: 28px; }
+
+/* ---- the launcher (activity_main.xml) */
+.launcher { position: relative; height: 100%; background: var(--launcher); display: flex; padding: 16px; padding-left: calc(16px + var(--safe-l)); padding-right: calc(16px + var(--safe-r)); }
+.launcher .side { flex: 38 1 0; min-width: 0; display: flex; flex-direction: column; }
+.launcher .logo { flex: 0 0 64px; background: var(--title); font-weight: 800; font-size: calc(40px * var(--sp)); line-height: 1.25; display: flex; align-items: center; justify-content: center; }
+.launcher .snippet { flex: 1 1 0; min-height: 0; margin-top: 12px; background: #fff; position: relative; overflow: hidden; }
+.launcher .snippet canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.launcher .snippet .cap { position: absolute; left: 6.7px; top: 8px; font-weight: 600; font-size: calc(12px * var(--sp)); line-height: 1.21; padding-top: var(--pad); color: #777; }
+.launcher .helppanel { position: absolute; left: 0; top: 0; width: 100%; height: 100%; padding: 4.5px; display: flex; flex-direction: column; gap: 8px; }
+.launcher .helpbox { flex: 1 1 0; min-height: 0; padding: 0 12px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 600; line-height: 1.21; overflow: hidden; }
+.launcher .helpbox > div { padding-top: var(--pad); }
+.launcher .small { flex: 0 0 64px; margin-top: 12px; display: flex; gap: 12px; }
+.launcher .small button { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 0; }
+.launcher .small img { width: 40px; height: 40px; }
+.launcher .tiles { flex: 62 1 0; min-width: 0; margin-left: 16px; display: flex; flex-direction: column; gap: 12px; }
+.launcher .tile { position: relative; flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0; }
+.launcher .tile .mid { display: flex; flex-direction: column; align-items: center; }
+.launcher .tile .name { font-weight: 700; font-size: calc(28px * var(--sp)); line-height: 1.21; padding-top: var(--pad); white-space: nowrap; }
+.launcher .tile img { width: 64px; height: 64px; margin-top: 6px; }
+.launcher .tile .time { position: absolute; right: 7.7px; bottom: 7.7px; font-weight: 800; font-size: calc(15px * var(--sp)); line-height: 1.21; padding-top: var(--pad); }
+.launcher .arrows { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; fill: #003869; overflow: visible; }
+/* a tall window on a computer: the same boxes, one under the other */
+.upright .launcher { flex-direction: column; overflow-y: auto; }
+.upright .launcher .side { flex: 0 0 auto; }
+.upright .launcher .snippet { flex: 0 0 190px; }
+.upright .launcher .tiles { flex: 1 0 auto; margin: 16px 0 0 0; }
+.upright .launcher .tile { min-height: 160px; }
+
+/* ---- explore (activity_explore.xml, explore_header.xml, explore_row.xml) */
+.explore { position: relative; height: 100%; background: var(--page); }
+.explore .list { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; padding: 0 18px 24px 16px; padding-left: calc(16px + var(--safe-l)); padding-right: calc(18px + var(--safe-r)); }
+.explore .list::-webkit-scrollbar { display: none; }
+.explore .thumb { position: absolute; right: var(--safe-r); top: 0; width: 6px; height: 40px; border-radius: 3px; background: #A0787A; pointer-events: none; }
+.gline { display: flex; align-items: center; }
+.gline .space { flex: 1 1 auto; }
+.ghead { display: flex; align-items: center; background: none; border: 0; padding: 16px 12px 10px 0; font-weight: 800; font-size: calc(30px * var(--sp)); line-height: 1.21; text-align: left; white-space: nowrap; }
+.ghead > span:first-child { padding-top: var(--pad); }
+.ghead .tri { flex: 0 0 auto; width: 22px; height: 22px; margin-left: 12px; background: #000; clip-path: polygon(12.5% 20.8%, 87.5% 20.8%, 50% 83.3%); }
+.group.folded .ghead .tri { transform: rotate(90deg); }
+.group.folded > .rows { display: none; }
+.row { display: flex; height: 92px; margin: 0 0 12px 20px; }
+.row .name { flex: 1 1 0; min-width: 0; background: var(--row); border: 1px solid var(--row-edge); border-radius: 10px 0 0 10px; padding: 0 16px 0 20px; display: flex; align-items: center; cursor: pointer; }
+.row .col { flex: 1 1 0; min-width: 0; }
+.row .t { font-weight: 600; font-size: calc(20px * var(--sp)); line-height: 1.21; padding-top: var(--pad); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .f { margin-top: 4px; font-weight: 600; font-size: calc(13px * var(--sp)); line-height: 1.21; padding-top: var(--pad); color: #5C4448; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .pills { display: flex; gap: 6px; margin-top: 7px; }
+.pill { flex: 0 0 auto; display: flex; align-items: center; min-height: 44px; padding: 0 12px 0 11px; border: 1.5px solid #000; border-radius: 22px; background: transparent; color: #000; font-weight: 800; font-size: calc(12px * var(--sp)); line-height: 1.15; text-align: left; white-space: nowrap; }
+.pill > span { padding-top: var(--pad); }
+.pill small { display: block; font-size: calc(10.5px * var(--sp)); font-weight: 800; }
+.pill img { display: none; width: 14px; height: 14px; margin-right: 5px; filter: invert(1); }
+.pill.on { background: #000; color: #fff; }
+.pill.on img { display: block; }
+.row .chip { position: relative; flex: 0 0 auto; margin-left: 12px; }
+.chipbox { display: flex; align-items: center; height: 52px; margin: 10px 13px 3px 0; padding: 0 12px 0 14px; font-weight: 800; font-size: calc(12px * var(--sp)); line-height: 1.15; text-align: left; white-space: pre; }
+.chipbox > span { padding-top: var(--pad); }
+.chipbox img { width: 18px; height: 18px; margin-left: 10px; }
+.chip .count { position: absolute; top: 0; right: 0; min-width: 22px; height: 22px; padding: 0 6px; border-radius: 11px; background: #000; color: #fff; font-weight: 800; font-size: calc(11px * var(--sp)); display: flex; align-items: center; justify-content: center; }
+.verlist { position: absolute; top: calc(100% + 6px); right: 14px; width: 296px; padding: 6px; background: #fff; border-radius: 14px; box-shadow: 4px 4px 0 #000; z-index: 6; display: flex; flex-direction: column; gap: 4px; }
+.verlist button { min-height: 48px; padding: 0 14px; border: 0; border-radius: 9px; background: #fff; font-weight: 600; font-size: calc(14px * var(--sp)); text-align: left; }
+.verlist button.on { background: var(--version); font-weight: 800; }
+.row .pics { flex: 0 1 300px; min-width: 150px; position: relative; background: #fff; overflow: hidden; }
+.row .pics canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; touch-action: pan-y; }
+.turned .row .pics canvas { touch-action: pan-x; }   /* the list scrolls along the screen's width when the page lies turned */
+
+/* ---- settings (activity_settings.xml; the switches as Android's own) */
+.settings { height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; background: var(--launcher); padding: 16px 24px 24px 24px; padding-left: calc(24px + var(--safe-l)); padding-right: calc(24px + var(--safe-r)); }
+.settings .head { display: flex; align-items: center; }
+.settings h1 { flex: 1 1 auto; margin: 0; font-weight: 800; font-size: calc(30px * var(--sp)); line-height: 1.21; padding-top: var(--pad); }
+.setting { display: flex; align-items: center; width: 100%; min-height: 56px; margin-top: 10px; padding: 4px 16px; background: #fff; text-align: left; font-weight: 600; font-size: calc(16px * var(--sp)); line-height: 1.21; }
+.settings .head + .setting { margin-top: 12px; }
+.settings .head + .setting + .setting { margin-top: 18px; }   /* the first switch is not about sound: the sound switches stand a little apart from it */
+.setting .label { flex: 1 1 auto; padding: var(--pad) 16px 0 0; }
+.setting .sw { flex: 0 0 auto; position: relative; width: 52px; height: 32px; border-radius: 16px; border: 2px solid #79747E; background: #E6E0E9; }
+.setting .sw::after { content: ""; position: absolute; left: 6px; top: 6px; width: 16px; height: 16px; border-radius: 50%; background: #79747E; transition: left 0.1s, top 0.1s, width 0.1s, height 0.1s; }
+.setting.on .sw { background: var(--primary); border-color: var(--primary); }
+.setting.on .sw::after { left: 22px; top: 2px; width: 24px; height: 24px; background: #fff; }
+.settings .note { margin-top: 14px; font-weight: 400; font-size: calc(14px * var(--sp)); line-height: 1.21; padding-top: var(--pad); color: #444; }
+.settings .about { margin-top: 24px; font-weight: 400; font-size: calc(12px * var(--sp)); line-height: 1.21; padding-top: var(--pad); color: #777; }
+
+/* ---- the heart page (activity_heart.xml, dialog_beer.xml): upright, square boxes */
+.heart { height: 100%; background: var(--page); display: flex; flex-direction: column; padding: calc(16px + var(--safe-t)) calc(16px + var(--safe-r)) calc(16px + var(--safe-b)) calc(16px + var(--safe-l)); }
+.heart > * { width: 100%; max-width: 620px; margin-left: auto; margin-right: auto; }
+.heart .top { flex: 0 0 auto; display: flex; justify-content: flex-end; margin-bottom: 12px; }
+.heart .note { flex: 1 1 0; min-height: 0; background: var(--heart-box); border: 2.5px solid #000; padding: 18px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 400; line-height: 1.21; white-space: pre-wrap; overflow: hidden; }
+.heart .note > div { padding-top: var(--pad); }
+.heart .links { flex: 0 0 auto; display: flex; justify-content: space-between; margin-top: 24px; margin-bottom: 8px; }
+.heart .links.one { justify-content: center; }
+.heart .link { flex: 0 0 auto; width: 88px; height: 88px; padding: 0; border: 3px solid #000; background: transparent; display: flex; align-items: center; justify-content: center; }
+.heart .link img { width: 74px; height: 74px; }
+.beer { width: 90%; max-width: 520px; background: var(--heart-box); border: 2.5px solid #000; padding: 8px 20px 24px 20px; display: flex; flex-direction: column; }
+.beer .x { align-self: flex-end; width: 44px; height: 44px; margin-right: -10px; padding: 10px; border: 0; background: none; }
+.beer .x img { display: block; width: 24px; height: 24px; }
+.beer .title { text-align: center; font-weight: 800; font-size: calc(28px * var(--sp)); line-height: 1.21; padding-top: var(--pad); }
+.beer .words { margin-top: 14px; text-align: center; font-weight: 400; font-size: calc(17px * var(--sp)); line-height: 1.33; padding-top: var(--pad); }
+.beer .amounts { display: flex; gap: 17px; margin: 24px 3px 3px 0; }
+.beer .amounts button { flex: 1 1 0; height: 61px; padding-top: var(--pad); border-radius: 0; background: var(--page); font-weight: 800; font-size: calc(22px * var(--sp)); line-height: 1.21; }
+/* the window in which a song of the listener's own is added (the song menu's "Upload…"): the same look */
+.upload { position: relative; max-height: 96%; overflow-y: auto; padding: 14px 20px 20px 20px; }
+.upload > * { flex-shrink: 0; }   /* a low screen scrolls the window; nothing in it is squeezed */
+.upload .x { position: absolute; right: 6px; top: 4px; margin: 0; }
+.upload .title { font-size: calc(24px * var(--sp)); padding: 0 34px; }
+.upload .words { margin-top: 8px; font-size: calc(15px * var(--sp)); line-height: 1.4; }
+.upload .songs { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+.upload .song { display: flex; align-items: center; min-height: 44px; padding: 4px 12px; background: var(--page); border: 2px solid #000; }
+.upload .song .t { flex: 1 1 auto; font-weight: 800; font-size: calc(17px * var(--sp)); }
+.upload .song .d { flex: 0 0 auto; font-weight: 600; font-size: calc(14px * var(--sp)); }
+.upload .song .have { display: none; flex: 0 0 auto; align-items: center; margin-left: 12px; font-weight: 800; font-size: calc(13px * var(--sp)); }
+.upload .song .have img { width: 16px; height: 16px; margin-right: 4px; }
+.upload .song.on .have { display: flex; }
+.upload .choose, .upload .mail { align-self: center; display: flex; align-items: center; justify-content: center; min-width: 200px; height: 49px; margin: 16px 3px 3px 0; padding: 0 22px; border-radius: 0; background: var(--page); color: #000; font-weight: 800; font-size: calc(18px * var(--sp)); text-decoration: none; }
+.upload .choose[disabled] { opacity: 0.45; }
+.upload .status { margin-top: 12px; text-align: center; font-weight: 600; font-size: calc(15px * var(--sp)); line-height: 1.4; overflow-wrap: anywhere; }
+.upload .mail { margin-top: 12px; }
+
+/* ---- windows and messages over the page */
+.shade { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; align-items: center; justify-content: center; z-index: 20; }
+.toast { position: absolute; left: 50%; bottom: 48px; transform: translateX(-50%); background: rgba(50, 50, 50, 0.94); color: #fff; font-family: Roboto, system-ui, sans-serif; font-weight: 400; font-size: calc(14px * var(--sp)); line-height: 20px; padding: 10px 20px; border-radius: 22px; max-width: 86%; text-align: center; z-index: 30; pointer-events: none; }
+
+/* ---- the dance floor (activity_dance_floor.xml) */
+.floor { position: absolute; left: 0; top: 0; width: 100%; height: 100%; background: #fff; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.floor canvas.stage { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.topbar { position: absolute; left: 0; right: 0; top: 0; height: 64px; background: var(--bar); display: flex; align-items: center; gap: 10px; padding: 0 16px; padding-left: calc(16px + var(--safe-l)); padding-right: calc(16px + var(--safe-r));
+  transform: translateY(-100%); transition: transform 0.2s; }
+.floor.bars .topbar { transform: none; }
+.topbar .rate { flex: 0 0 auto; width: 58px; height: 48px; border: 2.5px solid #000; border-radius: 11px; background: transparent; font-weight: 800; font-size: calc(16px * var(--sp)); line-height: 1.08; padding: 0; }
+.topbar .rate small { display: block; font-size: calc(9.6px * var(--sp)); font-weight: 800; }
+.topbar .song { flex: 0 1 240px; min-width: 60px; height: 48px; border: 1px solid #808080; border-radius: 2px; background: var(--bar); font-weight: 800; font-size: calc(15px * var(--sp)); text-align: left; padding: 0 10px 0 14px; display: flex; align-items: center; gap: 6px; }
+.topbar .song span { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; line-height: 1.21; padding-top: var(--pad); }
+.topbar .song img { width: 24px; height: 24px; flex: 0 0 auto; }
+.topbar .space { flex: 1 1 auto; }
+.strip { position: absolute; left: 0; right: 0; bottom: 0; height: 132px; transform: translateY(100%); transition: transform 0.2s; pointer-events: none; }
+.floor.bars .strip { transform: none; }
+.strip canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+.strip .touch { position: absolute; left: 0; right: 0; bottom: 0; top: 32px; pointer-events: auto; touch-action: none; }
+/* the tempo and the song menu, as Android's own menus: a plain sheet, a round mark at the end of each line */
+.menu { position: absolute; top: 56px; min-width: 112px; max-width: 60%; max-height: calc(100% - 64px); overflow: auto; background: #F3EDF7; border-radius: 4px; box-shadow: 0 2px 6px 2px rgba(0, 0, 0, 0.15), 0 1px 2px rgba(0, 0, 0, 0.3); z-index: 5; font-family: Roboto, system-ui, sans-serif; }
+.menu button { display: flex; align-items: center; width: 100%; min-height: 48px; padding: 0 16px; border: 0; background: none; color: #1D1B20; font-weight: 400; font-size: calc(16px * var(--sp)); text-align: left; white-space: nowrap; }
+.menu button:active { background: rgba(0, 0, 0, 0.1); }
+.menu button span { flex: 1 1 auto; padding-right: 20px; }
+.menu .radio { flex: 0 0 auto; position: relative; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #49454F; }
+.menu button.on .radio { border-color: var(--primary); }
+.menu button.on .radio::after { content: ""; position: absolute; left: 3px; top: 3px; right: 3px; bottom: 3px; border-radius: 50%; background: var(--primary); }
+.loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); background: rgba(17, 17, 24, 0.82); color: #F0B432; font-weight: 800; font-size: calc(20px * var(--sp)); padding: 16px 22px; border-radius: 16px; display: flex; align-items: center; gap: 14px; pointer-events: none; }
+.spinner { width: 26px; height: 26px; border-radius: 50%; border: 4px solid rgba(240, 180, 50, 0.3); border-top-color: #F0B432; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
