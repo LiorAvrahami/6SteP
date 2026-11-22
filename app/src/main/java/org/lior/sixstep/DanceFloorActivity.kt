@@ -59,6 +59,14 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
         }
         floorView = findViewById(R.id.floor); topBar = findViewById(R.id.topBar); stripView = findViewById(R.id.strip)
         hintView = findViewById(R.id.hints)
+        // the interface makes a little of the hint's move with it: the top bar peeks in as its finger swipes down, the
+        // bottom bar's pictures follow its drag (HintPainter.nudge)
+        hintView.onNudge = { h, n ->
+            val dp = resources.displayMetrics.density
+            if (barsFrac == 0f && barsAnim?.isRunning != true)
+                topBar.translationY = -topBar.height + if (h == Hint.SWIPE_DOWN) (maxOf(0.0, n) * HintPainter.BAR_PEEK * dp).toFloat() else 0f
+            stripView.nudgePx = if (h == Hint.STRIP_SCROLL && barsWanted) (n * HintPainter.STRIP_NUDGE * dp).toFloat() else 0f
+        }
         playBtn = findViewById(R.id.play); rateBtn = findViewById(R.id.rate); songBtn = findViewById(R.id.song)
         muteBtn = findViewById(R.id.mute)
         val back = findViewById<ImageButton>(R.id.back)
@@ -175,6 +183,13 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
         if (on >= 0) m.menu.findItem(on)?.isChecked = true
         m.setOnMenuItemClickListener { item -> pick(choices[item.itemId].key); true }
         m.show()
+    }
+
+    /** every touch, anywhere on the floor or its bars, before it does anything else: a hint on the screen goes, and
+     *  waits for the user to leave the screen alone again (DanceFloor.touched) */
+    override fun dispatchTouchEvent(ev: MotionEvent): Boolean {
+        if (ev.actionMasked == MotionEvent.ACTION_DOWN && ::dance.isInitialized) dance.touched()
+        return super.dispatchTouchEvent(ev)
     }
 
     override fun onResume() { super.onResume(); pb.readSettings() }

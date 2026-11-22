@@ -7,6 +7,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.os.SystemClock
+import android.provider.Settings
 import android.util.AttributeSet
 import android.view.View
 
@@ -82,30 +83,53 @@ class AndroidDraw : Draw {
 }
 
 /** The dance floor's hints: small moving pictures of the gestures a user has not used yet (the shared Hint says which
- *  there are, the shared DanceFloor which one to show, the shared HintPainter how it looks). This view lies over the
- *  floor and its bars and only draws: it takes no touches, so they reach what is under it. While a hint plays it is
- *  drawn at every frame; while it rests, nothing is drawn until it is to play again. */
+ *  there are, the shared DanceFloor which one to show and when the user touched the screen, the shared HintPainter how
+ *  it looks and when it plays). This view lies over the floor and its bars and only draws: it takes no touches, so they
+ *  reach what is under it. While a hint plays it is drawn at every frame, and `onNudge` is told how far the real
+ *  interface follows its finger (HintPainter.nudge: the top bar peeks in, the bottom bar's pictures move); while it
+ *  rests nothing is drawn until it is to play again, and after its last showing nothing at all until the next touch. */
 class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
     private val surface = AndroidDraw()   // the canvas of the frame being drawn, as the shared painter wants it
     private var hint: Hint? = null
-    private var since = 0L               // when it became the floor's hint
+    private var since = 0L               // when its clock started: when it became the floor's hint, or the last touch
+    private var still = false            // the phone asks for less motion (its animations are switched off)
     /** how much of the floor the bottom bar covers now, in px */
     var bottomBar = 0f
+    /** told at every frame of a hint how far the interface follows its finger (HintPainter.nudge), and 0 when it stops */
+    var onNudge: ((Hint?, Double) -> Unit)? = null
 
-    /** show this hint from now on (its picture waits a moment, plays, rests, plays again), or none */
+    private val tick = Runnable { frame() }
+
+    /** show this hint from now on, its clock started afresh (it waits, plays, rests, plays again, and after its last
+     *  showing waits for the next touch), or none */
     fun show(h: Hint?) {
-        if (h == hint) return
         hint = h; since = SystemClock.uptimeMillis()
+        still = try { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f } catch (e: Exception) { false }
+        removeCallbacks(tick)
+        onNudge?.invoke(h, 0.0)
         invalidate()
+        if (h != null) post(tick)
+    }
+
+    private fun seconds(): Double = (SystemClock.uptimeMillis() - since) / 1000.0
+
+    /** one frame: the interface's nudge, a new picture, and when the next frame is due */
+    private fun frame() {
+        val h = hint ?: return
+        val t = seconds()
+        onNudge?.invoke(h, HintPainter.nudge(h, t, still))
+        invalidate()
+        val wait = HintPainter.wait(h, t)
+        if (wait == 0.0) postOnAnimation(tick)
+        else if (wait.isFinite()) postDelayed(tick, (wait * 1000.0).toLong().coerceIn(16L, 60000L))
     }
 
     override fun onDraw(canvas: Canvas) {
         val h = hint ?: return
-        val t = (SystemClock.uptimeMillis() - since) / 1000.0
         surface.canvas = canvas
-        val playing = HintPainter.draw(surface, h, t, width.toDouble(), height.toDouble(), resources.displayMetrics.density.toDouble(), bottomBar.toDouble())
+        HintPainter.draw(surface, h, seconds(), width.toDouble(), height.toDouble(), resources.displayMetrics.density.toDouble(), bottomBar.toDouble(), still)
         surface.canvas = null
-        if (playing) postInvalidateOnAnimation()
-        else postInvalidateDelayed((HintPainter.wait(h, t) * 1000.0).toLong().coerceIn(16L, 60000L))
     }
+
+    override fun onDetachedFromWindow() { removeCallbacks(tick); super.onDetachedFromWindow() }
 }

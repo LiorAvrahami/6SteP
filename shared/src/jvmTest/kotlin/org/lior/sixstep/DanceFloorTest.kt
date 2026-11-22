@@ -458,6 +458,21 @@ class DanceFloorTest {
         assertNull(r3.host.hint)
     }
 
+    /** a hint never plays while the user is busy: every touch restarts its clock (the screen is told the same hint
+     *  again), and with no hint on the screen a touch tells it nothing */
+    @Test fun aTouchRestartsTheHintsClock() {
+        val r = rig(exercise, autoplay = true, known = HashSet())
+        assertEquals(Hint.TAP_PAUSE, r.host.hint)
+        val before = r.host.hints.size
+        r.floor.touched()
+        assertEquals(before + 1, r.host.hints.size, "the screen is told again")
+        assertEquals(Hint.TAP_PAUSE, r.host.hints.last(), "the same hint, its clock started afresh")
+        val done = rig(exercise, autoplay = true, known = hashSetOf("tap_pause", "tap_play", "bars", "strip_tap", "strip_scroll"))
+        val n = done.host.hints.size
+        done.floor.touched()
+        assertEquals(n, done.host.hints.size, "no hint, nothing to tell")
+    }
+
     /** a screen that keeps no flags (the default) shows no hints at all */
     @Test fun aScreenThatKeepsNothingShowsNoHints() {
         val r = rig(exercise, autoplay = true)

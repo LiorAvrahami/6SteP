@@ -373,16 +373,38 @@ commit (there is no diff step any more: the editor's file is the only version). 
   The pictures have one sign: a round dot is a fingertip; rings going out from it are a tap (the user's own idea: "3
   consecutive circles that appear that indicate that you tap"), and a mark in it says what the tap does; a dot that
   slides with a tail is a swipe. All in the floor's dark grey, half see-through, no words.
-  **A hint is one quick animation, and it comes back every 4 seconds for good** (since v72; the user on v71, whose
-  pictures took a second or two and came every 5 s: "The hints are kind of annoying because their animations are
-  slow. Make the animations like at least 4 or 5 times snappier ... Make every hint not repeat. Like every hint is
-  one animation. For example, for a swipe ... Make it two animations ... Very snappy, very quick. And then you make
-  the hint come back like every 4 seconds, never give up until the user does the gesture"). A tap's three rings are
-  over in 0.42 s; a swipe is shown twice in a row, 0.3 s each (the bottom bar's: once to the left, once to the
-  right), 0.66 s in all; then nothing until 4 s after the showing began (`HintPainter.EVERY`). Before its first
-  showing a hint waits (`HintPainter.delay`): 3 s for the pause, so that the dance is watched first; **4 s for the
-  play** ("If someone paused, then wait a few seconds ... before you hint them to play": whoever paused did so to
-  look); 2 s for the swipe down; 1.2 s for the bottom bar's two.
+  **How a hint moves and when it comes: after the common practice** (since v74). The first version (v71) took 1.5
+  to 1.9 s a picture and came every 5 s: "slow". The second (v72: 0.42 s taps, 0.3 s strokes, every 4 s for good, at
+  the user's word) was "really annoying now (i guess they move too fast). can you look it up online what is good
+  common practice for such gesture hints and do that?" (2026-11-22). What was found (by web search: the session's
+  network does not reach the pages themselves) and what v74 does with it, in `HintPainter`:
+  - *Each movement 200 to 500 ms, eased* (NN/g, "Executing UX animations: duration": most animations 100 to 500 ms
+    depending on complexity and distance, the shortest that does not feel jarring; Google's web.dev, "Choosing the
+    right easing": ease-ins and ease-outs of 200 to 500 ms). v72's strokes had 0.19 s of movement: a flick. Now a
+    fingertip comes (0.18 s), presses down a little smaller and darker (0.12 s), and either lets go with three rings
+    (each 0.5 s, 0.15 s apart, slowing as they go: a tap of 1.05 s) or slides 0.45 s, slow at both ends, lets go and
+    fades (a stroke of 0.8 s; a swipe is two strokes, 1.75 s).
+  - *The real interface makes a little of the move* (Material's "Gesture education": a touch indicator with "a
+    partial version of the gesture" playing behind it; Microsoft's swipe hint moves the item itself 15 px vertically
+    or 23 px horizontally). The top bar peeks in 18 dp with the swipe-down finger (`BAR_PEEK`), the bottom bar's
+    pictures follow the drag finger 32 dp one way and then the other (`STRIP_NUDGE`), and both go back as the finger
+    lets go (`HintPainter.nudge`; the web page moves `.topbar` and `StripPainter.nudge`, the app `topBar` and
+    `StepStrip.nudgePx`).
+  - *Only when the user is idle, cancelled by a touch, a few showings* (Material: education only for users who have
+    not done the gesture, on the first run and in later sessions for those who still have not; the hint code found
+    in apps and libraries waits for idleness, stops at the first touch and caps the plays). A hint first shows after
+    `delay` seconds without a touch (4 s for the pause; 5 s for the play: the user had asked to wait a few seconds
+    after a pause; 3 s for the swipe down; 2.5 s for the bottom bar's two), then twice more 8 s apart (`SHOWINGS`,
+    `GAP`), and then rests. Every touch on the floor or its bars makes it go at once and starts its wait again
+    (`DanceFloor.touched`, which the screens call first thing at every touch: the page in a capture listener on the
+    floor, the app in `dispatchTouchEvent`). So it never plays while the user is busy, and it still does not give up
+    until the gesture is used (the user's "never give up"), but it no longer repeats every 4 s for good: that is
+    the one place where v74 departs from the user's v72 words, because the guidance found says the opposite, and the
+    user was told so.
+  - *Reduced motion* (NN/g and the design systems found: respect the setting): where the browser says
+    `prefers-reduced-motion: reduce`, or the phone's animations are switched off (`ANIMATOR_DURATION_SCALE` 0), a
+    still picture fades in and out instead: the fingertip with one ring, or with an arrow along the swipe; nothing
+    else moves.
   **One hint at a time** (`DanceFloor.hintNow`). With the bars shown: first the bottom bar's two, then the tap (the
   bar's play button is there to be seen). With the bars away there are two things to find, the tap and the swipe
   down, and which comes first depends on where the user is: on a piece that has just been opened and stands, the
@@ -406,9 +428,13 @@ commit (there is no diff step any more: the editor's file is the only version). 
   raises no flag; nothing comes back on another floor; a screen that keeps nothing shows none), `HintsTest` (every
   picture waits, plays, rests and comes again, stays on the screen and where its gesture belongs), and the web page
   in the headless browser on a sideways and an upright phone: each hint seen, each gone for good after its gesture,
-  none on the next visit, all back when the storage is cleared; and for v72, measured in the page: the swipe-down
-  hint 2.0 s after a piece opens and then every 4.00 s, 0.65 s each time; the pause hint 0.42 s; the play hint 4.0 s
-  after a pause; the settings' button putting the flags down and nothing else. **Not hinted** (asked of the user on
+  none on the next visit, all back when the storage is cleared; the settings' button putting the flags down and
+  nothing else; and for v74, measured in the page: the swipe-down hint 2.94, 10.94 and 18.94 s after a piece opens,
+  1.75 s each, then nothing; a touch then brings it back 3 s later, and a touch in the middle of a showing ends it at
+  once; the top bar peeking in 18.0 px and going back; the bottom bar's pictures following 32 px each way; the play
+  hint 5 s and the pause hint 4 s after the last touch; with reduced motion asked for, a still picture and no bar
+  moving. `HintsTest` checks the timing (each movement within 200 to 500 ms, three showings, then the wait for a
+  touch), the nudge and the still pictures. **Not hinted** (asked of the user on
   v71, not answered): the swipe to the left or right on the floor (a step on while it stands, a part on while it
   plays) and the swipe up that sends the bars away.
 - **Metronome.** Snare on the odd counts, closed hi-hat on the swung "&" and the even counts; scheduled on its own thread
@@ -610,6 +636,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   used ("The hints" above). v72, the user's five remarks on them: quicker by far, one animation every 4 s, the play
   hint held back after a pause, a piece opening with its bars away, a reset in Settings. v73: a swipe up or down
   brings the bars and a swipe up or down sends them away.
+  2026-11-22, v74: the hints remade after the common practice for gesture hints, looked up at the user's request
+  ("The hints" above).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

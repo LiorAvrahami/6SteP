@@ -77,7 +77,9 @@ interface FloorHost {
     fun knows(what: String): Boolean = true
     /** the user has just done it: remember that */
     fun learned(what: String) {}
-    /** the hint to show over the floor now (HintPainter draws it), or none */
+    /** the hint to show over the floor now (HintPainter draws it), or none. The screen starts the hint's clock at this
+     *  call (HintPainter counts from it). Also called again with the same hint when the user has touched the screen
+     *  (DanceFloor.touched): the clock starts again. */
     fun hint(hint: Hint?) {}
     /** the bottom bar holds more steps than fit on the screen: it can be dragged sideways */
     val stripScrolls: Boolean get() = true
@@ -287,6 +289,13 @@ class DanceFloor(
         val swipeFirst = !playing && !played
         return (if (swipeFirst) listOf(Hint.SWIPE_DOWN, tap) else listOf(tap, Hint.SWIPE_DOWN)).firstOrNull { down(it) }
     }
+
+    /** The user has put a finger on the screen (or pressed a key): the hint on the screen goes at once, and comes back
+     *  only once the screen has been left alone for a while (HintPainter.delay): a hint never plays while the user is
+     *  busy, and does not give up for good either (common practice for gesture hints, looked up on 2026-11-22: hints
+     *  wait for the user to be idle and are cancelled by a touch). The screens call this at every touch, before the
+     *  touch does anything else. */
+    fun touched() { hint?.let { host.hint(it) } }
 
     /** tell the screen which hint to show, when that has changed */
     private fun hints() {

@@ -98,6 +98,11 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-22, v74:** the hints remade after the common practice for gesture hints (the user: "can you look it up
+  online what is good common practice for such gesture hints and do that?"): eased movements of 200 to 500 ms, a
+  fingertip that presses and lets go, the real bars making a little of the move, shown only after a few seconds
+  without a touch, three times 8 s apart, cancelled by any touch, still pictures for reduced motion. Open with the
+  user: whether three showings per idle stretch is right (they had asked for "every 4 seconds, never give up").
 - **2026-11-21, v73:** a swipe up or down on the dance floor brings the bars when they are away and sends them away
   when they are shown (the user: "swiping up or down opens them and swiping up or down closes them").
 - **2026-11-21, v72:** the hints after the user tried them: one quick animation (a swipe: two) every 4 seconds, four

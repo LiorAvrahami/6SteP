@@ -49,21 +49,23 @@ class HintsTest {
         return Pair(HintPainter.draw(s, hint, t, w, h, dp, bottomBar), s)
     }
 
-    @Test fun everyHintWaitsPlaysRestsAndPlaysAgain() {
+    /** the common practice looked up on 2026-11-22 (HintPainter's comment): movements of 200 to 500 ms, eased; a hint
+     *  that waits for the user to be idle, shows a few times and rests; still pictures where less motion is asked for */
+    @Test fun everyHintWaitsShowsAFewTimesAndRests() {
         for (hint in Hint.values()) {
             val bar = if (hint == Hint.STRIP_TAP || hint == Hint.STRIP_SCROLL) strip else 0.0
             val delay = HintPainter.delay(hint)
-            assertTrue(delay >= 1.0, "$hint does not jump at a user the moment the screen changes")
+            assertTrue(delay >= 2.0, "$hint waits for the user to leave the screen alone: $delay s")
             // before its time: nothing, and the screen is told how long that is
             val (early, nothing) = at(hint, delay - 0.5, bar)
             assertFalse(early); assertEquals(0, nothing.shapes, "$hint draws nothing before its time")
             assertEquals(0.5, HintPainter.wait(hint, delay - 0.5), 1e-9)
             // then it plays: something is drawn, in the floor's dark grey and white only, inside the screen
-            var played = 0.0; var rested = 0.0; var t = delay
-            var playsAgainAt = -1.0; var restedOnce = false; var showings = 0; var wasPlaying = false
-            while (t < delay + 12.0) {
+            var played = 0.0; var t = delay; var showings = 0; var wasPlaying = false
+            val starts = ArrayList<Double>()
+            while (t < delay + 40.0) {
                 val (playing, s) = at(hint, t, bar)
-                if (playing && !wasPlaying) showings++
+                if (playing && !wasPlaying) { showings++; starts.add(t) }
                 wasPlaying = playing
                 if (playing) {
                     played += 0.01
@@ -72,56 +74,89 @@ class HintsTest {
                         assertTrue(s.l >= 0 && s.t >= 0 && s.r <= w && s.b <= h, "$hint at $t s stays on the screen: ${s.l}, ${s.t}, ${s.r}, ${s.b}")
                         assertTrue(s.colors.all { it == (Colors.INK and 0x00FFFFFF) || it == (Colors.WHITE and 0x00FFFFFF) }, "$hint is drawn in the floor's grey and white")
                     }
-                    if (restedOnce && playsAgainAt < 0) playsAgainAt = t
                 } else {
-                    rested += 0.01; restedOnce = true
                     assertEquals(0, s.shapes, "$hint draws nothing while it rests")
                     val sleep = HintPainter.wait(hint, t)
                     assertTrue(sleep > 0, "$hint at $t s: the screen may sleep")
-                    assertTrue(at(hint, t + sleep + 0.05, bar).first, "$hint plays again when the screen wakes (${t + sleep} s)")
-                    assertFalse(at(hint, t + sleep - 0.05, bar).first || sleep < 0.05 && false, "$hint: and not before")
+                    if (sleep.isFinite()) {
+                        assertTrue(at(hint, t + sleep + 0.02, bar).first, "$hint plays again when the screen wakes (${t + sleep} s)")
+                        assertFalse(sleep > 0.03 && at(hint, t + sleep - 0.02, bar).first, "$hint: and not before")
+                    }
                 }
                 t += 0.01
             }
-            // quick, and back every four seconds, for good (user 2026-11-21: "at least 4 or 5 times snappier ... every
-            // hint is one animation ... make the hint come back like every 4 seconds, never give up")
-            assertEquals(3, showings, "$hint shows once every ${HintPainter.EVERY} s: three times in 12 s")
-            assertTrue(HintPainter.plays(hint) <= 0.7, "$hint is over in ${HintPainter.plays(hint)} s")
-            assertEquals(HintPainter.plays(hint) * 3, played, 0.05, "$hint plays for ${HintPainter.plays(hint)} s each time")
-            assertTrue(playsAgainAt > 0, "$hint comes again for as long as it is the floor's hint")
-            assertTrue(at(hint, delay + 3600.0 + 0.1, bar).first, "$hint still comes an hour later: it never gives up")
+            // a few showings, GAP apart, each about a second or two; then it rests until the user touches the screen
+            assertEquals(HintPainter.SHOWINGS, showings, "$hint shows ${HintPainter.SHOWINGS} times, then rests")
+            for (i in 1 until starts.size) assertEquals(HintPainter.GAP, starts[i] - starts[i - 1], 0.02, "$hint: ${HintPainter.GAP} s from one showing to the next")
+            assertTrue(HintPainter.plays(hint) in 0.9..2.0, "$hint takes ${HintPainter.plays(hint)} s: long enough to follow, short enough not to drag")
+            assertEquals(HintPainter.plays(hint) * HintPainter.SHOWINGS, played, 0.05)
+            val after = delay + (HintPainter.SHOWINGS - 1) * HintPainter.GAP + HintPainter.plays(hint) + 0.1
+            assertEquals(Double.POSITIVE_INFINITY, HintPainter.wait(hint, after), "$hint: after its last showing the screen waits for a touch")
+            assertFalse(at(hint, after + 3600.0, bar).first, "$hint does not come back by itself")
+            // the same in still pictures: something is drawn while it plays, and nothing moves
+            val a = Sheet(); val b = Sheet()
+            assertTrue(HintPainter.draw(a, hint, delay + 0.4, w, h, dp, bar, still = true))
+            assertTrue(HintPainter.draw(b, hint, delay + HintPainter.plays(hint) - 0.45, w, h, dp, bar, still = true))
+            assertTrue(a.shapes > 0 && b.shapes > 0, "$hint: a still picture")
+            assertEquals(a.l, b.l, 1e-9); assertEquals(a.t, b.t, 1e-9); assertEquals(a.r, b.r, 1e-9); assertEquals(a.b, b.b, 1e-9)
+            assertEquals(0.0, HintPainter.nudge(hint, delay + 0.5, still = true), "$hint moves nothing in still pictures")
         }
+        // every movement within 200 to 500 ms (NN/g, web.dev)
+        assertTrue(HintPainter.MOVE in 0.2..0.5 && HintPainter.RING_LASTS in 0.2..0.5, "the slide ${HintPainter.MOVE} s, a ring ${HintPainter.RING_LASTS} s")
+        assertTrue(HintPainter.APPEAR in 0.1..0.3 && HintPainter.PRESS in 0.08..0.2)
+        // the user waits a few seconds after a pause before the hint to play
+        assertTrue(HintPainter.delay(Hint.TAP_PLAY) >= 4.0)
+    }
+
+    /** the real interface makes a little of the move: it follows the finger as it slides and goes back as it lets go */
+    @Test fun theInterfaceFollowsTheFingerALittle() {
+        for (hint in listOf(Hint.SWIPE_DOWN, Hint.STRIP_SCROLL)) {
+            val t0 = HintPainter.delay(hint)
+            var most = 0.0; var least = 0.0
+            var t = t0
+            while (t < t0 + HintPainter.plays(hint)) { val n = HintPainter.nudge(hint, t); most = max(most, n); least = min(least, n); t += 0.005 }
+            assertEquals(1.0, most, 0.05, "$hint: all the way, as the finger gets there")
+            if (hint == Hint.STRIP_SCROLL) assertEquals(-1.0, least, 0.05, "the bottom bar's pictures go one way with the first stroke, the other way with the second")
+            else assertEquals(0.0, least, 1e-9, "the top bar only comes down")
+            assertEquals(0.0, HintPainter.nudge(hint, t0 + HintPainter.STROKE - 0.01), 1e-3, "$hint: back in place as the stroke ends")
+            assertEquals(0.0, HintPainter.nudge(hint, t0 + HintPainter.plays(hint) + 0.5), "$hint: nothing between showings")
+        }
+        for (hint in listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.STRIP_TAP)) assertEquals(0.0, HintPainter.nudge(hint, HintPainter.delay(hint) + 0.4), "$hint moves nothing")
+        assertTrue(HintPainter.BAR_PEEK in 10.0..24.0 && HintPainter.STRIP_NUDGE in 16.0..40.0, "a short way (Microsoft's swipe hint: 15 px down, 23 px across)")
     }
 
     @Test fun theHintsAreWhereTheirGestureBelongs() {
         // the taps that pause and play: beside the dancers, low on the right, and above the bottom bar when that is shown
         for (hint in listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY)) {
-            val (_, s) = at(hint, HintPainter.delay(hint) + 0.2, 0.0)
+            val (_, s) = at(hint, HintPainter.delay(hint) + 0.45, 0.0)
             assertTrue(s.shapes >= 4, "$hint: the dot, its mark and rings (${s.shapes} shapes)")
             assertTrue(s.l > w * 0.75 && s.t > h * 0.5, "$hint is low on the right: from (${s.l / dp}, ${s.t / dp}) dp")
-            val (_, raised) = at(hint, HintPainter.delay(hint) + 0.2, strip)
+            val (_, raised) = at(hint, HintPainter.delay(hint) + 0.45, strip)
             assertTrue(raised.b < h - strip, "$hint keeps above the bottom bar: its lowest point ${raised.b / dp} dp of ${h / dp}")
             assertEquals(s.b - strip, raised.b, 1e-6, "by the bar's height exactly")
         }
-        // the swipe down: from the top edge, in the middle, going down
-        val a = at(Hint.SWIPE_DOWN, HintPainter.delay(Hint.SWIPE_DOWN) + 0.06, 0.0).second
-        val b = at(Hint.SWIPE_DOWN, HintPainter.delay(Hint.SWIPE_DOWN) + 0.22, 0.0).second
-        assertTrue(a.l > w * 0.4 && a.r < w * 0.6 && a.t < 12 * dp, "the swipe down is at the top, in the middle")
-        assertTrue(b.b > a.b + 40 * dp, "and it goes down: ${a.b / dp} dp, then ${b.b / dp} dp")
+        // the swipe down: from near the top edge, in the middle, going down
+        val t0 = HintPainter.delay(Hint.SWIPE_DOWN)
+        val a = at(Hint.SWIPE_DOWN, t0 + 0.15, 0.0).second
+        val b = at(Hint.SWIPE_DOWN, t0 + HintPainter.MOVE_FROM + HintPainter.MOVE, 0.0).second
+        assertTrue(a.l > w * 0.4 && a.r < w * 0.6 && a.t < 24 * dp, "the swipe down starts at the top, in the middle: from ${a.t / dp} dp")
+        assertTrue(b.b > a.b + 60 * dp, "and it goes down: ${a.b / dp} dp, then ${b.b / dp} dp")
         assertTrue(b.b < h * 0.5, "not further than the upper half")
-        // twice in a row: the second slide starts from the top again
-        val again = at(Hint.SWIPE_DOWN, HintPainter.delay(Hint.SWIPE_DOWN) + HintPainter.SLIDE + HintPainter.SLIDE_GAP + 0.06, 0.0)
-        assertTrue(again.first && again.second.b < b.b - 30 * dp, "the swipe is shown a second time, from the top: ${again.second.b / dp} dp")
-        assertEquals(2, HintPainter.SLIDES)
+        // twice in a row: the second stroke starts from the top again
+        val again = at(Hint.SWIPE_DOWN, t0 + HintPainter.STROKE + HintPainter.STROKE_GAP + 0.15, 0.0)
+        assertTrue(again.first && again.second.b < b.b - 60 * dp, "the swipe is shown a second time, from the top: ${again.second.b / dp} dp")
+        assertEquals(2, HintPainter.STROKES)
         // the bottom bar's two: on its row of pictures
         for (hint in listOf(Hint.STRIP_TAP, Hint.STRIP_SCROLL)) {
-            val s = at(hint, HintPainter.delay(hint) + 0.15, strip).second
+            val s = at(hint, HintPainter.delay(hint) + 0.3, strip).second
             assertTrue(s.t > h - 100 * dp && s.b <= h, "$hint is on the bottom bar's pictures: from ${s.t / dp} to ${s.b / dp} dp of ${h / dp}")
         }
         // the drag goes one way, then the other
-        fun dotAt(t: Double): Double { val p = HintPainter.place(Hint.STRIP_SCROLL, w, h, dp, strip); val s = at(Hint.STRIP_SCROLL, t, strip).second; return if (kotlin.math.abs(s.l - min(p[0], p[2])) < kotlin.math.abs(s.r - max(p[0], p[2]))) -1.0 else 1.0 }
-        val first = HintPainter.delay(Hint.STRIP_SCROLL) + 0.2
-        assertTrue(dotAt(first) != dotAt(first + HintPainter.SLIDE + HintPainter.SLIDE_GAP), "the bottom bar's drag is shown to the left and then to the right, in one showing")
+        val p = HintPainter.place(Hint.STRIP_SCROLL, w, h, dp, strip)
+        fun dotX(t: Double): Double { val s = at(Hint.STRIP_SCROLL, t, strip).second; return (s.l + s.r) / 2 }
+        val s0 = HintPainter.delay(Hint.STRIP_SCROLL) + HintPainter.MOVE_FROM + HintPainter.MOVE
+        assertTrue(dotX(s0) < (p[0] + p[2]) / 2, "the first stroke ends on the left")
+        assertTrue(dotX(s0 + HintPainter.STROKE + HintPainter.STROKE_GAP) > (p[0] + p[2]) / 2, "the second on the right")
         // every flag has a name of its own
         assertEquals(Hint.values().size, Hint.values().map { it.key }.toSet().size)
     }

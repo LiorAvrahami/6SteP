@@ -44,6 +44,8 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     private var hintSince = 0.0      // when it became the floor's hint
     private var hintDrawn = false    // something of it is on the layer now
     private var hintTimer: Int? = null   // wakes the frames when a resting hint is to play again
+    private var peek = 0.0           // px the top bar is brought down by a hint (HintPainter.nudge)
+    private lateinit var topBar: HTMLElement
     private val picture = FloorPicture(1.0)
     private val strip = StripPainter(1.0).apply { barColor = Colors.BAR; calloutBandDp = BAND; cellWidthDp = 64.0; gapDp = 8.0 }
 
@@ -92,11 +94,15 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         stripBox.add(touch)
         root.add(stripBox)
         val top = el("div", "topbar")
+        topBar = top
         top.add(playBtn); top.add(rateBtn); top.add(songBtn); top.add(muteBtn); top.add(el("div", "space"))
         top.add(iconButton("back", Texts.BACK) { App.back() })
         root.add(top)
         hintStage.canvas.className = "hints"
         root.add(hintStage.canvas)
+        // any touch on the floor, its bars or its menus, before it does anything else: a hint on the screen goes, and
+        // waits for the user to leave the screen alone again (DanceFloor.touched)
+        root.addEventListener("pointerdown", { floor.touched() }, true)
         root.add(loadingEl)
 
         // the floor: where the touch went down and where it came up
@@ -150,6 +156,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
 
     private val onKey = { e: Event ->
         e as KeyboardEvent
+        floor.touched()
         var used = true
         when (e.key) {
             "ArrowRight" -> floor.swipe(true)
@@ -248,17 +255,35 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         }
         // the hint, if there is one: its picture moves by itself, so it is drawn at every frame for as long as it is there
         val h = hint
+        val th = (now - hintSince) / 1000.0
+        val still = reducedMotion
         if (h != null || hintDrawn) {
             hintStage.fit()
             if (hintDrawn) hintStage.g.clearRect(0.0, 0.0, hintStage.width, hintStage.height)
-            hintDrawn = h != null && HintPainter.draw(hintStage.draw, h, (now - hintSince) / 1000.0, hintStage.width, hintStage.height, 1.0, if (floor.barsShown) STRIP else 0.0)
+            hintDrawn = h != null && HintPainter.draw(hintStage.draw, h, th, hintStage.width, hintStage.height, 1.0, if (floor.barsShown) STRIP else 0.0, still)
+        }
+        // and the real interface makes a little of the move with it (HintPainter.nudge): the top bar peeks in as the finger
+        // swipes down, the bottom bar's pictures follow a drag
+        val n = if (h == null) 0.0 else HintPainter.nudge(h, th, still)
+        val wantPeek = if (h == Hint.SWIPE_DOWN && !floor.barsShown) kotlin.math.max(0.0, n) * HintPainter.BAR_PEEK else 0.0
+        if (wantPeek != peek) {
+            peek = wantPeek
+            topBar.style.transform = if (peek > 0.0) "translateY(calc(-100% + ${peek}px))" else ""
+            topBar.style.transition = if (peek > 0.0) "none" else ""
+        }
+        val wantNudge = if (h == Hint.STRIP_SCROLL && floor.barsShown) n * HintPainter.STRIP_NUDGE else 0.0
+        if (wantNudge != strip.nudge) { strip.nudge = wantNudge; stripDirty = true }
+        if (stripDirty) {
+            stripDirty = false
+            stripStage.g.clearRect(0.0, 0.0, stripStage.width, stripStage.height)
+            strip.draw(stripStage.draw)
         }
         loadingEl.hidden = !floor.loading
         report()
         // while it rests nothing needs drawing: the frames are woken when it is to play again
         if (h != null && !hintDrawn && hintTimer == null) {
-            val ms = (HintPainter.wait(h, (now - hintSince) / 1000.0) * 1000.0).coerceIn(16.0, 60000.0)
-            hintTimer = window.setTimeout({ hintTimer = null; ask() }, ms.toInt())
+            val wait = HintPainter.wait(h, th)   // infinite after its last showing: then it waits for a touch
+            if (wait.isFinite()) hintTimer = window.setTimeout({ hintTimer = null; ask() }, (wait * 1000.0).coerceIn(16.0, 60000.0).toInt())
         }
         if (dirty || stripDirty || callbacks.isNotEmpty() || gliding || (!stripDragging && abs(flingV) > 0.02) || floor.loading || hintDrawn) ask()
     }
@@ -270,7 +295,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         o.playing = floor.playing; o.loading = floor.loading; o.beat = App.player.beatNow(); o.bpm = App.player.bpm(); o.t = nowMs()
         o.title = sc?.title; o.count = sc?.count; o.banner = sc?.banner; o.arrows = sc?.arrows?.size ?: 0
         o.current = strip.current; o.bars = floor.barsShown; o.song = floor.songLabel()
-        o.hint = hint?.key; o.hintShowing = hintDrawn
+        o.hint = hint?.key; o.hintShowing = hintDrawn; o.peek = peek; o.nudge = strip.nudge
         window.asDynamic().sixstep = o
     }
 
@@ -327,6 +352,8 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     override val leadIn: Boolean get() = Prefs.bool("lead_in", true)
 
     // the hints: which one to show, and what this user has already done (kept in the browser's storage, so until that is cleared)
+    /** the phone or computer asks for less motion: the hints are still pictures */
+    private val reducedMotion: Boolean get() = try { window.matchMedia("(prefers-reduced-motion: reduce)").matches } catch (e: Throwable) { false }
     override fun hint(hint: Hint?) {
         this.hint = hint; hintSince = nowMs()
         hintTimer?.let { window.clearTimeout(it) }; hintTimer = null
