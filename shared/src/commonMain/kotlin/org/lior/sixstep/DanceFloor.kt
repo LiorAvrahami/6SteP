@@ -305,16 +305,17 @@ class DanceFloor(
      *  touch does anything else. */
     fun touched() { hint?.let { host.hint(it, HintPainter.firstAt(it, hintHold())) } }
 
-    /** what is left of the first HintPainter.FIRST seconds after the floor opened, in seconds (user 2026-11-22: "wait
-     *  14 seconds from starting to showing the first hint") */
+    /** what is left of the first HintPainter.FIRST seconds after the floor opened, in seconds (user 2026-11-22: "make
+     *  the first hint appear after 8 seconds of the start of the app"; 14 s until v78) */
     private fun hintHold(): Double =
         if (openedAt.isNaN()) HintPainter.FIRST else maxOf(0.0, HintPainter.FIRST - (host.nowMs() - openedAt) / 1000.0)
 
     /** tell the screen which hint to show, when that has changed, and when it first shows: its own wait; but a second
      *  after the user's own move for the two hints that follow one (user 2026-11-22: "like 1 second ... after"): the
      *  swipe down after a pause, and the swipe to the side after the swipe that brought the bars; also when it was the
-     *  hint already (the touch that did the move had just started its wait again). None in the first 14 s of the
-     *  floor, those two included (user 2026-11-22: "yes, they should also wait 14 seconds after the dance opens"). */
+     *  hint already (the touch that did the move had just started its wait again). None in the floor's first
+     *  HintPainter.FIRST seconds (8), those two included (user 2026-11-22: "yes, they should also wait 14 seconds after
+     *  the dance opens", when it was 14). */
     private fun hints() {
         val want = hintNow()
         val paused = justPaused; justPaused = false

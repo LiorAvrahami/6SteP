@@ -86,14 +86,15 @@ class AndroidDraw : Draw {
  *  there are, the shared DanceFloor which one to show and when the user touched the screen, the shared HintPainter how
  *  it looks and when it plays). This view lies over the floor and its bars and only draws: it takes no touches, so they
  *  reach what is under it. While a hint plays it is drawn at every frame, and `onNudge` is told how far the real
- *  interface follows its finger (HintPainter.nudge: the top bar peeks in); while it
- *  rests nothing is drawn until it is to play again, and after its last showing nothing at all until the next touch. */
+ *  interface follows its finger (HintPainter.nudge: the top bar peeks in); while it rests nothing is drawn until it is
+ *  to play again. */
 class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
     private val surface = AndroidDraw()   // the canvas of the frame being drawn, as the shared painter wants it
     private var hint: Hint? = null
     private var since = 0L               // when its clock started: when it became the floor's hint, or the last touch
     private var still = false            // the phone asks for less motion (its animations are switched off)
     private var first = 0.0              // s from `since` to its first showing (the floor decides: HintPainter.firstAt, AFTER_PAUSE, AFTER_BARS)
+    private var seed = 0                 // its clock's own random times between showings (HintPainter: a new one at every start)
     /** how much of the floor the bottom bar covers now, in px */
     var bottomBar = 0f
     /** told at every frame of a hint how far the interface follows its finger (HintPainter.nudge), and 0 when it stops */
@@ -101,10 +102,10 @@ class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
 
     private val tick = Runnable { frame() }
 
-    /** show this hint from now on, its clock started afresh (it waits, plays, rests, plays again, and after its last
-     *  showing waits for the next touch), or none; `first`: seconds from now to its first showing */
+    /** show this hint from now on, its clock started afresh (it waits, plays, rests a random 2 to 5 s, plays again, and
+     *  so on), or none; `first`: seconds from now to its first showing */
     fun show(h: Hint?, first: Double) {
-        hint = h; since = SystemClock.uptimeMillis(); this.first = first
+        hint = h; since = SystemClock.uptimeMillis(); this.first = first; seed = kotlin.random.Random.nextInt()
         still = try { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f } catch (e: Exception) { false }
         removeCallbacks(tick)
         onNudge?.invoke(h, 0.0)
@@ -118,9 +119,9 @@ class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     private fun frame() {
         val h = hint ?: return
         val t = seconds()
-        onNudge?.invoke(h, HintPainter.nudge(h, t, still, first))
+        onNudge?.invoke(h, HintPainter.nudge(h, t, still, first, seed))
         invalidate()
-        val wait = HintPainter.wait(h, t, first)
+        val wait = HintPainter.wait(h, t, first, seed)
         if (wait == 0.0) postOnAnimation(tick)
         else if (wait.isFinite()) postDelayed(tick, (wait * 1000.0).toLong().coerceIn(16L, 60000L))
     }
@@ -128,7 +129,7 @@ class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     override fun onDraw(canvas: Canvas) {
         val h = hint ?: return
         surface.canvas = canvas
-        HintPainter.draw(surface, h, seconds(), width.toDouble(), height.toDouble(), resources.displayMetrics.density.toDouble(), bottomBar.toDouble(), still, first)
+        HintPainter.draw(surface, h, seconds(), width.toDouble(), height.toDouble(), resources.displayMetrics.density.toDouble(), bottomBar.toDouble(), still, first, seed)
         surface.canvas = null
     }
 

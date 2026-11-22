@@ -18,6 +18,7 @@ object Colors {
     const val LABEL: Int = 0xFF6E6E6E.toInt()        // the count in a step picture
     const val SEPARATOR: Int = 0xFF808080.toInt()
     const val SCROLL: Int = 0xFF9C9C9C.toInt()
+    const val HINT: Int = 0xFFE53935.toInt()         // the dance floor's hints (the user, 2026-11-22: "make the hints maybe red"); a red apart from the follower's pink
 
     fun rgb(r: Int, g: Int, b: Int): Int = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
     fun red(c: Int): Int = (c shr 16) and 0xFF
