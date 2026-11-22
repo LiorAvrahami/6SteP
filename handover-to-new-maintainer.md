@@ -414,14 +414,17 @@ commit (there is no diff step any more: the editor's file is the only version). 
     `prefers-reduced-motion: reduce`, or the phone's animations are switched off (`ANIMATOR_DURATION_SCALE` 0), a
     still picture fades in and out instead: the fingertip with one ring, or with an arrow along the swipe; nothing
     else moves.
-  **One hint at a time** (`DanceFloor.hintNow`), in this order (since v76). With the bars shown: first the bottom
-  bar's two; then as below, the swipe down aside. While the dance stands: the swipe down, then the swipe to the
-  side, then the tap that plays. While it plays: the tap that pauses, then the swipe down, then the swipe to the side.
-  **Right after a pause the swipe down comes at once** (0.4 s, `HintPainter.AFTER_PAUSE`, even in the first 14 s,
-  and also when it was already the hint while the dance played;
-  the user, 2026-11-22: "After I pause, then I want the hint, the slide down hint to come immediately after that";
-  until v75 the tap that plays came first, 5 s after a pause). The floor works out every hint's first showing and
-  tells the screen (`FloorHost.hint(hint, first)`). **The swipe to the side** got its hint in v76 (the user: "there
+  **One hint at a time** (`DanceFloor.hintNow`), in this order (since v77). With the bars shown: first the swipe to
+  the side on the floor, then the bottom bar's two; then as below, the swipe down aside. While the dance stands: the
+  swipe down, then the swipe to the side, then the tap that plays. While it plays: the tap that pauses, then the
+  swipe down, then the swipe to the side. **Two hints follow the user's own move by a second** (since v77), even in
+  the first 14 s and also when it was the hint already: the swipe down 1 s after a pause (`HintPainter.AFTER_PAUSE`;
+  the user, 2026-11-22: "After I pause, then I want the hint, the slide down hint to come immediately after that",
+  0.4 s in v76, then "like 1 second ... after"; until v75 the tap that plays came first, 5 s after a pause), and the
+  swipe to the side 1 s after the swipe that brought the bars (`AFTER_BARS`; "after I slide down, then there should
+  be a hint to slide side to side on the dance floor itself. Again, pretty much immediately, like with a lag of 1
+  second"; in v76 it came after the bottom bar's two). The floor works out every hint's first showing and tells the
+  screen (`FloorHost.hint(hint, first)`). **The swipe to the side** got its hint in v76 (the user: "there
   needs to be slide side to side hint ... On the dance floor itself"; it had been asked about twice and not answered):
   its flag goes up at any sideways swipe on the floor (`DanceFloor.swipe`), playing or not; it moves nothing of the
   interface (what it does is a whole step of the dance).
@@ -449,9 +452,11 @@ commit (there is no diff step any more: the editor's file is the only version). 
   0.88 s each, then nothing; a touch then brings it back 3 s later, and a touch in the middle of a showing ends it at
   once; the top bar peeking in 18.0 px and going back; the bottom bar's pictures following 32 px each way; the play
   hint 5 s and the pause hint 4 s after the last touch; with reduced motion asked for, a still picture and no bar
-  moving; and for v76: the swipe-down hint 0.46 s after a pause 2 s into the daily exercise, the sideways hint after
-  the bottom bar's two (3 s after the last touch), with the bars shown and away, and gone for good after one sideways
-  swipe; and the swipe-down hint 0.44 to 0.47 s after each pause for one who knows the tap that pauses already. `HintsTest` checks the timing (each movement within 200 to 500 ms, three showings, then the wait for a
+  moving; for v76: the sideways hint with the bars shown and away, and gone for good after one sideways swipe; and
+  for v77: the swipe-down hint 1.06 s after a pause 2 s into the daily exercise, the sideways hint 1.03 s after the
+  swipe down (just above the bottom bar, under the feet), the bottom bar's two after it in their own time (once the
+  first 14 s are over); the swipe-down hint 1.04 to 1.07 s after each pause for one who knows the tap that pauses
+  already. `HintsTest` checks the timing (each movement within 200 to 500 ms, three showings, then the wait for a
   touch), the nudge and the still pictures. **Not hinted**: the swipe up that sends the bars away (the swipe to the
   left or right on the floor was not hinted either until v76).
 - **Metronome.** Snare on the odd counts, closed hi-hat on the swung "&" and the even counts; scheduled on its own thread
@@ -655,7 +660,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   brings the bars and a swipe up or down sends them away.
   2026-11-22, v74: the hints remade after the common practice for gesture hints, looked up at the user's request
   ("The hints" above). v75: no hint in the first 14 s, one slide 10% slower instead of two, 9.2 s between showings.
-  v76: the swipe-down hint at once after a pause; a new hint for the swipe to the side on the floor.
+  v76: the swipe-down hint at once after a pause; a new hint for the swipe to the side on the floor. v77: the
+  swipe-down hint 1 s after a pause; the sideways hint 1 s after the swipe down, before the bottom bar's two.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

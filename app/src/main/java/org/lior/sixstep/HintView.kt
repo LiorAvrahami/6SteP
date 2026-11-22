@@ -93,7 +93,7 @@ class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     private var hint: Hint? = null
     private var since = 0L               // when its clock started: when it became the floor's hint, or the last touch
     private var still = false            // the phone asks for less motion (its animations are switched off)
-    private var first = 0.0              // s from `since` to its first showing (the floor decides: HintPainter.firstAt, AFTER_PAUSE)
+    private var first = 0.0              // s from `since` to its first showing (the floor decides: HintPainter.firstAt, AFTER_PAUSE, AFTER_BARS)
     /** how much of the floor the bottom bar covers now, in px */
     var bottomBar = 0f
     /** told at every frame of a hint how far the interface follows its finger (HintPainter.nudge), and 0 when it stops */

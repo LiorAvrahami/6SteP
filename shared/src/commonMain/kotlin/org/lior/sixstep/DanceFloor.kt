@@ -81,7 +81,8 @@ interface FloorHost {
      *  call (HintPainter counts from it). Also called again with the same hint when the user has touched the screen
      *  (DanceFloor.touched): the clock starts again. `first`: seconds from now to the hint's first showing, which the
      *  floor decides (its own wait, HintPainter.delay; longer in the first HintPainter.FIRST seconds after the floor
-     *  opened; almost at once for the swipe down right after a pause); the screen passes it to HintPainter. */
+     *  opened; a second for the swipe down right after a pause, and for the swipe to the side right after the swipe
+     *  that brought the bars); the screen passes it to HintPainter. */
     fun hint(hint: Hint?, first: Double) {}
     /** the bottom bar holds more steps than fit on the screen: it can be dragged sideways */
     val stripScrolls: Boolean get() = true
@@ -169,7 +170,8 @@ class DanceFloor(
     private var released = false
     private var hint: Hint? = null                // the hint the screen was last told to show
     private var openedAt = Double.NaN             // when the floor opened (host.nowMs): no hint in the first HintPainter.FIRST seconds
-    private var justPaused = false                // the dance has just been paused: the swipe-down hint comes at once
+    private var justPaused = false                // the dance has just been paused: the swipe-down hint comes a second later
+    private var justBrought = false               // a swipe has just brought the bars: the swipe-to-the-side hint comes a second later
     private var swing = Piece.SWING
 
     /** The dancers' way into a part that a swipe went to while a composition plays (user 2026-11-21, in place of the
@@ -257,7 +259,7 @@ class DanceFloor(
      *  goes up, whichever way the swipe went. */
     fun swipeDown() = swipeUpOrDown()
     fun swipeUp() = swipeUpOrDown()
-    private fun swipeUpOrDown() { if (barsShown) hideBars() else { showBars(); learned(Hint.SWIPE_DOWN) } }
+    private fun swipeUpOrDown() { if (barsShown) hideBars() else { justBrought = true; showBars(); learned(Hint.SWIPE_DOWN) } }
 
     /** a tap on the floor, passed on the moment the finger lifts: it pauses the dance when it plays, and plays it when
      *  it stands (user 2026-11-21). There is no double tap any more: every tap is one of these. */
@@ -277,19 +279,22 @@ class DanceFloor(
     // ------------------------------------------------------------------ the hints
 
     /** The one hint that fits what is on the screen, among those whose flag is still down (see Hint), in this order:
-     *  - with the bars shown, first what the bottom bar can do (a tap on a step, a drag); then as below, the swipe
-     *    down aside (the bars are there);
+     *  - with the bars shown, first the swipe to the side on the floor (user 2026-11-22: "after I slide down, then
+     *    there should be a hint to slide side to side on the dance floor itself"), then what the bottom bar can do (a
+     *    tap on a step, a drag); then as below, the swipe down aside (the bars are there);
      *  - while the dance stands: the swipe down that brings the bars (user 2026-11-21: "the bars closed and a hint to
-     *    swipe down to open them"; and, after a pause, at once: user 2026-11-22: "After I pause, then I want ... the
-     *    slide down hint to come immediately after that"), then the swipe to the side that steps on and back (user
-     *    2026-11-22: "there needs to be slide side to side hint"), then the tap that plays;
+     *    swipe down to open them"; and, after a pause, a second later: user 2026-11-22: "After I pause, then I want
+     *    ... the slide down hint to come immediately after that", then "like 1 second ... after"), then the swipe to
+     *    the side that steps on and back (user 2026-11-22: "there needs to be slide side to side hint"), then the tap
+     *    that plays;
      *  - while it plays: the tap that pauses, then the swipe down, then the swipe to the side (which goes to the next
      *    or the previous part). */
     private fun hintNow(): Hint? {
         if (released || error != null || tl == null) return null
         fun down(h: Hint) = !host.knows(h.key)
-        val order = ArrayList<Hint>()
+        val order = LinkedHashSet<Hint>()   // (a hint added twice keeps its first place)
         if (barsShown) {
+            order.add(Hint.SWIPE_SIDE)
             if (stops.size > 1) order.add(Hint.STRIP_TAP)
             if (host.stripScrolls) order.add(Hint.STRIP_SCROLL)
         }
@@ -313,15 +318,22 @@ class DanceFloor(
         if (openedAt.isNaN()) HintPainter.FIRST else maxOf(0.0, HintPainter.FIRST - (host.nowMs() - openedAt) / 1000.0)
 
     /** tell the screen which hint to show, when that has changed, and when it first shows: its own wait (not in the
-     *  first 14 s of the floor), but the swipe down almost at once right after a pause, whenever that is, also when
-     *  it was the hint already while the dance played (the touch that paused had just started its wait again) */
+     *  first 14 s of the floor); but a second after the user's own move for the two hints that follow one (user
+     *  2026-11-22: "like 1 second ... after"), whenever that is: the swipe down after a pause, and the swipe to the
+     *  side after the swipe that brought the bars; also when it was the hint already (the touch that did the move had
+     *  just started its wait again) */
     private fun hints() {
         val want = hintNow()
         val paused = justPaused; justPaused = false
-        if (want != hint || (paused && want == Hint.SWIPE_DOWN)) {
+        val brought = justBrought; justBrought = false
+        val soon = when {
+            want == Hint.SWIPE_DOWN && paused -> HintPainter.AFTER_PAUSE
+            want == Hint.SWIPE_SIDE && brought -> HintPainter.AFTER_BARS
+            else -> null
+        }
+        if (want != hint || soon != null) {
             hint = want
-            val first = if (want == null) 0.0 else if (want == Hint.SWIPE_DOWN && paused) HintPainter.AFTER_PAUSE else HintPainter.firstAt(want, hintHold())
-            host.hint(want, first)
+            host.hint(want, soon ?: if (want == null) 0.0 else HintPainter.firstAt(want, hintHold()))
         }
     }
 

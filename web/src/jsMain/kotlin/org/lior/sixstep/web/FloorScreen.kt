@@ -42,7 +42,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     private val hintStage = Stage(document.createElement("canvas") as HTMLCanvasElement)
     private var hint: Hint? = null
     private var hintSince = 0.0      // when its clock started: when it became the floor's hint, or the last touch
-    private var hintFirst = 0.0      // s from then to its first showing (the floor decides: HintPainter.firstAt, AFTER_PAUSE)
+    private var hintFirst = 0.0      // s from then to its first showing (the floor decides: HintPainter.firstAt, AFTER_PAUSE, AFTER_BARS)
     private var hintDrawn = false    // something of it is on the layer now
     private var hintTimer: Int? = null   // wakes the frames when a resting hint is to play again
     private var peek = 0.0           // px the top bar is brought down by a hint (HintPainter.nudge)

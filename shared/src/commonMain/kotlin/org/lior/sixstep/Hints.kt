@@ -81,8 +81,12 @@ object HintPainter {
         Hint.SWIPE_SIDE -> 3.0
     }
     /** s after a pause before the swipe-down hint (user 2026-11-22: "After I pause, then I want the hint, the slide down
-     *  hint to come immediately after that"): a moment for the tap to be over */
-    const val AFTER_PAUSE = 0.4
+     *  hint to come immediately after that"; and then: "like 1 second ... after"; 0.4 s in v76) */
+    const val AFTER_PAUSE = 1.0
+    /** s after the swipe that brought the bars before the hint to swipe to the side on the floor (user 2026-11-22: "after
+     *  I slide down, then there should be a hint to slide side to side on the dance floor itself. Again, pretty much
+     *  immediately, like with a lag of 1 second") */
+    const val AFTER_BARS = 1.0
     const val SHOWINGS = 3         // showings in a row; then nothing until the user touches the screen (or another hint takes over)
     const val GAP = 9.2            // s from the start of one showing to the start of the next (8 until 2026-11-22; the user: "make it wait 15% more between repetitions")
     /** s after a dance floor opens before any hint shows (user 2026-11-22: "wait 14 seconds from starting to showing the
@@ -132,7 +136,8 @@ object HintPainter {
 
     /** seconds from the start of the hint's clock to its first showing, as a rule: its own delay, or longer while the
      *  first FIRST seconds of the floor last (`hold`: how much of them is left at the clock's start). DanceFloor
-     *  decides (`first`), and may decide otherwise (the swipe down right after a pause: AFTER_PAUSE). */
+     *  decides (`first`), and may decide otherwise (the swipe down right after a pause: AFTER_PAUSE; the swipe to
+     *  the side right after the swipe that brought the bars: AFTER_BARS). */
     fun firstAt(hint: Hint, hold: Double = 0.0): Double = max(delay(hint), hold)
 
     /** which showing `t` seconds fall in, and how far into it they are; null between showings and after the last */
