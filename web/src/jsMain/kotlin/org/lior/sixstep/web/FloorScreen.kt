@@ -42,7 +42,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     private val hintStage = Stage(document.createElement("canvas") as HTMLCanvasElement)
     private var hint: Hint? = null
     private var hintSince = 0.0      // when its clock started: when it became the floor's hint, or the last touch
-    private var hintHold = 0.0       // s from then before which it may not show (the first 14 s after the floor opened)
+    private var hintFirst = 0.0      // s from then to its first showing (the floor decides: HintPainter.firstAt, AFTER_PAUSE)
     private var hintDrawn = false    // something of it is on the layer now
     private var hintTimer: Int? = null   // wakes the frames when a resting hint is to play again
     private var peek = 0.0           // px the top bar is brought down by a hint (HintPainter.nudge)
@@ -261,11 +261,11 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         if (h != null || hintDrawn) {
             hintStage.fit()
             if (hintDrawn) hintStage.g.clearRect(0.0, 0.0, hintStage.width, hintStage.height)
-            hintDrawn = h != null && HintPainter.draw(hintStage.draw, h, th, hintStage.width, hintStage.height, 1.0, if (floor.barsShown) STRIP else 0.0, still, hintHold)
+            hintDrawn = h != null && HintPainter.draw(hintStage.draw, h, th, hintStage.width, hintStage.height, 1.0, if (floor.barsShown) STRIP else 0.0, still, hintFirst)
         }
         // and the real interface makes a little of the move with it (HintPainter.nudge): the top bar peeks in as the finger
         // swipes down, the bottom bar's pictures follow a drag
-        val n = if (h == null) 0.0 else HintPainter.nudge(h, th, still, hintHold)
+        val n = if (h == null) 0.0 else HintPainter.nudge(h, th, still, hintFirst)
         val wantPeek = if (h == Hint.SWIPE_DOWN && !floor.barsShown) kotlin.math.max(0.0, n) * HintPainter.BAR_PEEK else 0.0
         if (wantPeek != peek) {
             peek = wantPeek
@@ -283,7 +283,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         report()
         // while it rests nothing needs drawing: the frames are woken when it is to play again
         if (h != null && !hintDrawn && hintTimer == null) {
-            val wait = HintPainter.wait(h, th, hintHold)   // infinite after its last showing: then it waits for a touch
+            val wait = HintPainter.wait(h, th, hintFirst)   // infinite after its last showing: then it waits for a touch
             if (wait.isFinite()) hintTimer = window.setTimeout({ hintTimer = null; ask() }, (wait * 1000.0).coerceIn(16.0, 60000.0).toInt())
         }
         if (dirty || stripDirty || callbacks.isNotEmpty() || gliding || (!stripDragging && abs(flingV) > 0.02) || floor.loading || hintDrawn) ask()
@@ -355,8 +355,8 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     // the hints: which one to show, and what this user has already done (kept in the browser's storage, so until that is cleared)
     /** the phone or computer asks for less motion: the hints are still pictures */
     private val reducedMotion: Boolean get() = try { window.matchMedia("(prefers-reduced-motion: reduce)").matches } catch (e: Throwable) { false }
-    override fun hint(hint: Hint?, hold: Double) {
-        this.hint = hint; hintSince = nowMs(); hintHold = hold
+    override fun hint(hint: Hint?, first: Double) {
+        this.hint = hint; hintSince = nowMs(); hintFirst = first
         hintTimer?.let { window.clearTimeout(it) }; hintTimer = null
         ask()
     }

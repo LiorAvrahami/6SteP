@@ -132,7 +132,7 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
 
     // the hints (the shared Hint): which one to show, and what this user has already done once. The flags are kept in
     // the app's preferences, so they stay until the app's data is cleared.
-    override fun hint(hint: Hint?, hold: Double) { hintView.show(hint, hold) }
+    override fun hint(hint: Hint?, first: Double) { hintView.show(hint, first) }
     override fun knows(what: String): Boolean = getSharedPreferences("6step", MODE_PRIVATE).getBoolean(Hint.flagOf(what), false)
     override fun learned(what: String) { getSharedPreferences("6step", MODE_PRIVATE).edit().putBoolean(Hint.flagOf(what), true).apply() }
     override val stripScrolls: Boolean get() = stripView.canScroll

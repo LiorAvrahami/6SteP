@@ -368,7 +368,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   | `tap_play` | a tap on the floor plays it | the same with the play mark, while the dance stands |
   | `bars` | a swipe down brings the bars | a short grip at the top edge, a fingertip sliding down from it with a tail, an arrowhead under it; while the bars are away |
   | `strip_tap` | a tap on a step of the bottom bar goes there | a fingertip with three rings on the bar's pictures |
-  | `strip_scroll` | the bottom bar can be dragged | a fingertip sliding along the bar's pictures, to the left and then to the right, turn about |
+  | `strip_scroll` | the bottom bar can be dragged | a fingertip sliding along the bar's pictures, to the left in one showing and to the right in the next |
+  | `swipe_side` | a swipe to the left or right on the floor: a step on or back (standing), a part on or back (playing) | a fingertip sliding across the floor just under the dancers, to the left in one showing and to the right in the next (since v76) |
 
   The pictures have one sign: a round dot is a fingertip; rings going out from it are a tap (the user's own idea: "3
   consecutive circles that appear that indicate that you tap"), and a mark in it says what the tap does; a dot that
@@ -413,19 +414,26 @@ commit (there is no diff step any more: the editor's file is the only version). 
     `prefers-reduced-motion: reduce`, or the phone's animations are switched off (`ANIMATOR_DURATION_SCALE` 0), a
     still picture fades in and out instead: the fingertip with one ring, or with an arrow along the swipe; nothing
     else moves.
-  **One hint at a time** (`DanceFloor.hintNow`). With the bars shown: first the bottom bar's two, then the tap (the
-  bar's play button is there to be seen). With the bars away there are two things to find, the tap and the swipe
-  down, and which comes first depends on where the user is: on a piece that has just been opened and stands, the
-  swipe down; while the dance plays, the tap that pauses; after a pause, the tap that plays. The other follows once
-  the first is known. **A piece opens with the bars away** (since v72: "I don't like the fact that you start a new
-  dance with the bars open. I prefer the bars closed and a hint to swipe down to open them"; until then everything
-  but the daily exercise opened standing with its bars shown); the bars still come by themselves when a composition
-  has been danced to its end. **A flag goes up when the user does the thing itself** (`tap()`, `swipeDown()`,
-  `tapStop()`, `stripScrolled()`), hint or no hint; not when the same happens another way (the top bar's play
+  **One hint at a time** (`DanceFloor.hintNow`), in this order (since v76). With the bars shown: first the bottom
+  bar's two; then as below, the swipe down aside. While the dance stands: the swipe down, then the swipe to the
+  side, then the tap that plays. While it plays: the tap that pauses, then the swipe down, then the swipe to the side.
+  **Right after a pause the swipe down comes at once** (0.4 s, `HintPainter.AFTER_PAUSE`, even in the first 14 s,
+  and also when it was already the hint while the dance played;
+  the user, 2026-11-22: "After I pause, then I want the hint, the slide down hint to come immediately after that";
+  until v75 the tap that plays came first, 5 s after a pause). The floor works out every hint's first showing and
+  tells the screen (`FloorHost.hint(hint, first)`). **The swipe to the side** got its hint in v76 (the user: "there
+  needs to be slide side to side hint ... On the dance floor itself"; it had been asked about twice and not answered):
+  its flag goes up at any sideways swipe on the floor (`DanceFloor.swipe`), playing or not; it moves nothing of the
+  interface (what it does is a whole step of the dance).
+  **A piece opens with the bars away** (since v72: "I don't like the fact that you start a new dance with the bars
+  open. I prefer the bars closed and a hint to swipe down to open them"; until then everything but the daily
+  exercise opened standing with its bars shown); the bars still come by themselves when a composition has been
+  danced to its end. **A flag goes up when the user does the thing itself** (`tap()`, `swipeDown()`,
+  `swipe()`, `tapStop()`, `stripScrolled()`), hint or no hint; not when the same happens another way (the top bar's play
   button, the bars that come by themselves at a composition's end). The flags are kept by the screen
   (`FloorHost.knows`, `learned`) under `Hint.flag` (`hint_<key>`) in the app's preferences and in the browser's
   storage, so until those are cleared; a screen that keeps nothing shows no hints. **Settings has a button that puts
-  all five down again**, "Show the dance floor's hints again" (v72; the user: "Yes, add a button in the settings to
+  all of them down again**, "Show the dance floor's hints again" (v72; the user: "Yes, add a button in the settings to
   reset the hints"), under the note about the mute button.
   **Drawing:** the shared `HintPainter` through `Draw`, so both fronts show the same. The web page has a third
   canvas for it (`canvas.hints`: over the floor and the bars, under an open menu, no touches); the Android app a
@@ -441,10 +449,11 @@ commit (there is no diff step any more: the editor's file is the only version). 
   0.88 s each, then nothing; a touch then brings it back 3 s later, and a touch in the middle of a showing ends it at
   once; the top bar peeking in 18.0 px and going back; the bottom bar's pictures following 32 px each way; the play
   hint 5 s and the pause hint 4 s after the last touch; with reduced motion asked for, a still picture and no bar
-  moving. `HintsTest` checks the timing (each movement within 200 to 500 ms, three showings, then the wait for a
-  touch), the nudge and the still pictures. **Not hinted** (asked of the user on
-  v71, not answered): the swipe to the left or right on the floor (a step on while it stands, a part on while it
-  plays) and the swipe up that sends the bars away.
+  moving; and for v76: the swipe-down hint 0.46 s after a pause 2 s into the daily exercise, the sideways hint after
+  the bottom bar's two (3 s after the last touch), with the bars shown and away, and gone for good after one sideways
+  swipe; and the swipe-down hint 0.44 to 0.47 s after each pause for one who knows the tap that pauses already. `HintsTest` checks the timing (each movement within 200 to 500 ms, three showings, then the wait for a
+  touch), the nudge and the still pictures. **Not hinted**: the swipe up that sends the bars away (the swipe to the
+  left or right on the floor was not hinted either until v76).
 - **Metronome.** Snare on the odd counts, closed hi-hat on the swung "&" and the even counts; scheduled on its own thread
   at exact uptimes from the clock. Both sounds are synthesised by `make_assets.py`.
 - **Speech.** Annotations are fetched once from Google Translate's TTS endpoint and cached per phrase (`cacheDir/tts_<md5>.mp3`),
@@ -646,6 +655,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   brings the bars and a swipe up or down sends them away.
   2026-11-22, v74: the hints remade after the common practice for gesture hints, looked up at the user's request
   ("The hints" above). v75: no hint in the first 14 s, one slide 10% slower instead of two, 9.2 s between showings.
+  v76: the swipe-down hint at once after a pause; a new hint for the swipe to the side on the floor.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

@@ -74,10 +74,12 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   music dips to 60 percent under a spoken annotation and comes back right after it.
   **Hints:** what nothing on the screen says is shown to a new user by a small picture of a fingertip, one at a time:
   pressing with rings for the tap that pauses and the tap that plays, sliding down for the swipe that brings the bars
-  (the top bar peeks in with it), a ring on a step, and a drag along the bottom bar (its pictures follow). After the
-  common practice for such hints: each movement 200 to 500 ms; none in the first 14 s after a dance opens; a hint
-  waits until the screen has been left alone for a few seconds, shows three times, 9.2 s apart, and rests until the
-  next touch; any touch makes it go; still pictures where the phone asks for less motion. Each goes for good the first time the user does the thing (a flag in
+  (the top bar peeks in with it; right after a pause it comes at once), a fingertip sliding across the floor for the
+  swipe to the side (a step on or back), a ring on a step, and a drag along the bottom bar (its pictures follow).
+  After the common practice for such hints: each movement 200 to 500 ms; none in the first 14 s after a dance opens
+  (but the swipe down right after a pause); a hint waits until the screen has been left alone for a few seconds,
+  shows three times, 9.2 s apart, and rests until the next touch; any touch makes it go; still pictures where the
+  phone asks for less motion. Each goes for good the first time the user does the thing (a flag in
   the app's preferences or the browser's storage); a button in Settings brings them all back. A piece opens with its
   bars away.
 - **Heart**: upright, as the user drew it (the rest of the app is sideways): the note and the email button. The

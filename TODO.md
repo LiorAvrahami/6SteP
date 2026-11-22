@@ -98,6 +98,8 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-22, v76:** right after a pause the swipe-down hint comes at once; a new hint for the swipe to the side on
+  the dance floor (the user: "there needs to be slide side to side hint").
 - **2026-11-22, v75:** no hint in the first 14 s after a dance opens; a swipe hint is one slide, 10% slower; 9.2 s
   between a hint's showings (15% more than 8 s).
 - **2026-11-22, v74:** the hints remade after the common practice for gesture hints (the user: "can you look it up

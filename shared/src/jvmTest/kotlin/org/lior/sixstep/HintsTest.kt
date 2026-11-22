@@ -44,9 +44,9 @@ class HintsTest {
     // a phone held sideways: 831 x 387 dp, 2.625 pixels to the dp
     private val dp = 2.625; private val w = 831 * dp; private val h = 387 * dp; private val strip = 132 * dp
 
-    private fun at(hint: Hint, t: Double, bottomBar: Double, hold: Double = 0.0): Pair<Boolean, Sheet> {
+    private fun at(hint: Hint, t: Double, bottomBar: Double, first: Double = HintPainter.delay(hint)): Pair<Boolean, Sheet> {
         val s = Sheet()
-        return Pair(HintPainter.draw(s, hint, t, w, h, dp, bottomBar, hold = hold), s)
+        return Pair(HintPainter.draw(s, hint, t, w, h, dp, bottomBar, first = first), s)
     }
 
     /** the common practice looked up on 2026-11-22 (HintPainter's comment): movements of 200 to 500 ms, eased; a hint
@@ -102,12 +102,12 @@ class HintsTest {
             assertEquals(0.0, HintPainter.nudge(hint, delay + 0.5, still = true), "$hint moves nothing in still pictures")
             // nothing in the first FIRST seconds after the floor opened (user 2026-11-22: "wait 14 seconds from starting
             // to showing the first hint"): with the whole of them still to come, the first showing is at FIRST
-            val hold = HintPainter.FIRST
-            assertEquals(14.0, HintPainter.firstAt(hint, hold))
-            assertEquals(14.0, HintPainter.wait(hint, 0.0, hold), 1e-9)
-            assertFalse(at(hint, 13.95, bar, hold).first, "$hint: not before 14 s")
-            assertTrue(at(hint, 14.05, bar, hold).first, "$hint: at 14 s")
-            assertTrue(at(hint, 14.05 + HintPainter.GAP, bar, hold).first, "$hint: and then every ${HintPainter.GAP} s as always")
+            val first = HintPainter.firstAt(hint, HintPainter.FIRST)
+            assertEquals(14.0, first)
+            assertEquals(14.0, HintPainter.wait(hint, 0.0, first), 1e-9)
+            assertFalse(at(hint, 13.95, bar, first).first, "$hint: not before 14 s")
+            assertTrue(at(hint, 14.05, bar, first).first, "$hint: at 14 s")
+            assertTrue(at(hint, 14.05 + HintPainter.GAP, bar, first).first, "$hint: and then every ${HintPainter.GAP} s as always")
             assertEquals(delay, HintPainter.firstAt(hint, 1.0), "$hint: with less of them left than its own wait, its own wait")
         }
         // 15% longer between showings than v74's 8 s (user 2026-11-22)
@@ -132,7 +132,9 @@ class HintsTest {
             assertEquals(0.0, HintPainter.nudge(hint, t0 + HintPainter.STROKE - 0.01), 1e-3, "$hint: back in place as the stroke ends")
             assertEquals(0.0, HintPainter.nudge(hint, t0 + HintPainter.plays(hint) + 0.5), "$hint: nothing between showings")
         }
-        for (hint in listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.STRIP_TAP)) assertEquals(0.0, HintPainter.nudge(hint, HintPainter.delay(hint) + 0.4), "$hint moves nothing")
+        for (hint in listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.STRIP_TAP, Hint.SWIPE_SIDE)) {
+            for (k in 0..40) assertEquals(0.0, HintPainter.nudge(hint, HintPainter.delay(hint) + k * 0.025), "$hint moves nothing")
+        }
         assertTrue(HintPainter.BAR_PEEK in 10.0..24.0 && HintPainter.STRIP_NUDGE in 16.0..40.0, "a short way (Microsoft's swipe hint: 15 px down, 23 px across)")
     }
 
@@ -168,6 +170,17 @@ class HintsTest {
         val s0 = HintPainter.delay(Hint.STRIP_SCROLL) + HintPainter.MOVE_FROM + HintPainter.MOVE
         assertTrue(dotX(s0) < (p[0] + p[2]) / 2, "the first stroke ends on the left")
         assertTrue(dotX(s0 + HintPainter.GAP) > (p[0] + p[2]) / 2, "the next showing's on the right")
+        // the swipe to the side: across the floor, low, above the bottom bar when that is shown; one way in one showing,
+        // the other way in the next
+        val side = HintPainter.place(Hint.SWIPE_SIDE, w, h, dp, 0.0)
+        val t1 = HintPainter.delay(Hint.SWIPE_SIDE)
+        val c = at(Hint.SWIPE_SIDE, t1 + 0.4, 0.0).second
+        assertTrue(c.t > h * 0.7 && c.b < h, "the swipe to the side is low on the floor: from ${c.t / dp} to ${c.b / dp} dp of ${h / dp}")
+        assertTrue(c.b - c.t < 40 * dp, "and goes across, not up or down")
+        assertTrue(at(Hint.SWIPE_SIDE, t1 + 0.4, strip).second.b < h - strip, "above the bottom bar when that is shown")
+        fun sideX(t: Double): Double { val s = at(Hint.SWIPE_SIDE, t, 0.0).second; return (s.l + s.r) / 2 }
+        val e = t1 + HintPainter.MOVE_FROM + HintPainter.MOVE
+        assertTrue(sideX(e) < (side[0] + side[2]) / 2 && sideX(e + HintPainter.GAP) > (side[0] + side[2]) / 2, "to the left (a step on), then to the right (a step back)")
         // every flag has a name of its own
         assertEquals(Hint.values().size, Hint.values().map { it.key }.toSet().size)
     }

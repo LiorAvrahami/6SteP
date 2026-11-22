@@ -79,10 +79,10 @@ interface FloorHost {
     fun learned(what: String) {}
     /** the hint to show over the floor now (HintPainter draws it), or none. The screen starts the hint's clock at this
      *  call (HintPainter counts from it). Also called again with the same hint when the user has touched the screen
-     *  (DanceFloor.touched): the clock starts again. `hold`: seconds from now before which no hint may show, what is
-     *  left of the first HintPainter.FIRST seconds after the floor opened (0 once they are over); the screen passes
-     *  it to HintPainter. */
-    fun hint(hint: Hint?, hold: Double) {}
+     *  (DanceFloor.touched): the clock starts again. `first`: seconds from now to the hint's first showing, which the
+     *  floor decides (its own wait, HintPainter.delay; longer in the first HintPainter.FIRST seconds after the floor
+     *  opened; almost at once for the swipe down right after a pause); the screen passes it to HintPainter. */
+    fun hint(hint: Hint?, first: Double) {}
     /** the bottom bar holds more steps than fit on the screen: it can be dragged sideways */
     val stripScrolls: Boolean get() = true
 }
@@ -168,8 +168,8 @@ class DanceFloor(
     private var frameAsked = false
     private var released = false
     private var hint: Hint? = null                // the hint the screen was last told to show
-    private var played = false                    // the dance has played since this floor was opened
     private var openedAt = Double.NaN             // when the floor opened (host.nowMs): no hint in the first HintPainter.FIRST seconds
+    private var justPaused = false                // the dance has just been paused: the swipe-down hint comes at once
     private var swing = Piece.SWING
 
     /** The dancers' way into a part that a swipe went to while a composition plays (user 2026-11-21, in place of the
@@ -247,7 +247,10 @@ class DanceFloor(
     // ------------------------------------------------------------------ what the fronts pass on
 
     /** a swipe to the left (forward = true) or to the right */
-    fun swipe(forward: Boolean) { if (playing) skip(forward) else step(if (forward) 1 else -1) }
+    fun swipe(forward: Boolean) {
+        if (playing) skip(forward) else step(if (forward) 1 else -1)
+        learned(Hint.SWIPE_SIDE)   // the user has found it: no more hint for that
+    }
     /** A swipe down or up on the floor, either of them: the bars come when they are away and go when they are shown
      *  (user 2026-11-21: "swiping up or down opens them and swiping up or down closes them"; until then a swipe down
      *  brought them and only a swipe up sent them away). Bringing them is one of the things the hints teach: the flag
@@ -273,25 +276,28 @@ class DanceFloor(
 
     // ------------------------------------------------------------------ the hints
 
-    /** The one hint that fits what is on the screen, among those whose flag is still down (see Hint).
-     *  With the bars shown: first what the bottom bar can do, then the tap (the bar's play button is there to be seen).
-     *  With the bars away there are two things to find, the tap and the swipe that brings the bars, and which comes
-     *  first depends on where the user is: on a piece that has just been opened and stands, the swipe (user
-     *  2026-11-21: "the bars closed and a hint to swipe down to open them"); while the dance plays, the tap that
-     *  pauses; and after a pause the tap that plays, which HintPainter holds back for a few seconds ("If someone
-     *  paused, then wait a few seconds ... before you hint them to play"). The other one follows once the first is
-     *  known. */
+    /** The one hint that fits what is on the screen, among those whose flag is still down (see Hint), in this order:
+     *  - with the bars shown, first what the bottom bar can do (a tap on a step, a drag); then as below, the swipe
+     *    down aside (the bars are there);
+     *  - while the dance stands: the swipe down that brings the bars (user 2026-11-21: "the bars closed and a hint to
+     *    swipe down to open them"; and, after a pause, at once: user 2026-11-22: "After I pause, then I want ... the
+     *    slide down hint to come immediately after that"), then the swipe to the side that steps on and back (user
+     *    2026-11-22: "there needs to be slide side to side hint"), then the tap that plays;
+     *  - while it plays: the tap that pauses, then the swipe down, then the swipe to the side (which goes to the next
+     *    or the previous part). */
     private fun hintNow(): Hint? {
         if (released || error != null || tl == null) return null
         fun down(h: Hint) = !host.knows(h.key)
-        val tap = if (playing) Hint.TAP_PAUSE else Hint.TAP_PLAY
+        val order = ArrayList<Hint>()
         if (barsShown) {
-            if (stops.size > 1 && down(Hint.STRIP_TAP)) return Hint.STRIP_TAP
-            if (host.stripScrolls && down(Hint.STRIP_SCROLL)) return Hint.STRIP_SCROLL
-            return tap.takeIf { down(it) }
+            if (stops.size > 1) order.add(Hint.STRIP_TAP)
+            if (host.stripScrolls) order.add(Hint.STRIP_SCROLL)
         }
-        val swipeFirst = !playing && !played
-        return (if (swipeFirst) listOf(Hint.SWIPE_DOWN, tap) else listOf(tap, Hint.SWIPE_DOWN)).firstOrNull { down(it) }
+        if (playing) order.addAll(listOf(Hint.TAP_PAUSE, Hint.SWIPE_DOWN, Hint.SWIPE_SIDE))
+        else order.addAll(listOf(Hint.SWIPE_DOWN, Hint.SWIPE_SIDE, Hint.TAP_PLAY))
+        if (barsShown) order.remove(Hint.SWIPE_DOWN)
+        if (stops.size < 2) order.remove(Hint.SWIPE_SIDE)
+        return order.firstOrNull { down(it) }
     }
 
     /** The user has put a finger on the screen (or pressed a key): the hint on the screen goes at once, and comes back
@@ -299,17 +305,24 @@ class DanceFloor(
      *  busy, and does not give up for good either (common practice for gesture hints, looked up on 2026-11-22: hints
      *  wait for the user to be idle and are cancelled by a touch). The screens call this at every touch, before the
      *  touch does anything else. */
-    fun touched() { hint?.let { host.hint(it, hold()) } }
+    fun touched() { hint?.let { host.hint(it, HintPainter.firstAt(it, hintHold())) } }
 
     /** what is left of the first HintPainter.FIRST seconds after the floor opened, in seconds (user 2026-11-22: "wait
      *  14 seconds from starting to showing the first hint") */
-    private fun hold(): Double =
+    private fun hintHold(): Double =
         if (openedAt.isNaN()) HintPainter.FIRST else maxOf(0.0, HintPainter.FIRST - (host.nowMs() - openedAt) / 1000.0)
 
-    /** tell the screen which hint to show, when that has changed */
+    /** tell the screen which hint to show, when that has changed, and when it first shows: its own wait (not in the
+     *  first 14 s of the floor), but the swipe down almost at once right after a pause, whenever that is, also when
+     *  it was the hint already while the dance played (the touch that paused had just started its wait again) */
     private fun hints() {
         val want = hintNow()
-        if (want != hint) { hint = want; host.hint(want, hold()) }
+        val paused = justPaused; justPaused = false
+        if (want != hint || (paused && want == Hint.SWIPE_DOWN)) {
+            hint = want
+            val first = if (want == null) 0.0 else if (want == Hint.SWIPE_DOWN && paused) HintPainter.AFTER_PAUSE else HintPainter.firstAt(want, hintHold())
+            host.hint(want, first)
+        }
     }
 
     /** the user did it: the flag goes up for good, and the next hint (if any) takes its place */
@@ -599,7 +612,7 @@ class DanceFloor(
         val from = if (countIn) b - (MusicPlan.COUNT_IN - Piece.LEAD_IN) else b + (settled(ptl, playBeat(b)) - playBeat(b))
         pb.play(from)
         if (!pb.playing) { standAt(from); return }   // the sound is busy (a call)
-        playing = true; played = true
+        playing = true
         hold = if (countIn) b else Double.NEGATIVE_INFINITY
         lastCue = cues.indexOfLast { it.first < b - 0.01 }   // an element starting on this step is announced, one under way is not
         silentUntil = if (quiet) b + 0.05 else Double.NEGATIVE_INFINITY
@@ -612,6 +625,7 @@ class DanceFloor(
     /** pause: everything that played is let go (players, clock, drums, voice); what stays is the step we are on */
     private fun pause() {
         if (!playing) return
+        justPaused = true   // (hints() takes it, when standAt asks for the hint)
         val b = pb.beatNow()
         pb.stop()
         // in the rock triple triples before a part: they are not steps of the piece, so the dance stands at the part's start

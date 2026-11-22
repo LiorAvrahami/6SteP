@@ -31,10 +31,10 @@ class DanceFloorTest {
         var known: HashSet<String>? = null   // null: a screen that keeps nothing, and so shows no hints
         var hint: Hint? = null
         val hints = ArrayList<Hint?>()       // every hint the floor asked for, in order
-        val holds = ArrayList<Double>()      // and with each, how long it had to wait at least
+        val firsts = ArrayList<Double>()     // and with each, in how many seconds it was to show first
         override fun knows(what: String) = known?.contains(what) ?: true
         override fun learned(what: String) { known?.add(what) }
-        override fun hint(hint: Hint?, hold: Double) { this.hint = hint; hints.add(hint); holds.add(hold) }
+        override fun hint(hint: Hint?, first: Double) { this.hint = hint; hints.add(hint); firsts.add(first) }
         override var stripScrolls = true
         val banners = ArrayList<Pair<String, Double>>()   // every banner as it came up, with nothing else: filled by the test
         private val frames = ArrayList<() -> Unit>()
@@ -361,30 +361,28 @@ class DanceFloorTest {
         r.run(4000.0)
         assertEquals(Hint.TAP_PAUSE, r.host.hint, "it stays for as long as the dance plays and the tap has not been used")
         assertTrue(known.isEmpty())
-        // paused with the play button of the top bar (the bars are away, so only a test can): that is not the tap
+        // paused with the play button of the top bar (the bars are away, so only a test can): that is not the tap, but it
+        // is a pause, and right after a pause comes the swipe down, at once (user 2026-11-22)
         r.floor.playPause()
-        assertEquals(Hint.TAP_PLAY, r.host.hint, "standing, the hint is the tap that plays")
+        assertEquals(Hint.SWIPE_DOWN, r.host.hint, "standing: first the swipe down")
+        assertEquals(HintPainter.AFTER_PAUSE, r.host.firsts.last(), "at once, though the first 14 s are not over")
         r.floor.playPause()
         assertTrue(known.isEmpty(), "pausing and playing another way raises no flag")
         assertEquals(Hint.TAP_PAUSE, r.host.hint)
-        // the tap: the flag goes up, and now a tap would play
+        // the tap: the flag goes up; standing, the swipe down, at once
         r.floor.tap()
         assertFalse(r.floor.playing)
         assertEquals(setOf("tap_pause"), known)
-        assertEquals(Hint.TAP_PLAY, r.host.hint)
-        r.floor.tap()
-        assertTrue(r.floor.playing)
-        assertEquals(setOf("tap_pause", "tap_play"), known)
-        // both taps are known: what is left to find with the bars away is the swipe down
         assertEquals(Hint.SWIPE_DOWN, r.host.hint)
-        r.floor.tap(); assertEquals(Hint.SWIPE_DOWN, r.host.hint, "paused or playing")
+        assertEquals(HintPainter.AFTER_PAUSE, r.host.firsts.last())
         r.floor.swipeDown()
         assertTrue(r.floor.barsShown)
-        assertEquals(setOf("tap_pause", "tap_play", "bars"), known)
+        assertEquals(setOf("tap_pause", "bars"), known)
         // the bars are there: a step of the bottom bar can be tapped
         assertEquals(Hint.STRIP_TAP, r.host.hint)
-        // (a second swipe sends the bars away again, and with them the bottom bar's hint; the next one brings both back)
-        r.floor.swipeDown(); assertFalse(r.floor.barsShown); assertNull(r.host.hint, "the bars away, and nothing left to find without them")
+        // (a second swipe sends the bars away again, and with them the bottom bar's hint: standing, the swipe to the
+        // side is next; the next swipe brings the bars and their hint back)
+        r.floor.swipeDown(); assertFalse(r.floor.barsShown); assertEquals(Hint.SWIPE_SIDE, r.host.hint)
         r.floor.swipeUp(); assertTrue(r.floor.barsShown); assertEquals(Hint.STRIP_TAP, r.host.hint)
         r.floor.tapStop(7)
         assertEquals(7, r.host.current)
@@ -392,7 +390,17 @@ class DanceFloorTest {
         // and the bar can be dragged
         assertEquals(Hint.STRIP_SCROLL, r.host.hint)
         r.floor.stripScrolled()
-        assertEquals(setOf("tap_pause", "tap_play", "bars", "strip_tap", "strip_scroll"), known)
+        // standing: the swipe to the side (user 2026-11-22: "there needs to be slide side to side hint")
+        assertEquals(Hint.SWIPE_SIDE, r.host.hint)
+        r.floor.swipe(true)
+        assertEquals(8, r.host.current, "a step on")
+        assertTrue("swipe_side" in known)
+        // and last, the tap that plays
+        assertEquals(Hint.TAP_PLAY, r.host.hint)
+        r.floor.tap()
+        assertTrue(r.floor.playing)
+        assertEquals(setOf("tap_pause", "bars", "strip_tap", "strip_scroll", "swipe_side", "tap_play"), known)
+        assertEquals(Hint.values().map { it.key }.toSet(), known.toSet(), "every hint there is")
         assertNull(r.host.hint, "everything has been done: no hint is left")
         // and none comes back, whatever happens on the floor
         val asked = r.host.hints.size
@@ -403,10 +411,51 @@ class DanceFloorTest {
         again.run(4000.0); again.floor.tap(); again.floor.swipeDown()
         assertTrue(again.host.hints.all { it == null }, "a user who has done it all is shown nothing: ${again.host.hints}")
         // one hint at a time, each replaced by the next (the first two came twice: once for the top bar's button, which
-        // paused and played without teaching the tap, and once for the taps themselves; and the bottom bar's first one
-        // went and came with the bars)
-        assertEquals(listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.SWIPE_DOWN, Hint.STRIP_TAP, null, Hint.STRIP_TAP, Hint.STRIP_SCROLL, null),
+        // paused and played without teaching the tap, and once for the tap itself; the bottom bar's first one went and
+        // came with the bars)
+        assertEquals(listOf(Hint.TAP_PAUSE, Hint.SWIPE_DOWN, Hint.TAP_PAUSE, Hint.SWIPE_DOWN, Hint.STRIP_TAP, Hint.SWIPE_SIDE, Hint.STRIP_TAP,
+            Hint.STRIP_SCROLL, Hint.SWIPE_SIDE, Hint.TAP_PLAY, null),
             r.host.hints.take(asked).filterIndexed { i, h -> i == 0 || r.host.hints[i - 1] != h })
+    }
+
+    /** user 2026-11-22: "After I pause, then I want the hint, the slide down hint to come immediately after that": at any
+     *  time, the first 14 s included; a touch afterwards makes it wait for idleness as any hint */
+    @Test fun rightAfterAPauseTheSwipeDownHintComesAtOnce() {
+        val r = rig(exercise, autoplay = true, known = HashSet())
+        r.run(2000.0)
+        r.floor.tap()
+        assertFalse(r.floor.playing)
+        assertEquals(Hint.SWIPE_DOWN, r.host.hint)
+        assertEquals(HintPainter.AFTER_PAUSE, r.host.firsts.last(), 1e-9, "2 s into the floor, at once all the same")
+        assertTrue(HintPainter.AFTER_PAUSE <= 0.5)
+        r.run(1000.0); r.floor.touched()
+        assertEquals(Hint.SWIPE_DOWN, r.host.hint)
+        assertEquals(11.0, r.host.firsts.last(), 1e-6, "after a touch it waits as any hint: here for the rest of the first 14 s")
+        // one who knows the tap that pauses already: while it plays the hint is the swipe down; after a pause it comes
+        // at once all the same (the screens call touched() first, which starts its wait again; then the pause)
+        val again = rig(exercise, autoplay = true, known = hashSetOf("tap_pause"))
+        again.run(20000.0)
+        assertTrue(again.floor.playing)
+        assertEquals(Hint.SWIPE_DOWN, again.host.hint)
+        again.floor.touched()
+        assertEquals(HintPainter.delay(Hint.SWIPE_DOWN), again.host.firsts.last(), 1e-9)
+        again.floor.tap()
+        assertFalse(again.floor.playing)
+        assertEquals(Hint.SWIPE_DOWN, again.host.hint)
+        assertEquals(HintPainter.AFTER_PAUSE, again.host.firsts.last(), 1e-9, "after the pause: at once")
+        // and a tap that plays again: it waits as any hint
+        again.run(2000.0); again.floor.touched(); again.floor.tap()
+        assertTrue(again.floor.playing)
+        assertEquals(HintPainter.delay(Hint.SWIPE_DOWN), again.host.firsts.last(), 1e-9)
+        // a piece opened standing: the swipe down is its first hint too, but not at once: in 14 s
+        val opened = rig("side to side", kind = Piece.BLOCK, known = HashSet())
+        assertEquals(Hint.SWIPE_DOWN, opened.host.hint)
+        assertEquals(14.0, opened.host.firsts.last(), 1e-9)
+        // a sideways swipe on the floor steps on and raises its flag, while it plays too (it goes to the next part)
+        val k = HashSet<String>()
+        val p = rig(exercise, autoplay = true, known = k)
+        p.run(5000.0); p.floor.swipe(true)
+        assertTrue(p.floor.playing && "swipe_side" in k)
     }
 
     /** opened from the explore page a piece stands on its first step, the bars away: the first hint there is the swipe
@@ -427,15 +476,17 @@ class DanceFloorTest {
         val clock = Clock(); val host = Host(clock); host.known = hashSetOf("strip_tap", "bars"); host.stripScrolls = false
         val floor = DanceFloor(data, store, Piece.BLOCK, "side to side", 0, false, Player(clock, 120.0), host)
         floor.open(); floor.swipeDown()
-        assertEquals(Hint.TAP_PLAY, host.hint, "with nothing to drag, the next thing is the tap that plays")
-        // the user drags the bar: now the tap that plays, on the floor between the bars
+        assertEquals(Hint.SWIPE_SIDE, host.hint, "with nothing to drag, the next thing is the swipe to the side")
+        // the user drags the bar: now the swipe to the side, then the tap that plays, on the floor between the bars
         r.floor.stripScrolled()
+        assertEquals(Hint.SWIPE_SIDE, r.host.hint)
+        r.floor.swipe(false)
         assertEquals(Hint.TAP_PLAY, r.host.hint)
         r.floor.tap()
         assertTrue(r.floor.playing && !r.floor.barsShown, "the tap plays, and the bars go")
         assertEquals(Hint.TAP_PAUSE, r.host.hint)
         r.floor.tap()
-        assertEquals(setOf("bars", "strip_tap", "strip_scroll", "tap_play", "tap_pause"), known)
+        assertEquals(setOf("bars", "strip_tap", "strip_scroll", "swipe_side", "tap_play", "tap_pause"), known)
         assertNull(r.host.hint, "everything has been done")
         // someone who finds the tap first: the dance plays, and then the hint is the tap that pauses, not the swipe
         val k2 = HashSet<String>()
@@ -446,14 +497,15 @@ class DanceFloorTest {
         assertEquals(setOf("tap_play"), k2)
         assertEquals(Hint.TAP_PAUSE, r2.host.hint, "while it plays: the tap that pauses")
         r2.floor.tap()
-        assertEquals(Hint.SWIPE_DOWN, r2.host.hint, "both taps known: the swipe down is what is left")
+        assertEquals(Hint.SWIPE_DOWN, r2.host.hint, "both taps known; paused: the swipe down, at once")
+        assertEquals(HintPainter.AFTER_PAUSE, r2.host.firsts.last())
         // and someone who only watched: paused with the top bar's button after playing, the first hint is the tap that plays
         val k3 = HashSet<String>()
         val r3 = rig(exercise, autoplay = true, known = k3)
         assertEquals(Hint.TAP_PAUSE, r3.host.hint)
         r3.floor.playPause()
-        assertEquals(Hint.TAP_PLAY, r3.host.hint, "after a pause: the tap that plays comes before the swipe (and waits a few seconds, see HintPainter.delay)")
-        assertTrue(HintPainter.delay(Hint.TAP_PLAY) >= 3.0, "whoever paused is left alone for a few seconds")
+        assertEquals(Hint.SWIPE_DOWN, r3.host.hint, "after a pause: the swipe down, at once")
+        assertTrue(HintPainter.delay(Hint.TAP_PLAY) >= 3.0, "the tap that plays, when it comes, waits a few seconds")
         // leaving the floor takes the hint away
         r3.floor.release()
         assertNull(r3.host.hint)
@@ -468,7 +520,7 @@ class DanceFloorTest {
         r.floor.touched()
         assertEquals(before + 1, r.host.hints.size, "the screen is told again")
         assertEquals(Hint.TAP_PAUSE, r.host.hints.last(), "the same hint, its clock started afresh")
-        val done = rig(exercise, autoplay = true, known = hashSetOf("tap_pause", "tap_play", "bars", "strip_tap", "strip_scroll"))
+        val done = rig(exercise, autoplay = true, known = Hint.values().map { it.key }.toHashSet())
         val n = done.host.hints.size
         done.floor.touched()
         assertEquals(n, done.host.hints.size, "no hint, nothing to tell")
@@ -479,14 +531,14 @@ class DanceFloorTest {
     @Test fun noHintInTheFirst14SecondsAfterTheFloorOpens() {
         val r = rig(exercise, autoplay = true, known = HashSet())
         assertEquals(Hint.TAP_PAUSE, r.host.hint)
-        assertEquals(14.0, r.host.holds.last(), 1e-9, "as it opens: all 14 s to come")
+        assertEquals(14.0, r.host.firsts.last(), 1e-9, "as it opens: in 14 s")
         r.run(5000.0); r.floor.touched()
-        assertEquals(9.0, r.host.holds.last(), 1e-6, "5 s later: 9 s left")
-        r.run(5000.0); r.floor.tap()
-        assertEquals(Hint.TAP_PLAY, r.host.hint)
-        assertEquals(4.0, r.host.holds.last(), 1e-6, "a new hint 10 s in: 4 s left")
+        assertEquals(9.0, r.host.firsts.last(), 1e-6, "touched 5 s later: in 9 s")
+        r.run(5000.0); r.floor.swipeDown()
+        assertEquals(Hint.STRIP_TAP, r.host.hint, "the bars brought 10 s in: the bottom bar's hint")
+        assertEquals(4.0, r.host.firsts.last(), 1e-6, "a new hint 10 s in: in 4 s")
         r.run(5000.0); r.floor.touched()
-        assertEquals(0.0, r.host.holds.last(), 1e-9, "after 14 s: nothing left, the hints' own waits only")
+        assertEquals(HintPainter.delay(Hint.STRIP_TAP), r.host.firsts.last(), 1e-9, "after 14 s: the hint's own wait")
     }
 
     /** a screen that keeps no flags (the default) shows no hints at all */
