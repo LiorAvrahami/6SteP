@@ -131,7 +131,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
             e as MouseEvent
             if (!stripDown) return@addEventListener
             val x = Display.x(e); val now = nowMs()
-            if (!stripDragging && abs(x - stripDownX) > 8) { stripDragging = true; stripLastX = x; stripLastT = now; floor.stripScrolled() }
+            if (!stripDragging && abs(x - stripDownX) > 8) { stripDragging = true; stripLastX = x; stripLastT = now }
             if (stripDragging) {
                 val dx = x - stripLastX; val dt = (now - stripLastT).coerceAtLeast(1.0)
                 strip.offset = (strip.offset - dx).coerceIn(0.0, strip.maxOffset())
@@ -264,7 +264,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
             hintDrawn = h != null && HintPainter.draw(hintStage.draw, h, th, hintStage.width, hintStage.height, 1.0, if (floor.barsShown) STRIP else 0.0, still, hintFirst)
         }
         // and the real interface makes a little of the move with it (HintPainter.nudge): the top bar peeks in as the finger
-        // swipes down, the bottom bar's pictures follow a drag
+        // swipes down
         val n = if (h == null) 0.0 else HintPainter.nudge(h, th, still, hintFirst)
         val wantPeek = if (h == Hint.SWIPE_DOWN && !floor.barsShown) kotlin.math.max(0.0, n) * HintPainter.BAR_PEEK else 0.0
         if (wantPeek != peek) {
@@ -272,8 +272,6 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
             topBar.style.transform = if (peek > 0.0) "translateY(calc(-100% + ${peek}px))" else ""
             topBar.style.transition = if (peek > 0.0) "none" else ""
         }
-        val wantNudge = if (h == Hint.STRIP_SCROLL && floor.barsShown) n * HintPainter.STRIP_NUDGE else 0.0
-        if (wantNudge != strip.nudge) { strip.nudge = wantNudge; stripDirty = true }
         if (stripDirty) {
             stripDirty = false
             stripStage.g.clearRect(0.0, 0.0, stripStage.width, stripStage.height)
@@ -296,7 +294,7 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
         o.playing = floor.playing; o.loading = floor.loading; o.beat = App.player.beatNow(); o.bpm = App.player.bpm(); o.t = nowMs()
         o.title = sc?.title; o.count = sc?.count; o.banner = sc?.banner; o.arrows = sc?.arrows?.size ?: 0
         o.current = strip.current; o.bars = floor.barsShown; o.song = floor.songLabel()
-        o.hint = hint?.key; o.hintShowing = hintDrawn; o.peek = peek; o.nudge = strip.nudge
+        o.hint = hint?.key; o.hintShowing = hintDrawn; o.peek = peek
         window.asDynamic().sixstep = o
     }
 
@@ -362,7 +360,6 @@ class FloorScreen(kind: String, name: String, variant: Int, autoplay: Boolean) :
     }
     override fun knows(what: String): Boolean = Prefs.bool(Hint.flagOf(what), false)
     override fun learned(what: String) { Prefs.put(Hint.flagOf(what), true) }
-    override val stripScrolls: Boolean get() { fit(); return strip.maxOffset() > 0.5 }
 
     /** the song menu's "Upload…": the dance stops, and the window in which a song of the listener's own is added
      *  opens; a song that was added is the one that plays from then on */

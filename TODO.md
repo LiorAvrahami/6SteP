@@ -98,6 +98,9 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-22, v78:** three hints only (the tap, the swipe down, the swipe to the side): the bottom bar's two are
+  gone; the swipe hints repeat every 4.6 s (half of 9.2); the hints that follow a move by a second wait for the
+  first 14 s after a dance opens too.
 - **2026-11-22, v77:** the swipe-down hint 1 s after a pause; after the swipe down, the hint to swipe to the side on
   the floor 1 s later, before the bottom bar's hints (the user: "like with a lag of 1 second").
 - **2026-11-22, v76:** right after a pause the swipe-down hint comes at once; a new hint for the swipe to the side on

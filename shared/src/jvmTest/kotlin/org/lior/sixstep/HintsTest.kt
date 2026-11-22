@@ -53,7 +53,7 @@ class HintsTest {
      *  that waits for the user to be idle, shows a few times and rests; still pictures where less motion is asked for */
     @Test fun everyHintWaitsShowsAFewTimesAndRests() {
         for (hint in Hint.values()) {
-            val bar = if (hint == Hint.STRIP_TAP || hint == Hint.STRIP_SCROLL) strip else 0.0
+            val bar = 0.0   // the bars away
             val delay = HintPainter.delay(hint)
             assertTrue(delay >= 2.0, "$hint waits for the user to leave the screen alone: $delay s")
             // before its time: nothing, and the screen is told how long that is
@@ -85,12 +85,13 @@ class HintsTest {
                 }
                 t += 0.01
             }
-            // a few showings, GAP apart, each about a second or two; then it rests until the user touches the screen
+            // a few showings, gap(hint) apart, each about a second or two; then it rests until the user touches the screen
+            val every = HintPainter.gap(hint)
             assertEquals(HintPainter.SHOWINGS, showings, "$hint shows ${HintPainter.SHOWINGS} times, then rests")
-            for (i in 1 until starts.size) assertEquals(HintPainter.GAP, starts[i] - starts[i - 1], 0.02, "$hint: ${HintPainter.GAP} s from one showing to the next")
+            for (i in 1 until starts.size) assertEquals(every, starts[i] - starts[i - 1], 0.02, "$hint: $every s from one showing to the next")
             assertTrue(HintPainter.plays(hint) in 0.8..2.0, "$hint takes ${HintPainter.plays(hint)} s: long enough to follow, short enough not to drag")
             assertEquals(HintPainter.plays(hint) * HintPainter.SHOWINGS, played, 0.05)
-            val after = delay + (HintPainter.SHOWINGS - 1) * HintPainter.GAP + HintPainter.plays(hint) + 0.1
+            val after = delay + (HintPainter.SHOWINGS - 1) * every + HintPainter.plays(hint) + 0.1
             assertEquals(Double.POSITIVE_INFINITY, HintPainter.wait(hint, after), "$hint: after its last showing the screen waits for a touch")
             assertFalse(at(hint, after + 3600.0, bar).first, "$hint does not come back by itself")
             // the same in still pictures: something is drawn while it plays, and nothing moves
@@ -107,11 +108,17 @@ class HintsTest {
             assertEquals(14.0, HintPainter.wait(hint, 0.0, first), 1e-9)
             assertFalse(at(hint, 13.95, bar, first).first, "$hint: not before 14 s")
             assertTrue(at(hint, 14.05, bar, first).first, "$hint: at 14 s")
-            assertTrue(at(hint, 14.05 + HintPainter.GAP, bar, first).first, "$hint: and then every ${HintPainter.GAP} s as always")
+            assertTrue(at(hint, 14.05 + every, bar, first).first, "$hint: and then every $every s as always")
             assertEquals(delay, HintPainter.firstAt(hint, 1.0), "$hint: with less of them left than its own wait, its own wait")
         }
-        // 15% longer between showings than v74's 8 s (user 2026-11-22)
-        assertEquals(9.2, HintPainter.GAP, 1e-9)
+        // 15% longer between showings than v74's 8 s (user 2026-11-22); and for the two swipes, half of that (the user,
+        // the same day: "reduce the interval between repeating down swipe hints in half, same for the side swipe hints")
+        assertEquals(9.2, HintPainter.gap(Hint.TAP_PAUSE), 1e-9); assertEquals(9.2, HintPainter.gap(Hint.TAP_PLAY), 1e-9)
+        assertEquals(4.6, HintPainter.gap(Hint.SWIPE_DOWN), 1e-9); assertEquals(4.6, HintPainter.gap(Hint.SWIPE_SIDE), 1e-9)
+        // the two that follow a move of the user's by a second wait for the floor's first 14 s too (user 2026-11-22: "yes,
+        // they should also wait 14 seconds after the dance opens")
+        assertEquals(14.0, HintPainter.firstAt(Hint.SWIPE_DOWN, HintPainter.FIRST, HintPainter.AFTER_PAUSE), 1e-9)
+        assertEquals(1.0, HintPainter.firstAt(Hint.SWIPE_SIDE, 0.0, HintPainter.AFTER_BARS), 1e-9)
         // every movement within 200 to 500 ms (NN/g, web.dev)
         assertTrue(HintPainter.MOVE in 0.2..0.5 && HintPainter.RING_LASTS in 0.2..0.5, "the slide ${HintPainter.MOVE} s, a ring ${HintPainter.RING_LASTS} s")
         assertTrue(HintPainter.APPEAR in 0.1..0.3 && HintPainter.PRESS in 0.08..0.2)
@@ -119,23 +126,22 @@ class HintsTest {
         assertTrue(HintPainter.delay(Hint.TAP_PLAY) >= 4.0)
     }
 
-    /** the real interface makes a little of the move: it follows the finger as it slides and goes back as it lets go */
+    /** the real interface makes a little of the move: the top bar follows the swipe down's finger as it slides and goes
+     *  back as it lets go */
     @Test fun theInterfaceFollowsTheFingerALittle() {
-        for (hint in listOf(Hint.SWIPE_DOWN, Hint.STRIP_SCROLL)) {
-            val t0 = HintPainter.delay(hint)
-            var most = 0.0; var least = 0.0
-            var t = t0
-            while (t < t0 + HintPainter.GAP + HintPainter.plays(hint)) { val n = HintPainter.nudge(hint, t); most = max(most, n); least = min(least, n); t += 0.005 }
-            assertEquals(1.0, most, 0.05, "$hint: all the way, as the finger gets there")
-            if (hint == Hint.STRIP_SCROLL) assertEquals(-1.0, least, 0.05, "the bottom bar's pictures go one way in the first showing, the other way in the next")
-            else assertEquals(0.0, least, 1e-9, "the top bar only comes down")
-            assertEquals(0.0, HintPainter.nudge(hint, t0 + HintPainter.STROKE - 0.01), 1e-3, "$hint: back in place as the stroke ends")
-            assertEquals(0.0, HintPainter.nudge(hint, t0 + HintPainter.plays(hint) + 0.5), "$hint: nothing between showings")
+        val hint = Hint.SWIPE_DOWN
+        val t0 = HintPainter.delay(hint)
+        var most = 0.0; var least = 0.0
+        var t = t0
+        while (t < t0 + HintPainter.gap(hint) + HintPainter.plays(hint)) { val n = HintPainter.nudge(hint, t); most = max(most, n); least = min(least, n); t += 0.005 }
+        assertEquals(1.0, most, 0.05, "all the way, as the finger gets there")
+        assertEquals(0.0, least, 1e-9, "the top bar only comes down")
+        assertEquals(0.0, HintPainter.nudge(hint, t0 + HintPainter.STROKE - 0.01), 1e-3, "back in place as the stroke ends")
+        assertEquals(0.0, HintPainter.nudge(hint, t0 + HintPainter.plays(hint) + 0.5), "nothing between showings")
+        for (other in listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.SWIPE_SIDE)) {
+            for (k in 0..40) assertEquals(0.0, HintPainter.nudge(other, HintPainter.delay(other) + k * 0.025), "$other moves nothing")
         }
-        for (hint in listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.STRIP_TAP, Hint.SWIPE_SIDE)) {
-            for (k in 0..40) assertEquals(0.0, HintPainter.nudge(hint, HintPainter.delay(hint) + k * 0.025), "$hint moves nothing")
-        }
-        assertTrue(HintPainter.BAR_PEEK in 10.0..24.0 && HintPainter.STRIP_NUDGE in 16.0..40.0, "a short way (Microsoft's swipe hint: 15 px down, 23 px across)")
+        assertTrue(HintPainter.BAR_PEEK in 10.0..24.0, "a short way (Microsoft's swipe hint: 15 px down)")
     }
 
     @Test fun theHintsAreWhereTheirGestureBelongs() {
@@ -159,17 +165,6 @@ class HintsTest {
         // slide that is 10% slower"): nothing after it until the next showing
         assertFalse(at(Hint.SWIPE_DOWN, t0 + HintPainter.STROKE + 0.05, 0.0).first, "one stroke, then nothing")
         assertEquals(0.88, HintPainter.STROKE, 1e-9); assertEquals(0.495, HintPainter.MOVE, 1e-9)
-        // the bottom bar's two: on its row of pictures
-        for (hint in listOf(Hint.STRIP_TAP, Hint.STRIP_SCROLL)) {
-            val s = at(hint, HintPainter.delay(hint) + 0.3, strip).second
-            assertTrue(s.t > h - 100 * dp && s.b <= h, "$hint is on the bottom bar's pictures: from ${s.t / dp} to ${s.b / dp} dp of ${h / dp}")
-        }
-        // the drag goes one way in one showing, the other way in the next
-        val p = HintPainter.place(Hint.STRIP_SCROLL, w, h, dp, strip)
-        fun dotX(t: Double): Double { val s = at(Hint.STRIP_SCROLL, t, strip).second; return (s.l + s.r) / 2 }
-        val s0 = HintPainter.delay(Hint.STRIP_SCROLL) + HintPainter.MOVE_FROM + HintPainter.MOVE
-        assertTrue(dotX(s0) < (p[0] + p[2]) / 2, "the first stroke ends on the left")
-        assertTrue(dotX(s0 + HintPainter.GAP) > (p[0] + p[2]) / 2, "the next showing's on the right")
         // the swipe to the side: across the floor, low, above the bottom bar when that is shown; one way in one showing,
         // the other way in the next
         val side = HintPainter.place(Hint.SWIPE_SIDE, w, h, dp, 0.0)
@@ -180,8 +175,10 @@ class HintsTest {
         assertTrue(at(Hint.SWIPE_SIDE, t1 + 0.4, strip).second.b < h - strip, "above the bottom bar when that is shown")
         fun sideX(t: Double): Double { val s = at(Hint.SWIPE_SIDE, t, 0.0).second; return (s.l + s.r) / 2 }
         val e = t1 + HintPainter.MOVE_FROM + HintPainter.MOVE
-        assertTrue(sideX(e) < (side[0] + side[2]) / 2 && sideX(e + HintPainter.GAP) > (side[0] + side[2]) / 2, "to the left (a step on), then to the right (a step back)")
-        // every flag has a name of its own
+        assertTrue(sideX(e) < (side[0] + side[2]) / 2 && sideX(e + HintPainter.gap(Hint.SWIPE_SIDE)) > (side[0] + side[2]) / 2, "to the left (a step on), then to the right (a step back)")
+        // every flag has a name of its own; and there are three things (user 2026-11-22: "we don't need more hints, just
+        // the three"): the tap (that pauses, that plays), the swipe down, the swipe to the side
         assertEquals(Hint.values().size, Hint.values().map { it.key }.toSet().size)
+        assertEquals(setOf("tap_pause", "tap_play", "bars", "swipe_side"), Hint.values().map { it.key }.toSet())
     }
 }

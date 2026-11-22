@@ -86,7 +86,7 @@ class AndroidDraw : Draw {
  *  there are, the shared DanceFloor which one to show and when the user touched the screen, the shared HintPainter how
  *  it looks and when it plays). This view lies over the floor and its bars and only draws: it takes no touches, so they
  *  reach what is under it. While a hint plays it is drawn at every frame, and `onNudge` is told how far the real
- *  interface follows its finger (HintPainter.nudge: the top bar peeks in, the bottom bar's pictures move); while it
+ *  interface follows its finger (HintPainter.nudge: the top bar peeks in); while it
  *  rests nothing is drawn until it is to play again, and after its last showing nothing at all until the next touch. */
 class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : View(context, attrs) {
     private val surface = AndroidDraw()   // the canvas of the frame being drawn, as the shared painter wants it

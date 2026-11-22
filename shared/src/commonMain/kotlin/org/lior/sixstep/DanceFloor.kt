@@ -82,10 +82,8 @@ interface FloorHost {
      *  (DanceFloor.touched): the clock starts again. `first`: seconds from now to the hint's first showing, which the
      *  floor decides (its own wait, HintPainter.delay; longer in the first HintPainter.FIRST seconds after the floor
      *  opened; a second for the swipe down right after a pause, and for the swipe to the side right after the swipe
-     *  that brought the bars); the screen passes it to HintPainter. */
+     *  that brought the bars, but those too not in the first FIRST seconds); the screen passes it to HintPainter. */
     fun hint(hint: Hint?, first: Double) {}
-    /** the bottom bar holds more steps than fit on the screen: it can be dragged sideways */
-    val stripScrolls: Boolean get() = true
 }
 
 /** The one dance floor (the user's layout draft, 2026-10-28): every element, building block and composition is danced
@@ -268,8 +266,6 @@ class DanceFloor(
         playPause()
         if (playing != was) learned(if (was) Hint.TAP_PAUSE else Hint.TAP_PLAY)   // the tap did it: no more hint for that
     }
-    /** the user dragged the bottom bar sideways (the screen tells) */
-    fun stripScrolled() = learned(Hint.STRIP_SCROLL)
     fun playPause() { if (playing) pause() else play() }
     fun toggleMute() { pb.setMuted(!pb.muted); host.buttons() }
     /** the page went out of sight, or the app into the background */
@@ -280,8 +276,9 @@ class DanceFloor(
 
     /** The one hint that fits what is on the screen, among those whose flag is still down (see Hint), in this order:
      *  - with the bars shown, first the swipe to the side on the floor (user 2026-11-22: "after I slide down, then
-     *    there should be a hint to slide side to side on the dance floor itself"), then what the bottom bar can do (a
-     *    tap on a step, a drag); then as below, the swipe down aside (the bars are there);
+     *    there should be a hint to slide side to side on the dance floor itself"); then as below, the swipe down aside
+     *    (the bars are there). Nothing for the bottom bar itself (v71 to v77 hinted at a tap on one of its steps and
+     *    at its drag; the user, 2026-11-22: "there should be no bottom bar hints");
      *  - while the dance stands: the swipe down that brings the bars (user 2026-11-21: "the bars closed and a hint to
      *    swipe down to open them"; and, after a pause, a second later: user 2026-11-22: "After I pause, then I want
      *    ... the slide down hint to come immediately after that", then "like 1 second ... after"), then the swipe to
@@ -293,11 +290,7 @@ class DanceFloor(
         if (released || error != null || tl == null) return null
         fun down(h: Hint) = !host.knows(h.key)
         val order = LinkedHashSet<Hint>()   // (a hint added twice keeps its first place)
-        if (barsShown) {
-            order.add(Hint.SWIPE_SIDE)
-            if (stops.size > 1) order.add(Hint.STRIP_TAP)
-            if (host.stripScrolls) order.add(Hint.STRIP_SCROLL)
-        }
+        if (barsShown) order.add(Hint.SWIPE_SIDE)
         if (playing) order.addAll(listOf(Hint.TAP_PAUSE, Hint.SWIPE_DOWN, Hint.SWIPE_SIDE))
         else order.addAll(listOf(Hint.SWIPE_DOWN, Hint.SWIPE_SIDE, Hint.TAP_PLAY))
         if (barsShown) order.remove(Hint.SWIPE_DOWN)
@@ -317,11 +310,11 @@ class DanceFloor(
     private fun hintHold(): Double =
         if (openedAt.isNaN()) HintPainter.FIRST else maxOf(0.0, HintPainter.FIRST - (host.nowMs() - openedAt) / 1000.0)
 
-    /** tell the screen which hint to show, when that has changed, and when it first shows: its own wait (not in the
-     *  first 14 s of the floor); but a second after the user's own move for the two hints that follow one (user
-     *  2026-11-22: "like 1 second ... after"), whenever that is: the swipe down after a pause, and the swipe to the
-     *  side after the swipe that brought the bars; also when it was the hint already (the touch that did the move had
-     *  just started its wait again) */
+    /** tell the screen which hint to show, when that has changed, and when it first shows: its own wait; but a second
+     *  after the user's own move for the two hints that follow one (user 2026-11-22: "like 1 second ... after"): the
+     *  swipe down after a pause, and the swipe to the side after the swipe that brought the bars; also when it was the
+     *  hint already (the touch that did the move had just started its wait again). None in the first 14 s of the
+     *  floor, those two included (user 2026-11-22: "yes, they should also wait 14 seconds after the dance opens"). */
     private fun hints() {
         val want = hintNow()
         val paused = justPaused; justPaused = false
@@ -333,7 +326,7 @@ class DanceFloor(
         }
         if (want != hint || soon != null) {
             hint = want
-            host.hint(want, soon ?: if (want == null) 0.0 else HintPainter.firstAt(want, hintHold()))
+            host.hint(want, if (want == null) 0.0 else HintPainter.firstAt(want, hintHold(), soon ?: HintPainter.delay(want)))
         }
     }
 
@@ -601,7 +594,6 @@ class DanceFloor(
         if (k !in stops.indices) return
         if (playing) startAt(k, pb.beatNow(), quiet = true)
         else { travel = null; idx = k; show() }
-        learned(Hint.STRIP_TAP)
     }
 
     // ------------------------------------------------------------------ playing: everything made afresh from a step

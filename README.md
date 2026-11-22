@@ -72,13 +72,13 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   Google Translate's, fetched as a short clip for every phrase, in the app and on the web page alike; the phone's or
   the browser's own voice reads when Google does not answer. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
   music dips to 60 percent under a spoken annotation and comes back right after it.
-  **Hints:** what nothing on the screen says is shown to a new user by a small picture of a fingertip, one at a time:
-  pressing with rings for the tap that pauses and the tap that plays, sliding down for the swipe that brings the bars
-  (the top bar peeks in with it; it comes 1 s after a pause), a fingertip sliding across the floor for the swipe to
-  the side (a step on or back; it comes 1 s after the swipe down), a ring on a step, and a drag along the bottom bar
-  (its pictures follow). After the common practice for such hints: each movement 200 to 500 ms; none in the first
-  14 s after a dance opens (but those two); a hint waits until the screen has been left alone for a few seconds,
-  shows three times, 9.2 s apart, and rests until the next touch; any touch makes it go; still pictures where the
+  **Hints:** what nothing on the screen says is shown to a new user by a small picture of a fingertip, one at a time,
+  for three things: pressing with rings for the tap that pauses and the tap that plays, sliding down for the swipe
+  that brings the bars (the top bar peeks in with it; it comes 1 s after a pause), and sliding across the floor for
+  the swipe to the side (a step on or back; it comes 1 s after the swipe down). None for the bottom bar. After the
+  common practice for such hints: each movement 200 to 500 ms; none in the first 14 s after a dance opens; a hint
+  waits until the screen has been left alone for a few seconds, shows three times (the taps 9.2 s apart, the swipes
+  4.6 s) and rests until the next touch; any touch makes it go; still pictures where the
   phone asks for less motion. Each goes for good the first time the user does the thing (a flag in
   the app's preferences or the browser's storage); a button in Settings brings them all back. A piece opens with its
   bars away.

@@ -38,8 +38,6 @@ class StripPainter(private val density: Double) {
         private set
     /** how far the strip is scrolled, in px; the front keeps it between 0 and maxOffset() */
     var offset = 0.0
-    /** px the pictures are moved from `offset` as they are drawn: a hint's nudge (HintPainter.nudge), not a scroll */
-    var nudge = 0.0
 
     private val painter = FeetPainter(density)
     /** one of the screen's own pixels, in the px this draws in (FeetPainter.pixel) */
@@ -103,12 +101,6 @@ class StripPainter(private val density: Double) {
     }
 
     fun draw(c: Draw) {
-        val real = offset
-        offset = real + nudge
-        try { drawAt(c) } finally { offset = real }
-    }
-
-    private fun drawAt(c: Draw) {
         val w = width
         c.save(); c.clipRect(0.0, 0.0, w, height)
         barColor?.let { c.fillRect(0.0, band(), w, height, it) }

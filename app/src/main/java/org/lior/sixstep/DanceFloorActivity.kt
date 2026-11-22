@@ -59,13 +59,12 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
         }
         floorView = findViewById(R.id.floor); topBar = findViewById(R.id.topBar); stripView = findViewById(R.id.strip)
         hintView = findViewById(R.id.hints)
-        // the interface makes a little of the hint's move with it: the top bar peeks in as its finger swipes down, the
-        // bottom bar's pictures follow its drag (HintPainter.nudge)
+        // the interface makes a little of the hint's move with it: the top bar peeks in as its finger swipes down
+        // (HintPainter.nudge)
         hintView.onNudge = { h, n ->
             val dp = resources.displayMetrics.density
             if (barsFrac == 0f && barsAnim?.isRunning != true)
                 topBar.translationY = -topBar.height + if (h == Hint.SWIPE_DOWN) (maxOf(0.0, n) * HintPainter.BAR_PEEK * dp).toFloat() else 0f
-            stripView.nudgePx = if (h == Hint.STRIP_SCROLL && barsWanted) (n * HintPainter.STRIP_NUDGE * dp).toFloat() else 0f
         }
         playBtn = findViewById(R.id.play); rateBtn = findViewById(R.id.rate); songBtn = findViewById(R.id.song)
         muteBtn = findViewById(R.id.mute)
@@ -88,7 +87,6 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
         TooltipCompat.setTooltipText(rateBtn, getString(R.string.tempo))
         TooltipCompat.setTooltipText(songBtn, getString(R.string.song))
         stripView.onTap = { k -> dance.tapStop(k) }
-        stripView.onDragStart = { dance.stripScrolled() }   // the user drags the bottom bar: that is one of the things the hints teach
         updateButtons()
 
         val gestures = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
@@ -135,7 +133,6 @@ class DanceFloorActivity : AppCompatActivity(), FloorHost {
     override fun hint(hint: Hint?, first: Double) { hintView.show(hint, first) }
     override fun knows(what: String): Boolean = getSharedPreferences("6step", MODE_PRIVATE).getBoolean(Hint.flagOf(what), false)
     override fun learned(what: String) { getSharedPreferences("6step", MODE_PRIVATE).edit().putBoolean(Hint.flagOf(what), true).apply() }
-    override val stripScrolls: Boolean get() = stripView.canScroll
 
     // ------------------------------------------------------------------ the bars
 

@@ -90,12 +90,6 @@ class StepStrip @JvmOverloads constructor(context: Context, attrs: AttributeSet?
     private fun cellW() = if (cellsAcross > 0) max(1f, (width - 2 * padH - gap() * (cellsAcross - 1)) / cellsAcross) else cellWidthDp * d
     private fun pitch() = cellW() + gap()
     private fun maxOffset() = max(0f, 2 * padH + cells.size * pitch() - gap() - width)
-    /** px the pictures are moved from where they are scrolled to, as they are drawn: a hint's nudge
-     *  (HintPainter.nudge), not a scroll */
-    var nudgePx = 0f
-        set(v) { if (field != v) { field = v; invalidate() } }
-    /** it holds more pictures than fit: it can be dragged sideways */
-    val canScroll: Boolean get() = width > 0 && maxOffset() > 0.5f
 
     private fun prepare() {
         val n = cells.size
@@ -151,12 +145,6 @@ class StepStrip @JvmOverloads constructor(context: Context, attrs: AttributeSet?
     }
 
     override fun onDraw(c: Canvas) {
-        val real = offset
-        offset = real + nudgePx
-        try { drawStrip(c) } finally { offset = real }
-    }
-
-    private fun drawStrip(c: Canvas) {
         val w = width.toFloat()
         // the strip draws only inside itself: an explore row does not clip its children (the version button's count badge
         // sticks out of its box), so a picture scrolled past the strip's left edge used to show over the row's name

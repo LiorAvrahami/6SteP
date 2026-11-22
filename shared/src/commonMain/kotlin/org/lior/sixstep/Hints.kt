@@ -13,7 +13,13 @@ import kotlin.math.min
  *  Each of these is one such thing, with a flag of its own (`key`: the name the flag is kept under, see
  *  FloorHost.knows) and a small moving picture that shows the gesture (HintPainter). The dance floor shows one hint at
  *  a time, the one that fits what is on the screen, and only while its flag is down (DanceFloor.hintNow). Doing the
- *  thing once raises the flag for good. */
+ *  thing once raises the flag for good.
+ *
+ *  There are three things (the user, 2026-11-22: "we don't need more hints, just the three"): the tap (that pauses,
+ *  that plays), the swipe down and the swipe to the side. From v71 to v77 there were two more, for the bottom bar (a
+ *  tap on one of its steps, "strip_tap", and its drag, "strip_scroll"); the user, the same day: "there is still a
+ *  hint on the bottom bar itself. remove it" and "there should be no bottom bar hints". Their flags may still be kept
+ *  on a phone or in a browser; nothing reads them. */
 enum class Hint(val key: String) {
     /** a tap on the floor pauses the dance */
     TAP_PAUSE("tap_pause"),
@@ -21,10 +27,6 @@ enum class Hint(val key: String) {
     TAP_PLAY("tap_play"),
     /** a swipe down on the floor brings the top and the bottom bar */
     SWIPE_DOWN("bars"),
-    /** a tap on a step of the bottom bar goes to that step */
-    STRIP_TAP("strip_tap"),
-    /** the bottom bar can be dragged to the left and to the right */
-    STRIP_SCROLL("strip_scroll"),
     /** a swipe to the left or the right on the floor: the next or the previous step while the dance stands, the next
      *  or the previous part while it plays (user 2026-11-22: "there needs to be slide side to side hint") */
     SWIPE_SIDE("swipe_side");
@@ -49,26 +51,27 @@ enum class Hint(val key: String) {
  *  - The real interface makes a little of the move too, so that the hint shows what the gesture does: Material's
  *    gesture education plays "a partial version of the gesture" behind its touch indicator, and Microsoft's swipe hint
  *    moves the item itself a short way (15 px vertically, 23 px horizontally). So the top bar peeks in by BAR_PEEK dp
- *    while the finger swipes down, and the bottom bar's pictures follow the finger by STRIP_NUDGE dp (nudge: the
- *    screens move them).
+ *    while the finger swipes down (nudge: the screens move it).
  *  - A hint never plays while the user is busy: it waits until the screen has been left alone (delay, counted from
- *    the last touch: DanceFloor.touched restarts it), any touch makes it go at once, and it shows SHOWINGS times, GAP
- *    seconds apart, and then rests until the user touches the screen again. And none at all in the first FIRST seconds
- *    after a dance floor opens (the user, 2026-11-22: "wait 14 seconds from starting to showing the first hint"),
- *    except the swipe down right after a pause, which comes at once (the user, the same day: "After I pause, then I
- *    want ... the slide down hint to come immediately after that"). DanceFloor works out when each first showing is
- *    and tells the screen (`first`). Material: education only for users who
- *    have not done the gesture yet, on the first run and in later sessions for those who still have not; the hints
- *    found in apps and libraries are triggered by idleness, cancelled by a touch, and capped at a few plays.
+ *    the last touch: DanceFloor.touched restarts it), any touch makes it go at once, and it shows SHOWINGS times,
+ *    gap(hint) seconds apart, and then rests until the user touches the screen again. Two hints follow a move of the
+ *    user's by a second instead: the swipe down after a pause (AFTER_PAUSE), the swipe to the side after the swipe
+ *    that brought the bars (AFTER_BARS). And none at all in the first FIRST seconds after a dance floor opens (the
+ *    user, 2026-11-22: "wait 14 seconds from starting to showing the first hint"; and of those two: "yes, they should
+ *    also wait 14 seconds after the dance opens"). DanceFloor works out when each first showing is and tells the
+ *    screen (`first`). Material: education only for users who have not done the gesture yet, on the first run and in
+ *    later sessions for those who still have not; the hints found in apps and libraries are triggered by idleness,
+ *    cancelled by a touch, and capped at a few plays.
  *  - Where the phone asks for less motion, a still picture fades in and out instead (still): NN/g and the design
  *    systems that were looked up ask to respect "reduce motion".
  *
  *  Their one sign is a fingertip: a round dot. A dot with three rings going out from it is a tap (the user's own idea:
  *  "3 consecutive circles that appear that indicate that you tap"); a mark inside it says what the tap does (pause,
  *  play). A dot that slides is a swipe, once per showing (twice in a row in v72 to v74, at the user's word; then, on
- *  2026-11-22: "the slide hints being two slides each is confusing. keep it one slide"); the bottom bar's goes to the
- *  left in one showing and to the right in the next, since it can be dragged both ways. Everything is drawn in the dark grey of the floor's own words, half see-through, so that it lies over the
- *  dance without hiding it. Lengths are in dp; `dp` is one of them in the canvas's own pixels. */
+ *  2026-11-22: "the slide hints being two slides each is confusing. keep it one slide"); the swipe to the side goes to
+ *  the left in one showing and to the right in the next, since it works both ways. Everything is drawn in the dark
+ *  grey of the floor's own words, half see-through, so that it lies over the dance without hiding it. Lengths are in
+ *  dp; `dp` is one of them in the canvas's own pixels. */
 object HintPainter {
     /** seconds without a touch before a hint first shows: from when it became the floor's hint, or from the user's
      *  last touch, whichever came later */
@@ -76,8 +79,6 @@ object HintPainter {
         Hint.TAP_PAUSE -> 4.0      // first the dance is watched
         Hint.TAP_PLAY -> 5.0       // whoever paused did so to look (user 2026-11-21: "wait a few seconds ... before you hint them to play")
         Hint.SWIPE_DOWN -> 3.0
-        Hint.STRIP_TAP -> 2.5      // the bars have just come
-        Hint.STRIP_SCROLL -> 2.5
         Hint.SWIPE_SIDE -> 3.0
     }
     /** s after a pause before the swipe-down hint (user 2026-11-22: "After I pause, then I want the hint, the slide down
@@ -88,7 +89,12 @@ object HintPainter {
      *  immediately, like with a lag of 1 second") */
     const val AFTER_BARS = 1.0
     const val SHOWINGS = 3         // showings in a row; then nothing until the user touches the screen (or another hint takes over)
-    const val GAP = 9.2            // s from the start of one showing to the start of the next (8 until 2026-11-22; the user: "make it wait 15% more between repetitions")
+    const val GAP = 9.2            // s from the start of one showing of a tap to the start of the next (8 until 2026-11-22; the user: "make it wait 15% more between repetitions")
+    /** the same for the two swipes: half of it (the user, 2026-11-22: "reduce the interval between repeating down swipe
+     *  hints in half, same for the side swipe hints after the down swipe") */
+    const val SWIPE_GAP = GAP / 2
+    /** s from the start of one showing of the hint to the start of the next */
+    fun gap(hint: Hint): Double = if (swipes(hint)) SWIPE_GAP else GAP
     /** s after a dance floor opens before any hint shows (user 2026-11-22: "wait 14 seconds from starting to showing the
      *  first hint"); DanceFloor keeps to it when it tells the screen when a hint first shows (firstAt) */
     const val FIRST = 14.0
@@ -110,7 +116,6 @@ object HintPainter {
 
     // how far the real interface follows the finger (nudge), in dp
     const val BAR_PEEK = 18.0      // the top bar comes down this far during the swipe down
-    const val STRIP_NUDGE = 32.0   // the bottom bar's pictures follow a drag this far
 
     private fun ink(alpha: Double): Int = withAlpha(Colors.INK, alpha)
     private fun smooth(u0: Double): Double { val u = u0.coerceIn(0.0, 1.0); return u * u * (3 - 2 * u) }
@@ -123,30 +128,27 @@ object HintPainter {
         // where a right thumb rests on a phone held sideways: beside the dancers, not on them
         Hint.TAP_PAUSE, Hint.TAP_PLAY -> doubleArrayOf(w - 104 * dp, h - bottomBar - 88 * dp)
         Hint.SWIPE_DOWN -> doubleArrayOf(w / 2, 26 * dp, w / 2, 116 * dp)
-        // on the row of step pictures of the bottom bar (the bar is the lower 100 dp of its 132)
-        Hint.STRIP_TAP -> doubleArrayOf(w * 0.64, h - 56 * dp)
-        Hint.STRIP_SCROLL -> doubleArrayOf(w * 0.64, h - 56 * dp, w * 0.40, h - 56 * dp)
         // across the floor, low, under the dancers and just above the bottom bar (and its annotations) when that is shown
         Hint.SWIPE_SIDE -> doubleArrayOf(w * 0.62, h - bottomBar - 36 * dp, w * 0.38, h - bottomBar - 36 * dp)
     }
 
-    private fun swipes(hint: Hint) = hint == Hint.SWIPE_DOWN || hint == Hint.STRIP_SCROLL || hint == Hint.SWIPE_SIDE
+    private fun swipes(hint: Hint) = hint == Hint.SWIPE_DOWN || hint == Hint.SWIPE_SIDE
     /** how long one showing of the hint takes, in seconds */
     fun plays(hint: Hint): Double = if (swipes(hint)) SWIPE_PLAYS else TAP_PLAYS
 
-    /** seconds from the start of the hint's clock to its first showing, as a rule: its own delay, or longer while the
-     *  first FIRST seconds of the floor last (`hold`: how much of them is left at the clock's start). DanceFloor
-     *  decides (`first`), and may decide otherwise (the swipe down right after a pause: AFTER_PAUSE; the swipe to
-     *  the side right after the swipe that brought the bars: AFTER_BARS). */
-    fun firstAt(hint: Hint, hold: Double = 0.0): Double = max(delay(hint), hold)
+    /** seconds from the start of the hint's clock to its first showing: `wait` (its own delay, or a second after a move
+     *  of the user's: AFTER_PAUSE, AFTER_BARS), or longer while the first FIRST seconds of the floor last (`hold`: how
+     *  much of them is left at the clock's start). DanceFloor decides (`first`). */
+    fun firstAt(hint: Hint, hold: Double = 0.0, wait: Double = delay(hint)): Double = max(wait, hold)
 
     /** which showing `t` seconds fall in, and how far into it they are; null between showings and after the last */
     private fun showing(hint: Hint, t: Double, first: Double): Pair<Int, Double>? {
         val since = t - first
         if (since < 0) return null
-        val n = floor(since / GAP).toInt()
+        val every = gap(hint)
+        val n = floor(since / every).toInt()
         if (n >= SHOWINGS) return null
-        val u = since - n * GAP
+        val u = since - n * every
         return if (u < plays(hint)) Pair(n, u) else null
     }
 
@@ -156,11 +158,12 @@ object HintPainter {
     fun wait(hint: Hint, t: Double, first: Double = delay(hint)): Double {
         val since = t - first
         if (since < 0) return -since
-        val n = floor(since / GAP).toInt()
+        val every = gap(hint)
+        val n = floor(since / every).toInt()
         if (n >= SHOWINGS) return Double.POSITIVE_INFINITY
-        val u = since - n * GAP
+        val u = since - n * every
         if (u < plays(hint)) return 0.0
-        return if (n + 1 >= SHOWINGS) Double.POSITIVE_INFINITY else GAP - u
+        return if (n + 1 >= SHOWINGS) Double.POSITIVE_INFINITY else every - u
     }
 
     /** Draw `hint` as it looks `t` seconds after it became the floor's hint (or after the user's last touch). True
@@ -171,12 +174,11 @@ object HintPainter {
         val at = place(hint, w, h, dp, bottomBar)
         when (hint) {
             Hint.TAP_PAUSE, Hint.TAP_PLAY -> if (still) tapStill(d, at[0], at[1], u, 18 * dp, 30 * dp, dp, hint) else tap(d, at[0], at[1], u, 18 * dp, 30 * dp, dp, hint)
-            Hint.STRIP_TAP -> if (still) tapStill(d, at[0], at[1], u, 10 * dp, 22 * dp, dp, null) else tap(d, at[0], at[1], u, 10 * dp, 22 * dp, dp, null)
-            Hint.SWIPE_DOWN, Hint.STRIP_SCROLL, Hint.SWIPE_SIDE -> {
-                val both = hint != Hint.SWIPE_DOWN   // sideways: either way
-                val r = (if (hint == Hint.STRIP_SCROLL) 10 else 12) * dp
+            Hint.SWIPE_DOWN, Hint.SWIPE_SIDE -> {
+                val both = hint == Hint.SWIPE_SIDE   // sideways: either way
+                val r = 12 * dp
                 if (still) swipeStill(d, at[0], at[1], at[2], at[3], u, r, dp, both)
-                // one stroke; a sideways one goes to the left in one showing and to the right in the next
+                // one stroke; the sideways one goes to the left in one showing and to the right in the next
                 else if (both && n % 2 == 1) stroke(d, at[2], at[3], at[0], at[1], u, r, dp)
                 else stroke(d, at[0], at[1], at[2], at[3], u, r, dp)
             }
@@ -184,17 +186,14 @@ object HintPainter {
         return true
     }
 
-    /** How far the real interface follows the finger at `t`, as a share of BAR_PEEK or STRIP_NUDGE: 0 when nothing is
-     *  to move. For the swipe down, 0 to 1: the top bar comes down that share of BAR_PEEK. For the bottom bar's drag,
-     *  -1 to 1: its pictures move that share of STRIP_NUDGE the way the first showing's stroke goes (to the left;
-     *  negative: to the right, in the next showing). It follows the fingertip as it slides and goes back as the finger
-     *  lets go. */
+    /** How far the real interface follows the finger at `t`, as a share of BAR_PEEK: 0 when nothing is to move. For the
+     *  swipe down, 0 to 1: the top bar comes down that share of BAR_PEEK; it follows the fingertip as it slides and
+     *  goes back as the finger lets go. Nothing else moves: the swipe to the side does a whole step of the dance, not a
+     *  little of anything. */
     fun nudge(hint: Hint, t: Double, still: Boolean = false, first: Double = delay(hint)): Double {
-        // the swipe to the side moves nothing: what it does is a whole step of the dance, not a little of anything
-        if (still || !swipes(hint) || hint == Hint.SWIPE_SIDE) return 0.0
-        val (n, u) = showing(hint, t, first) ?: return 0.0
-        val amount = progress(u) * (1 - smooth((u - MOVE_FROM - MOVE) / 0.143))   // back in place before the stroke ends
-        return if (hint == Hint.STRIP_SCROLL && n % 2 == 1) -amount else amount
+        if (still || hint != Hint.SWIPE_DOWN) return 0.0
+        val (_, u) = showing(hint, t, first) ?: return 0.0
+        return progress(u) * (1 - smooth((u - MOVE_FROM - MOVE) / 0.143))   // back in place before the stroke ends
     }
 
     /** how far along its way the fingertip of a stroke is, `v` seconds into it */
@@ -269,7 +268,7 @@ object HintPainter {
     }
 
     /** a swipe as a still picture, for a phone that asks for less motion: the fingertip where it starts and an arrow
-     *  along its way (pointing both ways for the bottom bar, which goes both ways), fading in and out */
+     *  along its way (pointing both ways for the swipe to the side, which goes both ways), fading in and out */
     private fun swipeStill(d: Draw, x0: Double, y0: Double, x1: Double, y1: Double, u: Double, r: Double, dp: Double, both: Boolean) {
         val a = min(smooth(u / 0.25), 1 - smooth((u - (SWIPE_PLAYS - 0.35)) / 0.35))
         val len = kotlin.math.hypot(x1 - x0, y1 - y0)
