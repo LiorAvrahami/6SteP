@@ -93,6 +93,7 @@ class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     private var hint: Hint? = null
     private var since = 0L               // when its clock started: when it became the floor's hint, or the last touch
     private var still = false            // the phone asks for less motion (its animations are switched off)
+    private var hold = 0.0               // s from `since` before which it may not show (the first 14 s after the floor opened)
     /** how much of the floor the bottom bar covers now, in px */
     var bottomBar = 0f
     /** told at every frame of a hint how far the interface follows its finger (HintPainter.nudge), and 0 when it stops */
@@ -101,9 +102,9 @@ class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     private val tick = Runnable { frame() }
 
     /** show this hint from now on, its clock started afresh (it waits, plays, rests, plays again, and after its last
-     *  showing waits for the next touch), or none */
-    fun show(h: Hint?) {
-        hint = h; since = SystemClock.uptimeMillis()
+     *  showing waits for the next touch), or none; `hold`: seconds before which it may not show at all */
+    fun show(h: Hint?, hold: Double) {
+        hint = h; since = SystemClock.uptimeMillis(); this.hold = hold
         still = try { Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f } catch (e: Exception) { false }
         removeCallbacks(tick)
         onNudge?.invoke(h, 0.0)
@@ -117,9 +118,9 @@ class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     private fun frame() {
         val h = hint ?: return
         val t = seconds()
-        onNudge?.invoke(h, HintPainter.nudge(h, t, still))
+        onNudge?.invoke(h, HintPainter.nudge(h, t, still, hold))
         invalidate()
-        val wait = HintPainter.wait(h, t)
+        val wait = HintPainter.wait(h, t, hold)
         if (wait == 0.0) postOnAnimation(tick)
         else if (wait.isFinite()) postDelayed(tick, (wait * 1000.0).toLong().coerceIn(16L, 60000L))
     }
@@ -127,7 +128,7 @@ class HintView @JvmOverloads constructor(context: Context, attrs: AttributeSet? 
     override fun onDraw(canvas: Canvas) {
         val h = hint ?: return
         surface.canvas = canvas
-        HintPainter.draw(surface, h, seconds(), width.toDouble(), height.toDouble(), resources.displayMetrics.density.toDouble(), bottomBar.toDouble(), still)
+        HintPainter.draw(surface, h, seconds(), width.toDouble(), height.toDouble(), resources.displayMetrics.density.toDouble(), bottomBar.toDouble(), still, hold)
         surface.canvas = null
     }
 

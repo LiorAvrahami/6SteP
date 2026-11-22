@@ -31,9 +31,10 @@ class DanceFloorTest {
         var known: HashSet<String>? = null   // null: a screen that keeps nothing, and so shows no hints
         var hint: Hint? = null
         val hints = ArrayList<Hint?>()       // every hint the floor asked for, in order
+        val holds = ArrayList<Double>()      // and with each, how long it had to wait at least
         override fun knows(what: String) = known?.contains(what) ?: true
         override fun learned(what: String) { known?.add(what) }
-        override fun hint(hint: Hint?) { this.hint = hint; hints.add(hint) }
+        override fun hint(hint: Hint?, hold: Double) { this.hint = hint; hints.add(hint); holds.add(hold) }
         override var stripScrolls = true
         val banners = ArrayList<Pair<String, Double>>()   // every banner as it came up, with nothing else: filled by the test
         private val frames = ArrayList<() -> Unit>()
@@ -471,6 +472,21 @@ class DanceFloorTest {
         val n = done.host.hints.size
         done.floor.touched()
         assertEquals(n, done.host.hints.size, "no hint, nothing to tell")
+    }
+
+    /** user 2026-11-22: "wait 14 seconds from starting to showing the first hint": the floor tells the screen how much
+     *  of the first 14 seconds is left, with every hint and every touch */
+    @Test fun noHintInTheFirst14SecondsAfterTheFloorOpens() {
+        val r = rig(exercise, autoplay = true, known = HashSet())
+        assertEquals(Hint.TAP_PAUSE, r.host.hint)
+        assertEquals(14.0, r.host.holds.last(), 1e-9, "as it opens: all 14 s to come")
+        r.run(5000.0); r.floor.touched()
+        assertEquals(9.0, r.host.holds.last(), 1e-6, "5 s later: 9 s left")
+        r.run(5000.0); r.floor.tap()
+        assertEquals(Hint.TAP_PLAY, r.host.hint)
+        assertEquals(4.0, r.host.holds.last(), 1e-6, "a new hint 10 s in: 4 s left")
+        r.run(5000.0); r.floor.touched()
+        assertEquals(0.0, r.host.holds.last(), 1e-9, "after 14 s: nothing left, the hints' own waits only")
     }
 
     /** a screen that keeps no flags (the default) shows no hints at all */

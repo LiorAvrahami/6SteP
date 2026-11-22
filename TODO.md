@@ -98,6 +98,8 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-22, v75:** no hint in the first 14 s after a dance opens; a swipe hint is one slide, 10% slower; 9.2 s
+  between a hint's showings (15% more than 8 s).
 - **2026-11-22, v74:** the hints remade after the common practice for gesture hints (the user: "can you look it up
   online what is good common practice for such gesture hints and do that?"): eased movements of 200 to 500 ms, a
   fingertip that presses and lets go, the real bars making a little of the move, shown only after a few seconds

@@ -79,8 +79,10 @@ interface FloorHost {
     fun learned(what: String) {}
     /** the hint to show over the floor now (HintPainter draws it), or none. The screen starts the hint's clock at this
      *  call (HintPainter counts from it). Also called again with the same hint when the user has touched the screen
-     *  (DanceFloor.touched): the clock starts again. */
-    fun hint(hint: Hint?) {}
+     *  (DanceFloor.touched): the clock starts again. `hold`: seconds from now before which no hint may show, what is
+     *  left of the first HintPainter.FIRST seconds after the floor opened (0 once they are over); the screen passes
+     *  it to HintPainter. */
+    fun hint(hint: Hint?, hold: Double) {}
     /** the bottom bar holds more steps than fit on the screen: it can be dragged sideways */
     val stripScrolls: Boolean get() = true
 }
@@ -167,6 +169,7 @@ class DanceFloor(
     private var released = false
     private var hint: Hint? = null                // the hint the screen was last told to show
     private var played = false                    // the dance has played since this floor was opened
+    private var openedAt = Double.NaN             // when the floor opened (host.nowMs): no hint in the first HintPainter.FIRST seconds
     private var swing = Piece.SWING
 
     /** The dancers' way into a part that a swipe went to while a composition plays (user 2026-11-21, in place of the
@@ -228,6 +231,7 @@ class DanceFloor(
      *  you start a new dance with the bars open. I prefer the bars closed and a hint to swipe down to open them"; until
      *  then a piece that did not play at once opened with its bars shown) */
     fun open() {
+        openedAt = host.nowMs()
         val t = tl; val p = piece
         if (error != null || t == null || p == null) {
             host.show(Scene(emptyMap(), emptyMap(), name, banner = error ?: Texts.NOTHING_TO_SHOW))
@@ -295,12 +299,17 @@ class DanceFloor(
      *  busy, and does not give up for good either (common practice for gesture hints, looked up on 2026-11-22: hints
      *  wait for the user to be idle and are cancelled by a touch). The screens call this at every touch, before the
      *  touch does anything else. */
-    fun touched() { hint?.let { host.hint(it) } }
+    fun touched() { hint?.let { host.hint(it, hold()) } }
+
+    /** what is left of the first HintPainter.FIRST seconds after the floor opened, in seconds (user 2026-11-22: "wait
+     *  14 seconds from starting to showing the first hint") */
+    private fun hold(): Double =
+        if (openedAt.isNaN()) HintPainter.FIRST else maxOf(0.0, HintPainter.FIRST - (host.nowMs() - openedAt) / 1000.0)
 
     /** tell the screen which hint to show, when that has changed */
     private fun hints() {
         val want = hintNow()
-        if (want != hint) { hint = want; host.hint(want) }
+        if (want != hint) { hint = want; host.hint(want, hold()) }
     }
 
     /** the user did it: the flag goes up for good, and the next hint (if any) takes its place */
