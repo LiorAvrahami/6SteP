@@ -17,6 +17,9 @@ class HintsTest {
         var shapes = 0
         var l = Double.POSITIVE_INFINITY; var t = Double.POSITIVE_INFINITY; var r = Double.NEGATIVE_INFINITY; var b = Double.NEGATIVE_INFINITY
         val colors = HashSet<Int>()
+        /** each shape drawn, with its colour (without its alpha) and its own box: l, t, r, b */
+        val boxes = ArrayList<Pair<Int, DoubleArray>>()
+        private val cur = doubleArrayOf(Double.POSITIVE_INFINITY, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY)
         private val path = ArrayList<Pair<Double, Double>>()
         private var clip: DoubleArray? = null
         private val saved = ArrayList<DoubleArray?>()
@@ -24,8 +27,12 @@ class HintsTest {
             var x = x0; var y = y0
             clip?.let { x = x.coerceIn(it[0], it[2]); y = y.coerceIn(it[1], it[3]) }
             l = min(l, x); r = max(r, x); t = min(t, y); b = max(b, y)
+            cur[0] = min(cur[0], x); cur[1] = min(cur[1], y); cur[2] = max(cur[2], x); cur[3] = max(cur[3], y)
         }
-        private fun shape(color: Int) { if (Colors.alpha(color) > 0) { shapes++; colors.add(color and 0x00FFFFFF) } }
+        private fun shape(color: Int) {
+            if (Colors.alpha(color) > 0) { shapes++; colors.add(color and 0x00FFFFFF); boxes.add(Pair(color and 0x00FFFFFF, cur.copyOf())) }
+            cur[0] = Double.POSITIVE_INFINITY; cur[1] = Double.POSITIVE_INFINITY; cur[2] = Double.NEGATIVE_INFINITY; cur[3] = Double.NEGATIVE_INFINITY
+        }
         override fun fillAll(color: Int) { shape(color) }
         override fun line(x0: Double, y0: Double, x1: Double, y1: Double, color: Int, width: Double) { mark(x0, y0); mark(x1, y1); shape(color) }
         override fun fillRect(l: Double, t: Double, r: Double, b: Double, color: Int) { mark(l, t); mark(r, b); shape(color) }
@@ -97,8 +104,9 @@ class HintsTest {
                 }
                 t += 0.01
             }
-            // each showing as long as plays(hint), about a second; between them 2 to 5 s, at random; and on and on
-            assertTrue(HintPainter.plays(hint) in 0.8..2.0, "$hint takes ${HintPainter.plays(hint)} s: long enough to follow, short enough not to drag")
+            // each showing as long as plays(hint): the hand's two seconds of hovering, and a second or so of the gesture;
+            // between them 2 to 5 s, at random; and on and on
+            assertTrue(HintPainter.plays(hint) in 3.0..3.6, "$hint takes ${HintPainter.plays(hint)} s")
             for (i in ends.indices) assertEquals(HintPainter.plays(hint), ends[i] - starts[i], 0.02, "$hint: one showing")
             val gaps = (1 until starts.size).map { starts[it] - ends[it - 1] }
             assertTrue(gaps.size >= 8, "$hint keeps coming: ${starts.size} showings in a minute")
@@ -131,9 +139,11 @@ class HintsTest {
         // "yes, they should also wait ... after the dance opens")
         assertEquals(8.0, HintPainter.firstAt(Hint.SWIPE_DOWN, HintPainter.FIRST, HintPainter.AFTER_PAUSE), 1e-9)
         assertEquals(1.0, HintPainter.firstAt(Hint.SWIPE_SIDE, 0.0, HintPainter.AFTER_BARS), 1e-9)
-        // every movement within 200 to 500 ms (NN/g, web.dev)
-        assertTrue(HintPainter.MOVE in 0.2..0.5 && HintPainter.RING_LASTS in 0.2..0.5, "the slide ${HintPainter.MOVE} s, a ring ${HintPainter.RING_LASTS} s")
-        assertTrue(HintPainter.APPEAR in 0.1..0.3 && HintPainter.PRESS in 0.08..0.2)
+        // every movement within 200 to 500 ms (NN/g, web.dev); the ripple a second, the hover two (the user, 2026-11-23)
+        assertTrue(HintPainter.MOVE in 0.2..0.5 && HintPainter.PRESS in 0.08..0.2 && HintPainter.LIFT in 0.08..0.3, "the slide ${HintPainter.MOVE} s, the press ${HintPainter.PRESS} s")
+        assertTrue(HintPainter.APPEAR in 0.1..0.3 && HintPainter.GO in 0.1..0.3)
+        assertEquals(1.0, (HintPainter.RINGS - 1) * HintPainter.RING_EVERY + HintPainter.RING_LASTS, 1e-9, "the ripple: a second")
+        assertEquals(2.0, HintPainter.HOVER, 1e-9)
         // the user waits a few seconds after a pause before the hint to play
         assertTrue(HintPainter.delay(Hint.TAP_PLAY) >= 4.0)
     }
@@ -157,7 +167,8 @@ class HintsTest {
         while (u < 1.5) { if (v78(u) > 0.001) before += 0.001; u += 0.001 }
         assertEquals(1.5, out / before, 0.05, "out 1.5 times as long as in v78: $out s, then $before s")
         assertEquals(1.5 * (0.495 + 0.143), HintPainter.PEEK_LASTS, 1e-9)
-        assertEquals(1.0, HintPainter.nudge(hint, t0 + HintPainter.STROKE + 0.05), 1e-3, "still all the way out as the finger fades")
+        assertEquals(0.0, HintPainter.nudge(hint, t0 + HintPainter.MOVE_FROM - 0.01), 1e-9, "in while the hand hovers")
+        assertEquals(1.0, HintPainter.nudge(hint, t0 + HintPainter.MOVE_FROM + HintPainter.MOVE + HintPainter.LIFT + 0.05), 1e-3, "still all the way out as the finger lifts and the hand goes")
         assertEquals(0.0, HintPainter.nudge(hint, t0 + HintPainter.plays(hint) - 0.001), 1e-3, "back in place as the showing ends")
         assertEquals(36.0, HintPainter.BAR_PEEK, 1e-9, "twice v78's 18 dp")
         for (other in listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY, Hint.SWIPE_SIDE)) {
@@ -165,45 +176,101 @@ class HintsTest {
         }
     }
 
+    /** the user, 2026-11-23: "the hand hovers for 2 seconds and then presses down, and then there's the ripple effect
+     *  ... and the ripple effect goes for like 1 second"; and for the swipes: "it just hovers there ..., and then as it
+     *  starts to do the gesture, there's like a circle or like 2 consecutive circles around the fingertip that indicate
+     *  that it's pressing down ... the hand moves down and the circle goes around along with it, and ... there's the
+     *  trail ..., and then the finger pulls up and the circle disappears, and then the hand disappears" */
+    @Test fun theHandHoversPressesAndGoes() {
+        fun box(s: Sheet) = doubleArrayOf(s.l, s.t, s.r, s.b)
+        // a tap: the hand alone (its white and its lines) for its first two seconds and more, the same all along
+        val t0 = HintPainter.delay(Hint.TAP_PAUSE)
+        val early = at(Hint.TAP_PAUSE, t0 + 0.5, 0.0).second; val late = at(Hint.TAP_PAUSE, t0 + HintPainter.PRESS_AT - 0.01, 0.0).second
+        assertEquals(2, early.shapes, "the hand alone"); assertEquals(2, late.shapes, "the hand alone, still")
+        for (i in 0..3) assertEquals(box(early)[i], box(late)[i], 1e-9, "it hovers: it does not move")
+        assertTrue(HintPainter.PRESS_AT >= 2.0, "two seconds of hovering, once it has come")
+        // then it presses (a little smaller) and the rings go out from the fingertip, for a second
+        val pressedAt = HintPainter.PRESS_AT + HintPainter.PRESS
+        val pressed = at(Hint.TAP_PAUSE, t0 + pressedAt + 0.05, 0.0).second
+        assertTrue(pressed.boxes.any { it.first == white && it.second[2] - it.second[0] < (early.r - early.l) * 0.95 }, "pressed, the hand is smaller")
+        fun rings(u: Double) = at(Hint.TAP_PAUSE, t0 + u, 0.0).second.boxes.count { it.first == red } - 1   // (the hand's lines are red too)
+        assertEquals(0, rings(pressedAt - 0.02), "no ring before the press")
+        assertTrue(rings(pressedAt + 0.1) >= 1 && rings(pressedAt + 0.5) >= 2, "rings once it has pressed")
+        assertTrue(rings(pressedAt + 0.97) >= 1, "for a second")
+        assertFalse(at(Hint.TAP_PAUSE, t0 + pressedAt + 1.02, 0.0).first, "and then the hand is gone with them")
+        // a swipe: the hand alone, hovering where it starts
+        val s0 = HintPainter.delay(Hint.SWIPE_SIDE)
+        val p = HintPainter.place(Hint.SWIPE_SIDE, w, h, dp, 0.0)
+        val hover = at(Hint.SWIPE_SIDE, s0 + 1.0, 0.0).second
+        assertEquals(2, hover.shapes, "the hand alone")
+        assertTrue(hover.l < p[0] && hover.r > p[0] && hover.t < p[1] && hover.b > p[1], "where the swipe starts")
+        // it presses: the inner circle round the fingertip, and a moment later the outer
+        fun circles(u: Double) = at(Hint.SWIPE_SIDE, s0 + u, 0.0).second.boxes.filter { it.first == red && it.second[2] - it.second[0] < 40 * dp && it.second[3] - it.second[1] < 40 * dp }
+        assertEquals(0, circles(HintPainter.PRESS_AT - 0.01).size, "no circle while it hovers")
+        assertEquals(1, circles(HintPainter.PRESS_AT + 0.05).size, "the first circle as it presses")
+        assertEquals(2, circles(HintPainter.PRESS_AT + HintPainter.PRESS + 0.05).size, "then the second")
+        // it slides, the circles with the fingertip
+        val mid = HintPainter.MOVE_FROM + HintPainter.MOVE / 2
+        val cs = circles(mid)
+        assertEquals(2, cs.size)
+        for (c in cs) {
+            val cx = (c.second[0] + c.second[2]) / 2; val cy = (c.second[1] + c.second[3]) / 2
+            assertEquals((p[0] + p[2]) / 2, cx, 0.5 * dp, "round the fingertip, half way along"); assertEquals(p[1], cy, 0.5 * dp)
+        }
+        // the finger lifts: the circles go, then the hand
+        val lifted = HintPainter.MOVE_FROM + HintPainter.MOVE + HintPainter.LIFT + 0.02
+        assertEquals(0, circles(lifted).size, "no circle once the finger has lifted")
+        assertEquals(2, at(Hint.SWIPE_SIDE, s0 + lifted, 0.0).second.shapes, "the hand alone, going")
+        assertFalse(at(Hint.SWIPE_SIDE, s0 + HintPainter.STROKE + 0.01, 0.0).first, "and gone")
+        // the hand is Lucide's "pointer", as kept in design/lucide/pointer.svg
+        val svg = java.io.File("../design/lucide/pointer.svg").readText()
+        val paths = Regex("<path d=\"([^\"]+)\"").findAll(svg).map { it.groupValues[1] }.toList()
+        assertEquals(paths, HintPainter.HAND_LINES, "the hand's lines are the icon's")
+    }
+
     @Test fun theHintsAreWhereTheirGestureBelongs() {
         // the taps that pause and play: beside the dancers, low on the right, and above the bottom bar when that is shown
+        val rippling = HintPainter.PRESS_AT + HintPainter.PRESS + 0.3
         for (hint in listOf(Hint.TAP_PAUSE, Hint.TAP_PLAY)) {
-            val (_, s) = at(hint, HintPainter.delay(hint) + 0.45, 0.0)
-            assertTrue(s.shapes >= 4, "$hint: the dot, its mark and rings (${s.shapes} shapes)")
+            val (_, s) = at(hint, HintPainter.delay(hint) + rippling, 0.0)
+            assertTrue(s.shapes >= 4, "$hint: the hand (its white and its lines) and rings (${s.shapes} shapes)")
             assertTrue(s.l > w * 0.75 && s.t > h * 0.5, "$hint is low on the right: from (${s.l / dp}, ${s.t / dp}) dp")
-            val (_, raised) = at(hint, HintPainter.delay(hint) + 0.45, strip)
+            val (_, raised) = at(hint, HintPainter.delay(hint) + rippling, strip)
             assertTrue(raised.b < h - strip, "$hint keeps above the bottom bar: its lowest point ${raised.b / dp} dp of ${h / dp}")
             assertEquals(s.b - strip, raised.b, 1e-6, "by the bar's height exactly")
         }
         // the swipe down: from near the top edge, under the top bar's empty stretch (its buttons end 440 dp from the
         // left, the back button starts 64 dp from the right), going down
         val t0 = HintPainter.delay(Hint.SWIPE_DOWN)
-        val a = at(Hint.SWIPE_DOWN, t0 + 0.15, 0.0).second
+        val a = at(Hint.SWIPE_DOWN, t0 + 1.0, 0.0).second   // the hand hovering where it starts
         val b = at(Hint.SWIPE_DOWN, t0 + HintPainter.MOVE_FROM + HintPainter.MOVE, 0.0).second
-        assertTrue(a.l > 440 * dp && a.r < w - 64 * dp && a.t < 24 * dp, "the swipe down starts at the top, under the bar's empty stretch: from (${a.l / dp}, ${a.t / dp}) dp")
+        assertTrue(a.l > 440 * dp && a.r < w - 64 * dp && a.t < 26 * dp, "the swipe down starts at the top, under the bar's empty stretch: from (${a.l / dp}, ${a.t / dp}) dp")
         assertTrue(b.b > a.b + 60 * dp, "and it goes down: ${a.b / dp} dp, then ${b.b / dp} dp")
         assertTrue(b.b < h * 0.5, "not further than the upper half")
         // its little red arrow on the top bar (user 2026-11-22: "add a little red alpha=0.8 arrow on the top bar that
-        // indicates the movement"): once the finger has faded, the bar is still out, and the arrow is all there is,
-        // in the middle, inside what has come in of the bar
-        val arrow = at(Hint.SWIPE_DOWN, t0 + HintPainter.STROKE + 0.05, 0.0).second
-        assertTrue(arrow.shapes == 1 && arrow.colors == setOf(red), "one red shape: the arrow (${arrow.shapes}, ${arrow.colors})")
-        assertTrue(arrow.t >= 0 && arrow.b <= HintPainter.BAR_PEEK * dp && arrow.b > HintPainter.BAR_PEEK * dp * 0.6, "on the bar that has come in: ${arrow.t / dp} to ${arrow.b / dp} dp")
-        assertTrue(arrow.l > 440 * dp && arrow.r < w - 64 * dp && kotlin.math.abs((arrow.l + arrow.r) / 2 - (a.l + a.r) / 2) < 1.0, "on none of the bar's buttons, above the finger's way")
+        // indicates the movement"): with the bar all the way out, the one shape up there, inside what has come in of
+        // the bar, above the finger's way
+        val p0 = HintPainter.place(Hint.SWIPE_DOWN, w, h, dp, 0.0)
+        val out = at(Hint.SWIPE_DOWN, t0 + HintPainter.MOVE_FROM + HintPainter.MOVE + 0.05, 0.0).second
+        val up = out.boxes.filter { it.second[3] <= 40 * dp }
+        assertTrue(up.size == 1 && up[0].first == red, "one red shape on the bar: the arrow ($up)")
+        val arrow = up[0].second
+        assertTrue(arrow[1] >= 0 && arrow[3] <= HintPainter.BAR_PEEK * dp && arrow[3] > HintPainter.BAR_PEEK * dp * 0.6, "on the bar that has come in: ${arrow[1] / dp} to ${arrow[3] / dp} dp")
+        assertTrue(arrow[0] > 440 * dp && arrow[2] < w - 64 * dp && kotlin.math.abs((arrow[0] + arrow[2]) / 2 - p0[0]) < 1.0, "on none of the bar's buttons, above the finger's way")
         // half way in, the finger and the arrow, cut off where the bar ends
         val half = at(Hint.SWIPE_DOWN, t0 + HintPainter.MOVE_FROM + HintPainter.MOVE / 2, 0.0).second
         assertTrue(half.shapes >= 2, "the finger and the arrow half way")
         // one stroke per showing (user 2026-11-22: "the slide hints being two slides each is confusing. keep it one
         // slide that is 10% slower"), and the bar back in: nothing after it until the next showing
         assertFalse(at(Hint.SWIPE_DOWN, t0 + HintPainter.plays(Hint.SWIPE_DOWN) + 0.05, 0.0).first, "one stroke, then nothing")
-        assertEquals(0.88, HintPainter.STROKE, 1e-9); assertEquals(0.495, HintPainter.MOVE, 1e-9)
+        assertEquals(0.495, HintPainter.MOVE, 1e-9)
         // the swipe to the side: across the floor, low, above the bottom bar when that is shown; one way in one showing,
         // the other way in the next
         val side = HintPainter.place(Hint.SWIPE_SIDE, w, h, dp, 0.0)
         val t1 = HintPainter.delay(Hint.SWIPE_SIDE)
         val c = at(Hint.SWIPE_SIDE, t1 + 0.4, 0.0).second
         assertTrue(c.t > h * 0.7 && c.b < h, "the swipe to the side is low on the floor: from ${c.t / dp} to ${c.b / dp} dp of ${h / dp}")
-        assertTrue(c.b - c.t < 40 * dp, "and goes across, not up or down")
+        assertEquals(side[1], side[3], 1e-9, "and goes straight across")
         assertTrue(at(Hint.SWIPE_SIDE, t1 + 0.4, strip).second.b < h - strip, "above the bottom bar when that is shown")
         fun sideX(t: Double): Double { val s = at(Hint.SWIPE_SIDE, t, 0.0).second; return (s.l + s.r) / 2 }
         val slid = HintPainter.MOVE_FROM + HintPainter.MOVE

@@ -365,10 +365,10 @@ commit (there is no diff step any more: the editor's file is the only version). 
 
   | Flag (`Hint.key`) | What the user can do | The picture, and where |
   |---|---|---|
-  | `tap_pause` | a tap on the floor pauses the dance | a round red button with the pause mark and three rings going out from it, low on the right, while the dance plays |
-  | `tap_play` | a tap on the floor plays it | the same with the play mark, while the dance stands |
-  | `bars` | a swipe down brings the bars | a short grip at the top edge, a fingertip sliding down from it with a tail, an arrowhead under it; while the bars are away |
-  | `swipe_side` | a swipe to the left or right on the floor: a step on or back (standing), a part on or back (playing) | a fingertip sliding across the floor just under the dancers, to the left in one showing and to the right in the next (since v76) |
+  | `tap_pause` | a tap on the floor pauses the dance | the hand hovering low on the right, then pressing, three rings going out from its fingertip; while the dance plays |
+  | `tap_play` | a tap on the floor plays it | the same, while the dance stands |
+  | `bars` | a swipe down brings the bars | the hand hovering at the top edge under the top bar's empty stretch, then pressing and sliding down, the top bar coming in with a red arrow on it; while the bars are away |
+  | `swipe_side` | a swipe to the left or right on the floor: a step on or back (standing), a part on or back (playing) | the hand hovering low on the floor, then pressing and sliding across, to the left in one showing and to the right in the next (since v76) |
 
   **No hints for the bottom bar** since v78. From v71 to v77 a fingertip with three rings on the bar's pictures
   showed a tap on a step (`strip_tap`), and a fingertip sliding along them its drag (`strip_scroll`, the pictures
@@ -376,12 +376,28 @@ commit (there is no diff step any more: the editor's file is the only version). 
   need more hints, just the three", and "there should be no bottom bar hints". Their flags may still be kept on a
   phone or in a browser; nothing reads them.
 
-  The pictures have one sign: a round dot is a fingertip; rings going out from it are a tap (the user's own idea: "3
-  consecutive circles that appear that indicate that you tap"), and a mark in it says what the tap does; a dot that
-  slides with a tail is a swipe. **All in red, 0.8 opaque** since v79 (`Colors.HINT`, #E53935, a red apart from the
-  follower's pink; `HintPainter.OPACITY`; the tail behind a sliding fingertip half of that, so that it reads as a
-  trail; the marks inside the taps white; the user, 2026-11-22: "People are still missing the hints, so I think make
-  the hints maybe red with maybe alpha equals 0.8"; until v78 the floor's dark grey, half see-through); no words.
+  **The pictures are a hand** since v80 (the user, 2026-11-23: "an icon of a hand with the finger, like a closed hand
+  with the finger extended"): Lucide's "pointer" icon (`design/lucide/pointer.svg`, from lucide-static 1.63.0 like
+  the app's other icons, ISC; `HintPainter.HAND_LINES`, which `HintsTest` checks against that file), drawn by the
+  shared painter: its lines red, the glove white inside (`HAND_OUTLINE`, the same lines and arcs closed), 56 dp for
+  the icon's 24 units, the index fingertip where the finger touches. `SvgPath` (shared) reads the icon's path data
+  and turns its arcs into curves, since `Draw` only knows lines and curves. **Every showing: the hand comes and
+  hovers for two seconds where its gesture starts** ("the hand hovers for 2 seconds and then presses down"; 0.25 s
+  to come, `HOVER`), then:
+  - a tap: it presses (10% smaller, as if pushed into the screen) and three rings go out from the fingertip over a
+    second ("the ripple effect that you already have animated, and the ripple effect goes for like 1 second": each
+    0.6 s, 0.2 s apart); it lets go, and the hand fades as the last ring ends (3.37 s in all);
+  - a swipe: it presses, and two circles come round the fingertip, the outer 0.08 s after the inner ("a circle or
+    like 2 consecutive circles around the fingertip that indicate that it's pressing down"); it slides 0.495 s, the
+    circles with it and the red trail behind ("the circle goes around along with it, and ... there's the trail"); the
+    finger lifts and the circles go in 0.15 s ("the finger pulls up and the circle disappears"); then the hand fades
+    ("and then the hand disappears"; 3.27 s in all). Both swipes ("you should do this for all the swipe hints").
+  Until v79 a round dot was the fingertip, with a pause or play mark in it for the taps; the hand has no mark (a
+  guess, told the user). Since the hand hangs some 44 dp under its fingertip, the swipe to the side runs 48 dp above
+  the bottom bar (or the screen's edge), not 36 as in v76 to v79. Rings, circles and lines are **red, 0.8 opaque**
+  since v79 (`Colors.HINT`, #E53935, a red apart from the follower's pink; `HintPainter.OPACITY`; the trail half of
+  that, so that it reads as a trail; the user, 2026-11-22: "People are still missing the hints, so I think make the
+  hints maybe red with maybe alpha equals 0.8"; until v78 the floor's dark grey, half see-through); no words.
   **How a hint moves and when it comes: after the common practice** (since v74). The first version (v71) took 1.5
   to 1.9 s a picture and came every 5 s: "slow". The second (v72: 0.42 s taps, 0.3 s strokes, every 4 s for good, at
   the user's word) was "really annoying now (i guess they move too fast). can you look it up online what is good
@@ -389,13 +405,12 @@ commit (there is no diff step any more: the editor's file is the only version). 
   network does not reach the pages themselves) and what v74 does with it, in `HintPainter`:
   - *Each movement 200 to 500 ms, eased* (NN/g, "Executing UX animations: duration": most animations 100 to 500 ms
     depending on complexity and distance, the shortest that does not feel jarring; Google's web.dev, "Choosing the
-    right easing": ease-ins and ease-outs of 200 to 500 ms). v72's strokes had 0.19 s of movement: a flick. Now a
-    fingertip comes (0.18 s), presses down a little smaller and darker (0.12 s), and either lets go with three rings
-    (each 0.5 s, 0.15 s apart, slowing as they go: a tap of 1.05 s) or slides 0.495 s, slow at both ends, lets go and
-    fades (a stroke of 0.88 s). **A swipe is one stroke** since v75 (v72 to v74 showed two in a row; the user,
-    2026-11-22: "the slide hints being two slides each is confusing. keep it one slide that is 10% slower": every
-    time of the stroke is v74's made 10% longer); the swipe to the side goes to the left in one showing and to the
-    right in the next.
+    right easing": ease-ins and ease-outs of 200 to 500 ms). v72's strokes had 0.19 s of movement: a flick. From v74
+    to v79 a fingertip came (0.18 s), pressed down (0.12 s), and either let go with three rings (a tap of 1.05 s) or
+    slid 0.495 s, slow at both ends (a stroke of 0.88 s); since v80 the hand's press (0.12 s), slide (0.495 s) and
+    lift (0.15 s) keep to that, after its two seconds of hovering. **A swipe is one stroke** since v75 (v72 to v74
+    showed two in a row; the user, 2026-11-22: "the slide hints being two slides each is confusing. keep it one slide
+    that is 10% slower"); the swipe to the side goes to the left in one showing and to the right in the next.
   - *The real interface makes a little of the move* (Material's "Gesture education": a touch indicator with "a
     partial version of the gesture" playing behind it; Microsoft's swipe hint moves the item itself 15 px vertically
     or 23 px horizontally). The top bar comes in with the swipe-down finger (`HintPainter.nudge`; the web page moves
@@ -436,7 +451,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
     floor, the app in `dispatchTouchEvent`). So it never plays while the user is busy.
   - *Reduced motion* (NN/g and the design systems found: respect the setting): where the browser says
     `prefers-reduced-motion: reduce`, or the phone's animations are switched off (`ANIMATOR_DURATION_SCALE` 0), a
-    still picture fades in and out instead: the fingertip with one ring, or with an arrow along the swipe; nothing
+    still picture fades in and out instead: the hand with one ring, or with an arrow along the swipe; nothing
     else moves.
   **One hint at a time** (`DanceFloor.hintNow`), in this order (since v77). With the bars shown: first the swipe to
   the side on the floor; then as below, the swipe down aside. While the dance stands: the swipe down, then the swipe
@@ -483,7 +498,9 @@ commit (there is no diff step any more: the editor's file is the only version). 
   one who knows the tap that pauses already; and for v78: the swipe-down hint 11.57, 16.17 and 20.77 s after a pause
   2 s into the daily exercise (the first 14 s waited out, then 4.6 s apart), 1.06, 5.66 and 10.26 s after a pause
   later on; the sideways hint 1.03, 5.63 and 10.23 s after the swipe down; a tap on a step and a drag of the bottom
-  bar raising no flag and leaving the hint as it was; and for v79, measured on the hints' layer itself: the pause hint
+  bar raising no flag and leaving the hint as it was; for v80, pictures of every stage of the three (the hand
+  hovering; pressing with the ripples; pressing with the two circles; sliding with them and the trail, the top bar
+  coming in with its arrow; lifted and going); and for v79, measured on the hints' layer itself: the pause hint
   red, its most opaque pixel 207 of 255; first 7.5 s after the dance started playing (8 s after the floor opened,
   after 0.7 s of loading), then 2.47, 4.62, 4.68, 3.40 and 3.43 s between showings; the swipe-down hint 1.06 s
   after a pause, the top bar in 36.0 px and out 0.87 s (counted while it is in by more than half a pixel), the red
@@ -697,6 +714,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   4.6 s; the two that follow a move by a second wait for the first 14 s too. v79: red hints, 0.8 opaque; the
   first 8 s after a dance opens; then a random 2 to 5 s after each showing, until the gesture is used; the swipe
   down's top bar 36 dp deep and out 1.5 times as long, with a little red arrow on it, under the bar's empty stretch.
+  v80: the hints are a hand (Lucide's pointer) that hovers two seconds, then presses: ripples for a tap; two circles
+  round the fingertip, a slide with a trail and a lift for a swipe.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

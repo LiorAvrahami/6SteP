@@ -39,15 +39,27 @@ enum class Hint(val key: String) {
     }
 }
 
-/** The hints' pictures, the same in the Android app and on the web page, made after the common practice for gesture
- *  hints (looked up on 2026-11-22, when the user found v72's flashes "really annoying ... I guess they move too fast"
- *  and v71's 1.5 to 1.9 s pictures had been "slow"):
+/** The hints' pictures, the same in the Android app and on the web page.
  *
- *  - Each movement takes 200 to 500 ms, eased: NN/g ("most animations should fall in the 100–500 ms range, depending
- *    on complexity and how far the element travels") and Google's web.dev (ease-outs and ease-ins of 200 to 500 ms).
- *    v72's slides were 0.19 s of movement: a flick, too quick to follow. So a fingertip comes (0.18 s), presses down
- *    (0.12 s), moves or lets go, and fades: one tap about 1 s, one swipe stroke 0.88 s with 0.495 s of movement (0.8
- *    and 0.45 s in v74; the user, 2026-11-22: "keep it one slide that is 10% slower").
+ *  **A hand** (since v80; the user, 2026-11-23: "an icon of a hand with the finger, like a closed hand with the finger
+ *  extended"): Lucide's "pointer" icon (design/lucide/pointer.svg, ISC License, as the app's other icons), a white glove
+ *  with a red outline, its index fingertip where the finger touches. Every showing begins with the hand coming and
+ *  hovering for two seconds where its gesture starts ("the hand hovers for 2 seconds and then presses down"); then:
+ *  - a tap: it presses down (a little smaller, as if pushed into the screen) and three rings go out from the fingertip
+ *    over a second ("the ripple effect that you already have animated, and the ripple effect goes for like 1 second");
+ *    the finger lets go, and the hand fades as the last ring ends;
+ *  - a swipe: as it presses, two circles come round the fingertip, one and then the other ("a circle or like 2
+ *    consecutive circles around the fingertip that indicate that it's pressing down"); it slides, the circles with it
+ *    and a trail behind ("the circle goes around along with it, and then ... there's the trail"); the finger lifts and
+ *    the circles go ("the finger pulls up and the circle disappears"); then the hand fades ("and then the hand
+ *    disappears"). One slide per showing (two in v72 to v74; 2026-11-22: "keep it one slide that is 10% slower"); the
+ *    swipe to the side goes to the left in one showing and to the right in the next, since it works both ways.
+ *  Until v79 a red dot was the fingertip, with a pause or play mark in it for the taps: the hand has no mark.
+ *
+ *  Its movements take 200 to 500 ms, eased, after the common practice looked up on 2026-11-22 (NN/g: "most animations
+ *  should fall in the 100–500 ms range, depending on complexity and how far the element travels"; Google's web.dev:
+ *  ease-outs and ease-ins of 200 to 500 ms): a press of 0.12 s, a slide of 0.495 s.
+ *
  *  - The real interface makes a little of the move too, so that the hint shows what the gesture does: Material's
  *    gesture education plays "a partial version of the gesture" behind its touch indicator, and Microsoft's swipe hint
  *    moves the item itself a short way (15 px vertically, 23 px horizontally). So the top bar peeks in by BAR_PEEK dp
@@ -72,14 +84,9 @@ enum class Hint(val key: String) {
  *  - Where the phone asks for less motion, a still picture fades in and out instead (still): NN/g and the design
  *    systems that were looked up ask to respect "reduce motion".
  *
- *  Their one sign is a fingertip: a round dot. A dot with three rings going out from it is a tap (the user's own idea:
- *  "3 consecutive circles that appear that indicate that you tap"); a mark inside it says what the tap does (pause,
- *  play). A dot that slides is a swipe, once per showing (twice in a row in v72 to v74, at the user's word; then, on
- *  2026-11-22: "the slide hints being two slides each is confusing. keep it one slide"); the swipe to the side goes to
- *  the left in one showing and to the right in the next, since it works both ways. Everything is drawn in red, OPACITY
- *  opaque, the marks inside the taps in white (the user, 2026-11-22: "People are still missing the hints, so I think
- *  make the hints maybe red with maybe alpha equals 0.8"; until v78 the floor's dark grey, half see-through). Lengths
- *  are in dp; `dp` is one of them in the canvas's own pixels. */
+ *  Everything is red, OPACITY opaque, but the glove's white (the user, 2026-11-22: "People are still missing the hints,
+ *  so I think make the hints maybe red with maybe alpha equals 0.8"; until v78 the floor's dark grey, half
+ *  see-through). Lengths are in dp; `dp` is one of them in the canvas's own pixels. */
 object HintPainter {
     /** seconds without a touch before a hint first shows: from when it became the floor's hint, or from the user's
      *  last touch, whichever came later */
@@ -108,19 +115,30 @@ object HintPainter {
     /** how opaque a hint is drawn (the user, 2026-11-22: "red with maybe alpha equals 0.8") */
     const val OPACITY = 0.8
 
-    // a tap: the fingertip comes, presses and lets go; three rings go out from where it pressed; it fades
-    const val APPEAR = 0.18        // s: the fingertip comes (fading in, settling from a little larger)
-    const val PRESS = 0.12         // s: it presses down (a little smaller and darker), then lets go
-    const val RINGS = 3
-    const val RING_EVERY = 0.15    // s between two rings
-    const val RING_LASTS = 0.5     // s: a ring from the fingertip's edge to gone, slowing as it goes
-    const val TAP_PLAYS = 1.05     // s: the whole tap, its fading included
+    // the hand: it fades in, hovers, presses down, and fades out at the end of the showing
+    const val APPEAR = 0.25        // s: the hand fades in
+    const val HOVER = 2.0          // s: it hovers, once in, before it presses (the user, 2026-11-23: "hovers for 2 seconds")
+    const val PRESS = 0.12         // s: it presses down; it lets go as fast
+    const val PRESS_AT = APPEAR + HOVER   // s into a showing: the press begins
+    const val PRESSED = 0.1        // how much smaller the hand is while it presses
+    const val GO = 0.25            // s: it fades out
+    const val HAND = 56.0          // dp: the icon's 24 units
 
-    // a swipe: one stroke, in which the fingertip comes, presses, slides, lets go and fades. Its times are v74's made
-    // 10% longer (user 2026-11-22: "keep it one slide that is 10% slower")
-    const val STROKE = 0.88        // s: the stroke
-    const val MOVE_FROM = 0.22     // s into it: the slide begins
-    const val MOVE = 0.495         // s: the slide, slow at both ends
+    // a tap: three rings go out from the fingertip as it presses, over a second (the user, 2026-11-23: "the ripple effect
+    // goes for like 1 second"); the finger stays down a moment and lets go; the hand fades as the last ring ends
+    const val RINGS = 3
+    const val RING_EVERY = 0.2     // s between two rings
+    const val RING_LASTS = 0.6     // s: a ring from the fingertip to gone, slowing as it goes
+    const val HOLD = 0.25          // s the finger stays down
+    const val TAP_PLAYS = PRESS_AT + PRESS + (RINGS - 1) * RING_EVERY + RING_LASTS
+
+    // a swipe: after the press the slide, with the circles round the fingertip and a trail; the finger lifts and the
+    // circles go; then the hand
+    const val MOVE_FROM = PRESS_AT + PRESS   // s into a showing: the slide begins
+    const val MOVE = 0.495         // s: the slide, slow at both ends (v75: "one slide that is 10% slower")
+    const val LIFT = 0.15          // s: the finger lifts, the circles go
+    const val CIRCLE_AFTER = 0.08  // s: the outer circle comes this much after the inner
+    const val STROKE = MOVE_FROM + MOVE + LIFT + GO   // s: a whole swipe
     const val SWIPE_PLAYS = STROKE
 
     // the top bar during the swipe down (nudge): it comes in with the finger, stays out, and goes back in
@@ -129,16 +147,36 @@ object HintPainter {
     /** s it is out in all: 1.5 times v78's, when it went back as soon as the finger stopped (the user, 2026-11-22: "for
      *  x1.5 longer") */
     const val PEEK_LASTS = 1.5 * (MOVE + PEEK_BACK)
-    /** s: a showing of the swipe down, which lasts until the top bar is back in */
+    /** s: a showing of the swipe down, which lasts until the top bar is back in (a little after the hand has gone) */
     const val DOWN_PLAYS = MOVE_FROM + PEEK_LASTS
+
+    /** the hand's lines, Lucide's "pointer" as it is in design/lucide/pointer.svg (lucide-static 1.63.0, ISC License):
+     *  closed, with the index finger out, pointing up, in a box of 24 units */
+    val HAND_LINES = listOf(
+        "M22 14a8 8 0 0 1-8 8",
+        "M18 11v-1a2 2 0 0 0-2-2a2 2 0 0 0-2 2",
+        "M14 10V9a2 2 0 0 0-2-2a2 2 0 0 0-2 2v1",
+        "M10 9.5V4a2 2 0 0 0-2-2a2 2 0 0 0-2 2v10",
+        "M18 11a2 2 0 1 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15",
+    )
+    /** its outline, made of the same lines and arcs, closed: the glove's white is filled in it */
+    const val HAND_OUTLINE = "M6 14V4a2 2 0 0 1 4 0v5a2 2 0 0 1 4 0v1a2 2 0 0 1 4 0v1a2 2 0 0 1 4 0v3a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15Z"
+    /** where the fingertip touches, in the icon's units: on the index finger's pad, a unit below its top */
+    const val TIP_X = 8.0
+    const val TIP_Y = 3.0
+    private const val HAND_LINE = 1.6   // units: the outline's width (the icon's own 2 is heavy at this size)
+    private val lines by lazy { HAND_LINES.map { SvgPath(it) } }
+    private val outline by lazy { SvgPath(HAND_OUTLINE) }
 
     private fun ink(alpha: Double): Int = withAlpha(Colors.HINT, alpha)
     private fun smooth(u0: Double): Double { val u = u0.coerceIn(0.0, 1.0); return u * u * (3 - 2 * u) }
     private fun easeOut(u0: Double): Double { val u = u0.coerceIn(0.0, 1.0); return 1 - (1 - u) * (1 - u) * (1 - u) }
     private fun easeInOut(u0: Double): Double { val u = u0.coerceIn(0.0, 1.0); return if (u < 0.5) 4 * u * u * u else 1 - (2 - 2 * u).let { it * it * it } / 2 }
 
-    /** where a hint's picture is, so that a screen can also tell without drawing: the centre of a tap, or the two ends
-     *  of a swipe. `w`, `h`: the floor's whole size; `bottomBar`: how much of it the bottom bar covers now. */
+    /** where a hint's gesture is, so that a screen can also tell without drawing: where a tap touches, or where a swipe
+     *  starts and ends (the fingertip's way). `w`, `h`: the floor's whole size; `bottomBar`: how much of it the bottom
+     *  bar covers now. The hand lies below and to the right of the fingertip (some 13 dp to its left, 33 to its right,
+     *  44 below). */
     fun place(hint: Hint, w: Double, h: Double, dp: Double, bottomBar: Double): DoubleArray = when (hint) {
         // where a right thumb rests on a phone held sideways: beside the dancers, not on them
         Hint.TAP_PAUSE, Hint.TAP_PLAY -> doubleArrayOf(w - 104 * dp, h - bottomBar - 88 * dp)
@@ -146,8 +184,9 @@ object HintPainter {
         // (16 + play 48 + 10 + tempo 58 + 10 + song 240 + 10 + mute 48, in the app and on the web page alike) and the
         // back button starts 64 dp from the right; so the arrow on the bar (barArrow) sits on no button
         Hint.SWIPE_DOWN -> { val x = (376 * dp + w) / 2; doubleArrayOf(x, 26 * dp, x, 116 * dp) }
-        // across the floor, low, under the dancers and just above the bottom bar (and its annotations) when that is shown
-        Hint.SWIPE_SIDE -> doubleArrayOf(w * 0.62, h - bottomBar - 36 * dp, w * 0.38, h - bottomBar - 36 * dp)
+        // across the floor, low, under the dancers, the hand just above the bottom bar when that is shown (the
+        // fingertip 36 dp up until v79, when there was no hand under it)
+        Hint.SWIPE_SIDE -> doubleArrayOf(w * 0.62, h - bottomBar - 48 * dp, w * 0.38, h - bottomBar - 48 * dp)
     }
 
     /** how long one showing of the hint takes, in seconds */
@@ -207,19 +246,16 @@ object HintPainter {
         val (n, u) = showing(hint, t, first, seed) ?: return false
         val at = place(hint, w, h, dp, bottomBar)
         when (hint) {
-            Hint.TAP_PAUSE, Hint.TAP_PLAY -> if (still) tapStill(d, at[0], at[1], u, 18 * dp, 30 * dp, dp, hint) else tap(d, at[0], at[1], u, 18 * dp, 30 * dp, dp, hint)
+            Hint.TAP_PAUSE, Hint.TAP_PLAY -> if (still) tapStill(d, at[0], at[1], u, dp) else tap(d, at[0], at[1], u, dp)
             Hint.SWIPE_DOWN, Hint.SWIPE_SIDE -> {
                 val both = hint == Hint.SWIPE_SIDE   // sideways: either way
-                val r = 12 * dp
-                if (still) swipeStill(d, at[0], at[1], at[2], at[3], u, r, dp, both, plays(hint))
+                if (still) swipeStill(d, at[0], at[1], at[2], at[3], u, dp, both, plays(hint))
                 else {
-                    // one stroke; the sideways one goes to the left in one showing and to the right in the next
-                    if (u < STROKE) {
-                        if (both && n % 2 == 1) stroke(d, at[2], at[3], at[0], at[1], u, r, dp)
-                        else stroke(d, at[0], at[1], at[2], at[3], u, r, dp)
-                    }
                     // the little arrow on the top bar, which comes in with the swipe down
                     if (hint == Hint.SWIPE_DOWN) barArrow(d, w, at[0], peekAt(u) * BAR_PEEK * dp, dp)
+                    // one swipe; the sideways one goes to the left in one showing and to the right in the next
+                    if (both && n % 2 == 1) swipe(d, at[2], at[3], at[0], at[1], u, dp)
+                    else swipe(d, at[0], at[1], at[2], at[3], u, dp)
                 }
             }
         }
@@ -242,9 +278,8 @@ object HintPainter {
 
     /** the little arrow on the top bar as it comes in with the swipe down (the user, 2026-11-22: "add a little red
      *  alpha=0.8 arrow on the top bar that indicates the movement"): pointing down, above the finger's way (`cx`, on none
-     *  of the bar's buttons), its
-     *  tip a little above the bar's lower edge (`edge` px from the top of the screen). It is on the bar, so it comes in
-     *  and goes back with it; what is not in yet is cut off. */
+     *  of the bar's buttons), its tip a little above the bar's lower edge (`edge` px from the top of the screen). It is
+     *  on the bar, so it comes in and goes back with it; what is not in yet is cut off. */
     private fun barArrow(d: Draw, w: Double, cx: Double, edge: Double, dp: Double) {
         if (edge < 0.5) return
         val tip = edge - 6 * dp; val tail = tip - 22 * dp; val neck = tip - 10 * dp
@@ -257,80 +292,70 @@ object HintPainter {
         d.restore()
     }
 
-    /** how far along its way the fingertip of a stroke is, `v` seconds into it */
+    /** how far along its way the fingertip of a swipe is, `v` seconds into it */
     private fun progress(v: Double): Double = easeInOut((v - MOVE_FROM) / MOVE)
 
-    /** what the tap does, inside the fingertip: two upright bars (pause) or a triangle (play), `s` times the size */
-    private fun mark(d: Draw, cx: Double, cy: Double, r: Double, what: Hint?, alpha: Double) {
-        val white = withAlpha(Colors.WHITE, 0.95 * alpha)
-        when (what) {
-            Hint.TAP_PAUSE -> {
-                val bw = r * 0.26; val bh = r * 0.84; val gap = r * 0.2
-                d.fillRoundRect(cx - gap - bw, cy - bh / 2, cx - gap, cy + bh / 2, bw * 0.3, white)
-                d.fillRoundRect(cx + gap, cy - bh / 2, cx + gap + bw, cy + bh / 2, bw * 0.3, white)
-            }
-            Hint.TAP_PLAY -> {    // a little right of the middle, where it looks centred
-                val s = r * 0.5
-                d.beginPath(); d.moveTo(cx - s * 0.62, cy - s); d.lineTo(cx + s * 0.95, cy); d.lineTo(cx - s * 0.62, cy + s); d.closePath()
-                d.fillPath(white)
-            }
-            else -> {}
-        }
+    /** the hand, its fingertip at (tx, ty), `s` times its size (smaller while it presses), `a` how much of it is there:
+     *  the glove's white, then its red lines, each one path so that nothing is drawn twice over */
+    private fun hand(d: Draw, tx: Double, ty: Double, s: Double, a: Double, dp: Double) {
+        if (a <= 0.0) return
+        val k = HAND / 24.0 * dp * s
+        val x = { u: Double -> tx + (u - TIP_X) * k }
+        val y = { v: Double -> ty + (v - TIP_Y) * k }
+        d.beginPath(); outline.trace(d, x, y); d.fillPath(withAlpha(Colors.WHITE, 0.92 * a))
+        d.beginPath(); for (p in lines) p.trace(d, x, y); d.strokePath(ink(OPACITY * a), HAND_LINE * k)
     }
 
-    /** a tap at (cx, cy), `u` seconds into its showing: the fingertip (a dot of radius r) comes, presses down and lets
-     *  go, three rings leave it one after the other and grow by `reach` as they fade, and it fades */
-    private fun tap(d: Draw, cx: Double, cy: Double, u: Double, r: Double, reach: Double, dp: Double, what: Hint?) {
-        val come = smooth(u / APPEAR)
-        val a = min(come, 1 - smooth((u - (TAP_PLAYS - 0.25)) / 0.25))
-        val down = smooth((u - APPEAR) / (PRESS * 0.6)) * (1 - smooth((u - APPEAR - PRESS) / 0.12))
-        val scale = (1.15 - 0.15 * come) * (1 - 0.16 * down)
+    /** a tap at (cx, cy), `u` seconds into its showing: the hand comes and hovers, presses down, three rings go out from
+     *  the fingertip over a second, the finger lets go, and the hand fades as the last ring ends */
+    private fun tap(d: Draw, cx: Double, cy: Double, u: Double, dp: Double) {
+        val a = min(smooth(u / APPEAR), 1 - smooth((u - (TAP_PLAYS - GO)) / GO))
+        val pressed = PRESS_AT + PRESS
         for (k in 0 until RINGS) {
-            val v = (u - APPEAR - k * RING_EVERY) / RING_LASTS
+            val v = (u - pressed - k * RING_EVERY) / RING_LASTS
             if (v <= 0.0 || v >= 1.0) continue
-            d.strokeArc(cx, cy, r + reach * easeOut(v), 0.0, 360.0, ink(OPACITY * (1 - v)), 2.5 * dp)
+            d.strokeArc(cx, cy, 12 * dp + 34 * dp * easeOut(v), 0.0, 360.0, ink(OPACITY * (1 - v)), 2.5 * dp)
         }
-        val rr = r * scale
-        d.fillRoundRect(cx - rr, cy - rr, cx + rr, cy + rr, rr, ink(OPACITY * a))
-        mark(d, cx, cy, rr, what, a)
+        val down = smooth((u - PRESS_AT) / PRESS) * (1 - smooth((u - pressed - HOLD) / PRESS))
+        hand(d, cx, cy, 1 - PRESSED * down, a, dp)
     }
 
-    /** the same as a still picture, for a phone that asks for less motion: the fingertip and one ring, fading in and out */
-    private fun tapStill(d: Draw, cx: Double, cy: Double, u: Double, r: Double, reach: Double, dp: Double, what: Hint?) {
+    /** the same as a still picture, for a phone that asks for less motion: the hand and one ring, fading in and out */
+    private fun tapStill(d: Draw, cx: Double, cy: Double, u: Double, dp: Double) {
         val a = min(smooth(u / 0.25), 1 - smooth((u - (TAP_PLAYS - 0.35)) / 0.35))
-        d.strokeArc(cx, cy, r + reach * 0.55, 0.0, 360.0, ink(OPACITY * 0.6 * a), 2.5 * dp)
-        d.fillRoundRect(cx - r, cy - r, cx + r, cy + r, r, ink(OPACITY * a))
-        mark(d, cx, cy, r, what, a)
+        d.strokeArc(cx, cy, 12 * dp + 34 * dp * 0.55, 0.0, 360.0, ink(OPACITY * 0.6 * a), 2.5 * dp)
+        hand(d, cx, cy, 1.0, a, dp)
     }
 
-    /** one stroke of a swipe from (x0, y0) to (x1, y1), `v` seconds into it: the fingertip (a dot of radius r) comes,
-     *  presses, slides with a short tail behind it, lets go and fades */
-    private fun stroke(d: Draw, x0: Double, y0: Double, x1: Double, y1: Double, v: Double, r: Double, dp: Double) {
-        val come = smooth(v / 0.132)
-        val a = min(come, 1 - smooth((v - (STROKE - 0.198)) / 0.198))
-        val down = smooth((v - 0.132) / 0.066) * (1 - smooth((v - MOVE_FROM - MOVE) / 0.11))   // pressed while it touches
-        val scale = (1.15 - 0.15 * come) * (1 - 0.16 * down)
+    /** one swipe from (x0, y0) to (x1, y1), `v` seconds into it: the hand comes and hovers where it starts; it presses,
+     *  and two circles come round the fingertip, one and then the other; it slides, the circles with it and a trail
+     *  behind; the finger lifts and the circles go; the hand fades */
+    private fun swipe(d: Draw, x0: Double, y0: Double, x1: Double, y1: Double, v: Double, dp: Double) {
+        if (v >= STROKE) return
+        val a = min(smooth(v / APPEAR), 1 - smooth((v - (STROKE - GO)) / GO))
         val f = progress(v)
         val x = x0 + (x1 - x0) * f; val y = y0 + (y1 - y0) * f
-        // the tail: behind the dot over the last part of the way, running out to a point, and going as the finger stops.
-        // It starts on the dot's back edge, as wide as the dot is there, so that the two see-through shapes do not lie
-        // on each other (one shape, and so evenly see-through)
+        val lift = smooth((v - MOVE_FROM - MOVE) / LIFT)
+        val down = smooth((v - PRESS_AT) / PRESS) * (1 - lift)
+        // the trail: behind the fingertip over the last part of the way, running out to a point, going as the finger lifts
         val len = kotlin.math.hypot(x1 - x0, y1 - y0)
-        val tail = min(f, 0.35) * (1 - smooth((v - MOVE_FROM - MOVE) / 0.132))
-        val rr = r * scale
-        if (tail * len > rr * 1.2) {
+        val tail = min(f, 0.35) * (1 - lift)
+        val half = 7 * dp
+        if (tail * len > half) {
             val ux = (x1 - x0) / len; val uy = (y1 - y0) / len      // along the way
-            val bx = x - ux * rr * 0.75; val by = y - uy * rr * 0.75   // on the dot, three quarters of the way to its back
-            val half = rr * 0.66                                       // half the dot's width there
-            d.beginPath(); d.moveTo(bx - uy * half, by + ux * half); d.lineTo(x - ux * len * tail, y - uy * len * tail); d.lineTo(bx + uy * half, by - ux * half); d.closePath()
-            d.fillPath(ink(OPACITY * 0.5 * a))   // the tail lighter than the fingertip, so that it reads as a trail
+            d.beginPath(); d.moveTo(x - uy * half, y + ux * half); d.lineTo(x - ux * len * tail, y - uy * len * tail); d.lineTo(x + uy * half, y - ux * half); d.closePath()
+            d.fillPath(ink(OPACITY * 0.5 * a))   // lighter than the rest, so that it reads as a trail
         }
-        d.fillRoundRect(x - rr, y - rr, x + rr, y + rr, rr, ink(OPACITY * a))
+        // the two circles round the fingertip while it presses: the inner one, and a moment later the outer
+        val second = smooth((v - PRESS_AT - CIRCLE_AFTER) / PRESS) * (1 - lift)
+        if (down > 0.0) d.strokeArc(x, y, (7 + 4 * down) * dp, 0.0, 360.0, ink(OPACITY * down), 2.5 * dp)
+        if (second > 0.0) d.strokeArc(x, y, (12 + 5 * second) * dp, 0.0, 360.0, ink(OPACITY * 0.6 * second), 2.0 * dp)
+        hand(d, x, y, 1 - PRESSED * down, a, dp)
     }
 
-    /** a swipe as a still picture, for a phone that asks for less motion: the fingertip where it starts and an arrow
-     *  along its way (pointing both ways for the swipe to the side, which goes both ways), fading in and out */
-    private fun swipeStill(d: Draw, x0: Double, y0: Double, x1: Double, y1: Double, u: Double, r: Double, dp: Double, both: Boolean, lasts: Double) {
+    /** a swipe as a still picture, for a phone that asks for less motion: the hand where it starts and an arrow along
+     *  its way (pointing both ways for the swipe to the side, which goes both ways), fading in and out */
+    private fun swipeStill(d: Draw, x0: Double, y0: Double, x1: Double, y1: Double, u: Double, dp: Double, both: Boolean, lasts: Double) {
         val a = min(smooth(u / 0.25), 1 - smooth((u - (lasts - 0.35)) / 0.35))
         val len = kotlin.math.hypot(x1 - x0, y1 - y0)
         val ux = (x1 - x0) / len; val uy = (y1 - y0) / len
@@ -340,11 +365,11 @@ object HintPainter {
             d.lineTo(x - dx * head + dy * head * 0.8, y - dy * head - dx * head * 0.8)
             d.strokePath(ink(OPACITY * a), 3 * dp)
         }
-        val sx = if (both) x0 - ux * (len * 0.15) else x0 + ux * (r + 4 * dp); val sy = if (both) y0 - uy * (len * 0.15) else y0 + uy * (r + 4 * dp)
+        val sx = if (both) x0 - ux * (len * 0.15) else x0 + ux * 16 * dp; val sy = if (both) y0 - uy * (len * 0.15) else y0 + uy * 16 * dp
         d.beginPath(); d.moveTo(sx, sy); d.lineTo(x1, y1)
         d.strokePath(ink(OPACITY * 0.7 * a), 3 * dp)
         arrowHead(x1, y1, ux, uy)
         if (both) arrowHead(sx, sy, -ux, -uy)
-        d.fillRoundRect(x0 - r, y0 - r, x0 + r, y0 + r, r, ink(OPACITY * a))
+        hand(d, x0, y0, 1.0, a, dp)
     }
 }

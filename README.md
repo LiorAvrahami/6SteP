@@ -72,11 +72,12 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   Google Translate's, fetched as a short clip for every phrase, in the app and on the web page alike; the phone's or
   the browser's own voice reads when Google does not answer. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
   music dips to 60 percent under a spoken annotation and comes back right after it.
-  **Hints:** what nothing on the screen says is shown to a new user by a small red picture of a fingertip (0.8
-  opaque), one at a time, for three things: pressing with rings for the tap that pauses and the tap that plays,
-  sliding down for the swipe that brings the bars (the top bar comes in 36 dp with it, a little red arrow on it; it
-  comes 1 s after a pause), and sliding across the floor for the swipe to the side (a step on or back; it comes 1 s
-  after the swipe down). None for the bottom bar. Each movement 200 to 500 ms; none in the first 8 s after a dance
+  **Hints:** what nothing on the screen says is shown to a new user by a hand (a closed hand, the index finger out,
+  red lines on white), one hint at a time, for three things. The hand hovers two seconds where the gesture starts,
+  then presses: for the tap that pauses or plays, three rings go out from the fingertip over a second; for a swipe,
+  two circles come round the fingertip and it slides, the circles with it and a trail behind, then lifts. The swipe
+  down brings the top bar in 36 dp with a little red arrow on it, and comes 1 s after a pause; the swipe to the side
+  (a step on or back) comes 1 s after the swipe down. None for the bottom bar. Each movement 200 to 500 ms; none in the first 8 s after a dance
   opens; a hint waits until the screen has been left alone for a few seconds, then comes again and again, a random
   2 to 5 s after each showing, until the gesture is used; any touch makes it go; still pictures where the
   phone asks for less motion. Each goes for good the first time the user does the thing (a flag in
