@@ -382,16 +382,17 @@ commit (there is no diff step any more: the editor's file is the only version). 
   shared painter: its lines red, the glove white inside (`HAND_OUTLINE`, the same lines and arcs closed), 56 dp for
   the icon's 24 units, the index fingertip where the finger touches. `SvgPath` (shared) reads the icon's path data
   and turns its arcs into curves, since `Draw` only knows lines and curves. **Every showing: the hand comes and
-  hovers for two seconds where its gesture starts** ("the hand hovers for 2 seconds and then presses down"; 0.25 s
+  hovers for a second where its gesture starts** (since v81: "Make the finger wait for half the time before starting
+  the gesture for all the gestures"; two seconds in v80, "the hand hovers for 2 seconds and then presses down"; 0.25 s
   to come, `HOVER`), then:
   - a tap: it presses (10% smaller, as if pushed into the screen) and three rings go out from the fingertip over a
     second ("the ripple effect that you already have animated, and the ripple effect goes for like 1 second": each
-    0.6 s, 0.2 s apart); it lets go, and the hand fades as the last ring ends (3.37 s in all);
+    0.6 s, 0.2 s apart); it lets go, and the hand fades as the last ring ends (2.37 s in all);
   - a swipe: it presses, and two circles come round the fingertip, the outer 0.08 s after the inner ("a circle or
     like 2 consecutive circles around the fingertip that indicate that it's pressing down"); it slides 0.495 s, the
     circles with it and the red trail behind ("the circle goes around along with it, and ... there's the trail"); the
     finger lifts and the circles go in 0.15 s ("the finger pulls up and the circle disappears"); then the hand fades
-    ("and then the hand disappears"; 3.27 s in all). Both swipes ("you should do this for all the swipe hints").
+    ("and then the hand disappears"; 2.27 s in all). Both swipes ("you should do this for all the swipe hints").
   Until v79 a round dot was the fingertip, with a pause or play mark in it for the taps; the hand has no mark (a
   guess, told the user). Since the hand hangs some 44 dp under its fingertip, the swipe to the side runs 48 dp above
   the bottom bar (or the screen's edge), not 36 as in v76 to v79. Rings, circles and lines are **red, 0.8 opaque**
@@ -408,7 +409,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
     right easing": ease-ins and ease-outs of 200 to 500 ms). v72's strokes had 0.19 s of movement: a flick. From v74
     to v79 a fingertip came (0.18 s), pressed down (0.12 s), and either let go with three rings (a tap of 1.05 s) or
     slid 0.495 s, slow at both ends (a stroke of 0.88 s); since v80 the hand's press (0.12 s), slide (0.495 s) and
-    lift (0.15 s) keep to that, after its two seconds of hovering. **A swipe is one stroke** since v75 (v72 to v74
+    lift (0.15 s) keep to that, after its second of hovering. **A swipe is one stroke** since v75 (v72 to v74
     showed two in a row; the user, 2026-11-22: "the slide hints being two slides each is confusing. keep it one slide
     that is 10% slower"); the swipe to the side goes to the left in one showing and to the right in the next.
   - *The real interface makes a little of the move* (Material's "Gesture education": a touch indicator with "a
@@ -715,7 +716,7 @@ commit (there is no diff step any more: the editor's file is the only version). 
   first 8 s after a dance opens; then a random 2 to 5 s after each showing, until the gesture is used; the swipe
   down's top bar 36 dp deep and out 1.5 times as long, with a little red arrow on it, under the bar's empty stretch.
   v80: the hints are a hand (Lucide's pointer) that hovers two seconds, then presses: ripples for a tap; two circles
-  round the fingertip, a slide with a trail and a lift for a swipe.
+  round the fingertip, a slide with a trail and a lift for a swipe. v81: the hand hovers one second, not two.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

@@ -44,7 +44,8 @@ enum class Hint(val key: String) {
  *  **A hand** (since v80; the user, 2026-11-23: "an icon of a hand with the finger, like a closed hand with the finger
  *  extended"): Lucide's "pointer" icon (design/lucide/pointer.svg, ISC License, as the app's other icons), a white glove
  *  with a red outline, its index fingertip where the finger touches. Every showing begins with the hand coming and
- *  hovering for two seconds where its gesture starts ("the hand hovers for 2 seconds and then presses down"); then:
+ *  hovering for a second where its gesture starts ("the hand hovers for 2 seconds and then presses down", then on
+ *  2026-11-23 too: "Make the finger wait for half the time before starting the gesture for all the gestures"); then:
  *  - a tap: it presses down (a little smaller, as if pushed into the screen) and three rings go out from the fingertip
  *    over a second ("the ripple effect that you already have animated, and the ripple effect goes for like 1 second");
  *    the finger lets go, and the hand fades as the last ring ends;
@@ -117,7 +118,7 @@ object HintPainter {
 
     // the hand: it fades in, hovers, presses down, and fades out at the end of the showing
     const val APPEAR = 0.25        // s: the hand fades in
-    const val HOVER = 2.0          // s: it hovers, once in, before it presses (the user, 2026-11-23: "hovers for 2 seconds")
+    const val HOVER = 1.0          // s: it hovers, once in, before it presses (the user, 2026-11-23: "wait for half the time"; 2 s in v80)
     const val PRESS = 0.12         // s: it presses down; it lets go as fast
     const val PRESS_AT = APPEAR + HOVER   // s into a showing: the press begins
     const val PRESSED = 0.1        // how much smaller the hand is while it presses

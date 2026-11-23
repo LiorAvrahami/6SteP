@@ -104,9 +104,9 @@ class HintsTest {
                 }
                 t += 0.01
             }
-            // each showing as long as plays(hint): the hand's two seconds of hovering, and a second or so of the gesture;
+            // each showing as long as plays(hint): the hand's second of hovering, and a second or so of the gesture;
             // between them 2 to 5 s, at random; and on and on
-            assertTrue(HintPainter.plays(hint) in 3.0..3.6, "$hint takes ${HintPainter.plays(hint)} s")
+            assertTrue(HintPainter.plays(hint) in 2.0..2.6, "$hint takes ${HintPainter.plays(hint)} s")
             for (i in ends.indices) assertEquals(HintPainter.plays(hint), ends[i] - starts[i], 0.02, "$hint: one showing")
             val gaps = (1 until starts.size).map { starts[it] - ends[it - 1] }
             assertTrue(gaps.size >= 8, "$hint keeps coming: ${starts.size} showings in a minute")
@@ -143,7 +143,7 @@ class HintsTest {
         assertTrue(HintPainter.MOVE in 0.2..0.5 && HintPainter.PRESS in 0.08..0.2 && HintPainter.LIFT in 0.08..0.3, "the slide ${HintPainter.MOVE} s, the press ${HintPainter.PRESS} s")
         assertTrue(HintPainter.APPEAR in 0.1..0.3 && HintPainter.GO in 0.1..0.3)
         assertEquals(1.0, (HintPainter.RINGS - 1) * HintPainter.RING_EVERY + HintPainter.RING_LASTS, 1e-9, "the ripple: a second")
-        assertEquals(2.0, HintPainter.HOVER, 1e-9)
+        assertEquals(1.0, HintPainter.HOVER, 1e-9, "half v80's two seconds (the user, 2026-11-23: 'wait for half the time')")
         // the user waits a few seconds after a pause before the hint to play
         assertTrue(HintPainter.delay(Hint.TAP_PLAY) >= 4.0)
     }
@@ -183,12 +183,12 @@ class HintsTest {
      *  trail ..., and then the finger pulls up and the circle disappears, and then the hand disappears" */
     @Test fun theHandHoversPressesAndGoes() {
         fun box(s: Sheet) = doubleArrayOf(s.l, s.t, s.r, s.b)
-        // a tap: the hand alone (its white and its lines) for its first two seconds and more, the same all along
+        // a tap: the hand alone (its white and its lines) for its first second and more, the same all along
         val t0 = HintPainter.delay(Hint.TAP_PAUSE)
         val early = at(Hint.TAP_PAUSE, t0 + 0.5, 0.0).second; val late = at(Hint.TAP_PAUSE, t0 + HintPainter.PRESS_AT - 0.01, 0.0).second
         assertEquals(2, early.shapes, "the hand alone"); assertEquals(2, late.shapes, "the hand alone, still")
         for (i in 0..3) assertEquals(box(early)[i], box(late)[i], 1e-9, "it hovers: it does not move")
-        assertTrue(HintPainter.PRESS_AT >= 2.0, "two seconds of hovering, once it has come")
+        assertEquals(1.0, HintPainter.PRESS_AT - HintPainter.APPEAR, 1e-9, "a second of hovering, once it has come")
         // then it presses (a little smaller) and the rings go out from the fingertip, for a second
         val pressedAt = HintPainter.PRESS_AT + HintPainter.PRESS
         val pressed = at(Hint.TAP_PAUSE, t0 + pressedAt + 0.05, 0.0).second

@@ -73,7 +73,7 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
   the browser's own voice reads when Google does not answer. The app holds audio focus while it plays and keeps its own volume while another app asks to duck it; the
   music dips to 60 percent under a spoken annotation and comes back right after it.
   **Hints:** what nothing on the screen says is shown to a new user by a hand (a closed hand, the index finger out,
-  red lines on white), one hint at a time, for three things. The hand hovers two seconds where the gesture starts,
+  red lines on white), one hint at a time, for three things. The hand hovers a second where the gesture starts,
   then presses: for the tap that pauses or plays, three rings go out from the fingertip over a second; for a swipe,
   two circles come round the fingertip and it slides, the circles with it and a trail behind, then lifts. The swipe
   down brings the top bar in 36 dp with a little red arrow on it, and comes 1 s after a pause; the swipe to the side

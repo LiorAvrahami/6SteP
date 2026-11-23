@@ -98,6 +98,7 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-23, v81:** the hand hovers one second before every gesture (was two).
 - **2026-11-23, v80:** the hints are a hand (Lucide's pointer): it hovers two seconds, then presses; ripples for
   the taps; for the swipes two circles round the fingertip, a slide with a trail, the finger lifting.
 - **2026-11-22, v79:** the hints red, 0.8 opaque; the first 8 s after a dance opens; then a random 2 to 5 s after
