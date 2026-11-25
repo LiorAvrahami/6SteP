@@ -1,0 +1,132 @@
+{
+ "_about": "Compositions: named sequences of entries. An entry is an element name, a sub-composition name, or either followed by ' x N'; 'say: text' is an annotation shown and read aloud before the next entry; an entry in parentheses, like '(follower underarm pass)', is quiet: danced but not announced, and not a stop for the swipes. Sub-compositions (made of elements) are used inside compositions by name; the composer picks each element's starting condition from the previous element's end.",
+ "compositions": [
+  {
+   "name": "3 minutes exercise",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "(rock triple triple)",
+    "side to side x3",
+    "send out and bring back x3",
+    "say: yoyo, 8 times",
+    "(YOYO x8)",
+    "follower underarm and back x3",
+    "(follower underarm pass)",
+    "follower underarm pass x3",
+    "lead underarm pass x3",
+    "(follower underarm pass → side)",
+    "follower underarm to arrow x3",
+    "rock back cutoff x3",
+    "Circle x3",
+    "say: underarm circle, 4 times",
+    "(underarm circle)",
+    "(follower underarm pass → side)",
+    "(underarm circle)",
+    "(follower underarm pass → side)",
+    "(underarm circle)",
+    "(follower underarm pass → side)",
+    "(underarm circle)",
+    "Tak turn x5"
+   ],
+   "notes": "The daily exercise (named '5 minutes exercise' until 2026-11-16). Its philosophy (the user, 2026-11-16): as short as possible, with as many elements as possible packed into it. It is not aimed at 5 minutes: it is aimed at a good amount of elements in the least time, about 3 minutes. The order serves that: ordered well, the elements pack better (fewer bridges between them) and the whole makes more sense to the person dancing it, so it feels less chaotic. That is why it does not follow Explore's order. It always starts with one rock triple triple, not announced (the user likes that start; the quick recap starts with one too). Then what does not turn: side to side 3, send out and bring back 3, yoyo 8. Then the turns in the user's order: follower underarm and back 3, follower underarm pass 3, lead underarm pass 3, follower underarm to arrow 3, rock back cutoff 3, circle 3, underarm circle 4 (never more than 4), tak turn 5. The numbers are the user's: three of most things. Quiet bridges only where two elements do not fit: a follower underarm pass before the face-to-face passes, a follower underarm pass back to side by side after them and between the underarm circles (until 2026-11-21 it was an element of its own, the 'underarm bringback'; the user: \"change underarm bringback to be simply underarm pass from facing to side to side\"); the fourth circle leaves the couple face to face for the tak turns, which end the exercise. A 'say:' line names a run of quiet entries once; its ', N times' is for the voice, which says how often an entry repeats, while the screen never writes it. When a new element comes: find the place where it packs best and makes sense, and show the user the order before building.",
+   "revision": 14
+  },
+  {
+   "name": "Quick recap",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "rock triple triple",
+    "side to side",
+    "follower underarm and back",
+    "(follower underarm pass)",
+    "follower underarm pass",
+    "(follower underarm pass → side)",
+    "rock back cutoff",
+    "(follower underarm pass)",
+    "lead underarm pass",
+    "(follower underarm pass → side)",
+    "Circle",
+    "follower underarm to arrow",
+    "underarm circle",
+    "(follower underarm pass → side)",
+    "send out and bring back",
+    "YOYO",
+    "(follower underarm pass)",
+    "Tak turn",
+    "(follower underarm pass → side)"
+   ],
+   "notes": "Every element once, in the order the user learned them (user 2026-11-16), joined by quiet bridges where one element does not end the way the next one starts. Like the daily exercise it always starts with one rock triple triple (the user's rule, 2026-11-16); here it is announced, being the first element of the list, while the exercise's is quiet. The last bridge brings the couple back to side by side, so the launcher's little floor loops it without a jump.",
+   "revision": 4,
+   "edited": false
+  }
+ ],
+ "sub_compositions": [
+  {
+   "name": "rock triple triple",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "rock step",
+    "triple step",
+    "triple step"
+   ],
+   "notes": "Rock step, triple step, triple step: the six-count basic (user 2026-10-18). Works from side and from facing."
+  },
+  {
+   "name": "follower underarm and back",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "follower underarm pass",
+    "follower underarm pass → side"
+   ],
+   "notes": "Follower underarm pass out to face to face, and the follower underarm pass from face to face back to side by side (called the 'underarm bringback' until 2026-11-21). The block's name is the user's (2026-10-19).",
+   "revision": 3
+  },
+  {
+   "name": "side to side",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "triple step → facing",
+    "rock step",
+    "triple step",
+    "rock step"
+   ],
+   "notes": ""
+  },
+  {
+   "name": "follower underarm to arrow",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "follower underarm pass → reversed_side",
+    "arrow"
+   ],
+   "notes": ""
+  },
+  {
+   "name": "send out and bring back",
+   "start_state": "side",
+   "repeat": 1,
+   "elements": [
+    "send out",
+    "bring back"
+   ],
+   "notes": "Send out to face to face, bring back to side by side (user 2026-11-16)."
+  },
+  {
+   "name": "Rock Tripple Tripple facing",
+   "start_state": "facing",
+   "repeat": 1,
+   "elements": [
+    "rock step → facing",
+    "triple step",
+    "triple step"
+   ],
+   "notes": ""
+  }
+ ]
+}
