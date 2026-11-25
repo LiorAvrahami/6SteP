@@ -98,6 +98,7 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-25, v83:** "Share this app with this QR code!" above the share page's QR code.
 - **2026-11-25, v82:** a share button on the main page (right of help, left of full screen): a page with the web
   page's address as a QR code and, under it, as a link that copies itself; the main page's left column wider (52
   parts to 48, from 38 to 62) so that no button got smaller.

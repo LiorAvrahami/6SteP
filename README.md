@@ -40,8 +40,8 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
 
 - **Launcher**: the daily exercise (with how long it takes at the chosen song and tempo), explore, and a little floor that
   dances the "quick recap" (every element once, in the order they were learned) at 1.5 times its speed; the heart (thanks and links), settings, help (two explanations
-  with arrows where the little floor is), and share (the web page's address as a QR code, and as a link that copies
-  itself when tapped); on the web page one more small button, the full screen.
+  with arrows where the little floor is), and share ("Share this app with this QR code!", the web page's address as a QR
+  code, and under it the address as a link that copies itself when tapped); on the web page one more small button, the full screen.
 - **Explore**: three groups that fold. Elements: the user's own list, in their order, whether each is an element or a
   building block underneath (rock step, rock triple triple, triple step, side to side, follower underarm and back,
   follower underarm pass, rock back cutoff, lead underarm pass, circle, follower underarm to arrow); Compositions, with

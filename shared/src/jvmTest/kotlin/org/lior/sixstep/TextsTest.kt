@@ -33,7 +33,7 @@ class TextsTest {
             "set_overlay" to Texts.SET_OVERLAY, "set_snare" to Texts.SET_SNARE, "set_hihat" to Texts.SET_HIHAT, "set_voice" to Texts.SET_VOICE,
             "set_mute_note" to Texts.SET_MUTE_NOTE, "set_lead_in" to Texts.SET_LEAD_IN,
             "set_hints_again" to Texts.SET_HINTS_AGAIN, "hints_again_done" to Texts.HINTS_AGAIN_DONE,
-            "share" to Texts.SHARE, "qr_code" to Texts.QR_CODE, "link_copied" to Texts.LINK_COPIED,
+            "share" to Texts.SHARE, "qr_code" to Texts.QR_CODE, "link_copied" to Texts.LINK_COPIED, "share_title" to Texts.SHARE_TITLE,
             // the ones with something filled in
             "minutes" to Texts.minutes(187).replace("3:07", "%1\$d:%2\$02d"), "about" to Texts.about("X").replace("X", "%1\$s"),
         )

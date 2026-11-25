@@ -12,6 +12,7 @@
     <string name="help">What is what</string>
     <string name="share">Share</string>
     <string name="qr_code">A QR code of the 6SteP web page</string>
+    <string name="share_title">Share this app with this QR code!</string>
     <string name="link_copied">Link copied</string>
     <string name="quick_recap">Quick recap</string>
     <string name="help_daily">Click this to start a daily exercise! Three minutes a day is the optimal way to create muscle memory!</string>

@@ -19,6 +19,7 @@ object Texts {
      *  between one another") */
     const val WEB_APP_URL = "https://lioravrahami.github.io/6SteP/"
     const val QR_CODE = "A QR code of the 6SteP web page"
+    const val SHARE_TITLE = "Share this app with this QR code!"   // above the code (user 2026-11-25)
     const val LINK_COPIED = "Link copied"
     const val QUICK_RECAP = "Quick recap"
     const val HELP_DAILY = "Click this to start a daily exercise! Three minutes a day is the optimal way to create muscle memory!"

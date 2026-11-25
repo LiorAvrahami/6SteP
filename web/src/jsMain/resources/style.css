@@ -75,6 +75,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* the share page (Share; the app's activity_share.xml): the QR code in a white box, the link that copies itself under it */
 .share { position: relative; height: 100%; background: var(--launcher); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; padding-left: calc(16px + var(--safe-l)); padding-right: calc(16px + var(--safe-r)); }
 .share .back { position: absolute; top: 16px; right: calc(16px + var(--safe-r)); }
+.share .title { flex: 0 0 auto; margin-bottom: 12px; max-width: calc(100% - 140px); text-align: center; font-weight: 700; font-size: calc(24px * var(--sp)); line-height: 1.21; padding-top: var(--pad); }
 .share .code { flex: 0 0 auto; background: #fff; padding: 8px; display: flex; }
 .share .code img { width: 100%; height: 100%; display: block; }
 .share .link { flex: 0 0 auto; margin-top: 12px; padding: 8px 12px; border: 0; background: transparent; color: #003869; font-weight: 700; font-size: calc(18px * var(--sp)); line-height: 1.21; text-decoration: underline; cursor: pointer; }

@@ -346,10 +346,12 @@ commit (there is no diff step any more: the editor's file is the only version). 
   **The share button** (since v82; the user, 2026-11-25: "I want this app to be easy for people to share between one
   another"): a white box with Lucide's "qr-code" icon (`ic_qr`, `icons/qr.svg`), "To the right of the question mark
   button and to the left of the full screen button" (the web page's fourth button; the app has none). It opens the
-  share page (`ShareActivity`, the web page's `Share`, route `#share`): the web page's address, `Texts.WEB_APP_URL`,
-  as a QR code in a white box (220 dp in the app; on the web page as large as the page allows, 120 to 360 px, 305 px
-  on a phone held sideways), and under it as a link that copies itself when tapped ("if you click the link then it
-  copies this link to your clipboard"): `ClipboardManager` and a toast in the app (no toast on Android 13 and later,
+  share page (`ShareActivity`, the web page's `Share`, route `#share`): "Share this app with this QR code!" on top
+  (`Texts.SHARE_TITLE`, since v83: 'Above the QR code, write "Share this app with this QR code!"'), the web page's
+  address, `Texts.WEB_APP_URL`, as a QR code in a white box, as large as the page allows (the web page's `fit`, 120
+  to 360 px a side, 261 px on a phone held sideways; the app's layout listener, 160 to 300 dp, 200 dp until it has
+  measured, which fits the lowest phone), and under it the address as a link that copies itself when tapped ("if you
+  click the link then it copies this link to your clipboard"): `ClipboardManager` and a toast in the app (no toast on Android 13 and later,
   which show their own note of what was copied); `navigator.clipboard` and a toast on the web page, and where the
   browser has no clipboard to give, a hidden text box selected and copied (`copyText`). The code is made by
   `tools/make_qr.py` (with `segno`, `pip install segno`) from the address in `Texts.kt`, into
@@ -736,7 +738,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   v80: the hints are a hand (Lucide's pointer) that hovers two seconds, then presses: ripples for a tap; two circles
   round the fingertip, a slide with a trail and a lift for a swipe. v81: the hand hovers one second, not two.
   2026-11-25, v82: a share button on the launcher, right of help: the web page's address as a QR code and as a link
-  that copies itself; the launcher's left column 52 parts to the right one's 48 (was 38 to 62).
+  that copies itself; the launcher's left column 52 parts to the right one's 48 (was 38 to 62). v83: "Share this
+  app with this QR code!" above the code.
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the
