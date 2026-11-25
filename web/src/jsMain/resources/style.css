@@ -53,7 +53,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* ---- the launcher (activity_main.xml) */
 .launcher { position: relative; height: 100%; background: var(--launcher); display: flex; padding: 16px; padding-left: calc(16px + var(--safe-l)); padding-right: calc(16px + var(--safe-r)); }
-.launcher .side { flex: 38 1 0; min-width: 0; display: flex; flex-direction: column; }
+.launcher .side { flex: 52 1 0; min-width: 0; display: flex; flex-direction: column; }
 .launcher .logo { flex: 0 0 64px; background: var(--title); font-weight: 800; font-size: calc(40px * var(--sp)); line-height: 1.25; display: flex; align-items: center; justify-content: center; }
 .launcher .snippet { flex: 1 1 0; min-height: 0; margin-top: 12px; background: #fff; position: relative; overflow: hidden; }
 .launcher .snippet canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
@@ -64,7 +64,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .launcher .small { flex: 0 0 64px; margin-top: 12px; display: flex; gap: 12px; }
 .launcher .small button { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: center; padding: 0; }
 .launcher .small img { width: 40px; height: 40px; }
-.launcher .tiles { flex: 62 1 0; min-width: 0; margin-left: 16px; display: flex; flex-direction: column; gap: 12px; }
+.launcher .tiles { flex: 48 1 0; min-width: 0; margin-left: 16px; display: flex; flex-direction: column; gap: 12px; }
 .launcher .tile { position: relative; flex: 1 1 0; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 0; }
 .launcher .tile .mid { display: flex; flex-direction: column; align-items: center; }
 .launcher .tile .name { font-weight: 700; font-size: calc(28px * var(--sp)); line-height: 1.21; padding-top: var(--pad); white-space: nowrap; }
@@ -72,6 +72,13 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .launcher .tile .time { position: absolute; right: 7.7px; bottom: 7.7px; font-weight: 800; font-size: calc(15px * var(--sp)); line-height: 1.21; padding-top: var(--pad); }
 .launcher .arrows { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; fill: #003869; overflow: visible; }
 /* a tall window on a computer: the same boxes, one under the other */
+/* the share page (Share; the app's activity_share.xml): the QR code in a white box, the link that copies itself under it */
+.share { position: relative; height: 100%; background: var(--launcher); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 16px; padding-left: calc(16px + var(--safe-l)); padding-right: calc(16px + var(--safe-r)); }
+.share .back { position: absolute; top: 16px; right: calc(16px + var(--safe-r)); }
+.share .code { flex: 0 0 auto; background: #fff; padding: 8px; display: flex; }
+.share .code img { width: 100%; height: 100%; display: block; }
+.share .link { flex: 0 0 auto; margin-top: 12px; padding: 8px 12px; border: 0; background: transparent; color: #003869; font-weight: 700; font-size: calc(18px * var(--sp)); line-height: 1.21; text-decoration: underline; cursor: pointer; }
+
 .upright .launcher { flex-direction: column; overflow-y: auto; }
 .upright .launcher .side { flex: 0 0 auto; }
 .upright .launcher .snippet { flex: 0 0 190px; }

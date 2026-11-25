@@ -26,5 +26,6 @@
         <!-- upright, as the user drew this page -->
         <activity android:name=".HeartActivity" android:exported="false" android:screenOrientation="portrait" />
         <activity android:name=".SettingsActivity" android:exported="false" android:screenOrientation="landscape" />
+        <activity android:name=".ShareActivity" android:exported="false" android:screenOrientation="landscape" />
     </application>
 </manifest>

@@ -12,6 +12,7 @@ import org.w3c.dom.Element
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLElement
 import org.w3c.dom.HTMLImageElement
+import org.w3c.dom.HTMLTextAreaElement
 import org.w3c.dom.Node
 import org.w3c.dom.events.MouseEvent
 import kotlin.math.PI
@@ -58,6 +59,26 @@ fun toast(text: String) {
     val t = el("div", "toast", text)
     box.add(t)
     window.setTimeout({ if (t.parentNode != null) t.parentNode?.removeChild(t) }, 3000)
+}
+
+/** puts `text` on the clipboard and says `done` in a toast. Where the browser has no clipboard to give (an old one, or
+ *  a page not served over https), the old way: a hidden text box, selected and copied; and where even that fails, the
+ *  toast shows the text itself, to be copied by hand. */
+fun copyText(text: String, done: String) {
+    val old = {
+        val box = document.createElement("textarea") as HTMLTextAreaElement
+        box.value = text; box.setAttribute("readonly", "")
+        box.style.position = "fixed"; box.style.left = "0"; box.style.top = "0"; box.style.opacity = "0"
+        document.body?.appendChild(box)
+        box.select(); box.setSelectionRange(0, text.length)
+        val copied = try { document.asDynamic().execCommand("copy") == true } catch (e: Throwable) { false }
+        document.body?.removeChild(box)
+        toast(if (copied) done else text)
+    }
+    val clip = window.navigator.asDynamic().clipboard
+    if (clip != null && clip.writeText != null) {
+        try { clip.writeText(text).then({ _: dynamic -> toast(done) }, { _: dynamic -> old() }) } catch (e: Throwable) { old() }
+    } else old()
 }
 
 /** A window over the page: the page behind it is dimmed and cannot be touched; a tap beside the window closes it.

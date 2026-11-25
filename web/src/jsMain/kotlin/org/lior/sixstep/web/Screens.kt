@@ -16,6 +16,7 @@ import org.lior.sixstep.Timeline
 import org.w3c.dom.Element
 import org.w3c.dom.HTMLCanvasElement
 import org.w3c.dom.HTMLElement
+import org.w3c.dom.HTMLImageElement
 import org.w3c.dom.events.Event
 import org.w3c.dom.events.MouseEvent
 import kotlin.math.abs
@@ -39,9 +40,11 @@ interface Screen {
 // ------------------------------------------------------------------ the launcher
 
 /** The launcher (the user's layout draft, 2026-10-28; the app's activity_main.xml): at the left the title, a little
- *  floor dancing the "quick recap" at 1.5 times the exercise's tempo, and the heart, settings and help buttons; at the
- *  right the daily exercise with how long it takes, and explore. Help puts two explanations where the little floor
- *  is, each with an arrow to the button it explains. */
+ *  floor dancing the "quick recap" at 1.5 times the exercise's tempo, and the heart, settings, help and share buttons
+ *  (and the page's own full-screen button); at the right the daily exercise with how long it takes, and explore. Help
+ *  puts two explanations where the little floor is, each with an arrow to the button it explains. The left column is
+ *  52 parts of the width to the right one's 48 since the share button came (user 2026-11-25: "Don't make the buttons
+ *  smaller. Make the left column of the main page ... a bit wider"; 38 to 62 until then). */
 class Launcher : Screen {
     companion object { const val SNIPPET_SPEED = 1.5 }
 
@@ -100,6 +103,9 @@ class Launcher : Screen {
         small.add(iconButton("heart", Texts.HEART, "box press") { App.go("heart") }.also { it.style.background = "var(--heart)" })
         small.add(iconButton("settings", Texts.SETTINGS, "box press") { App.go("settings") }.also { it.style.background = "var(--gear)" })
         small.add(iconButton("help", Texts.HELP, "box press") { setHelp(!helpOn) }.also { it.style.background = "var(--help)" })
+        // sharing the app: the web page's address as a QR code and a link (user 2026-11-25: "To the right of the question
+        // mark button and to the left of the full screen button")
+        small.add(iconButton("qr", Texts.SHARE, "box press") { App.go("share") }.also { it.style.background = "#fff" })
         // an iPhone's browser has no full screen to give: there the page goes on the home screen
         if (Display.canFullscreen()) small.add(fullBtn)
         side.add(small)
@@ -192,6 +198,39 @@ class Launcher : Screen {
 
     override fun attach() { window.addEventListener("resize", onResize); Display.onFullscreenChange(showFull); showFull(); start() }
     override fun detach() { window.removeEventListener("resize", onResize); Display.removeListener(showFull); running = false }
+}
+
+// ------------------------------------------------------------------ share
+
+/** The share page (user 2026-11-25: "I want this app to be easy for people to share between one another ... a QR code,
+ *  and ... below the QR code there's the link to the web app ... if you click the link then it copies this link to
+ *  your clipboard"): the web page's address (Texts.WEB_APP_URL) as a QR code (share_qr.svg, made by
+ *  tools/make_qr.py), as large as the page allows, and under it as a link that copies itself. The app's ShareActivity
+ *  is the same. */
+class Share : Screen {
+    override val root: HTMLElement = el("div", "share")
+    private val code = el("div", "code box")
+    private val link = el("button", "link press", Texts.WEB_APP_URL)
+    private val onResize = { _: Event -> fit() }
+
+    init {
+        root.add(iconButton("back", Texts.BACK, "iconbtn back press") { App.back() })
+        code.add((document.createElement("img") as HTMLImageElement).also { it.src = "share_qr.svg"; it.alt = Texts.QR_CODE; it.asDynamic().draggable = false })
+        root.add(code)
+        link.onclick = { copyText(Texts.WEB_APP_URL, Texts.LINK_COPIED); null }
+        root.add(link)
+    }
+
+    /** the code as large as the page allows, from 120 to 360 px a side, the link under it and the back button's corner
+     *  kept clear */
+    private fun fit() {
+        val room = minOf(root.clientHeight - 32 - link.offsetHeight - 12, root.clientWidth - 2 * 80)
+        val side = room.coerceIn(120, 360)
+        code.style.width = "${side}px"; code.style.height = "${side}px"
+    }
+
+    override fun attach() { window.addEventListener("resize", onResize); fit() }
+    override fun detach() { window.removeEventListener("resize", onResize) }
 }
 
 // ------------------------------------------------------------------ explore

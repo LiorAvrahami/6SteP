@@ -61,9 +61,10 @@ class MainActivity : AppCompatActivity() {
         val heart = findViewById<ImageButton>(R.id.heart); heart.background = Ui.box(this, Ui.HEART)
         val gear = findViewById<ImageButton>(R.id.gear); gear.background = Ui.box(this, Ui.GEAR)
         val help = findViewById<ImageButton>(R.id.help); help.background = Ui.box(this, Ui.HELP)
+        val share = findViewById<ImageButton>(R.id.share); share.background = Ui.box(this, Color.WHITE)
         val helpDaily = findViewById<View>(R.id.helpDaily); helpDaily.setBackgroundColor(Ui.DAILY)
         val helpExplore = findViewById<View>(R.id.helpExplore); helpExplore.setBackgroundColor(Ui.EXPLORE)
-        for (b in listOf(heart, gear, help)) TooltipCompat.setTooltipText(b, b.contentDescription)
+        for (b in listOf(heart, gear, help, share)) TooltipCompat.setTooltipText(b, b.contentDescription)
         snippet = findViewById(R.id.snippet); snippet.showLabels = false; recapLabel = findViewById(R.id.recapLabel)
         helpPanel = findViewById(R.id.helpPanel); arrows = findViewById(R.id.arrows); time = findViewById(R.id.dailyTime)
         arrows.pairs = listOf(Pair(helpDaily, findViewById<View>(R.id.dailyIcon)), Pair(helpExplore, findViewById<View>(R.id.exploreIcon)))
@@ -77,6 +78,7 @@ class MainActivity : AppCompatActivity() {
         heart.setOnClickListener { startActivity(Intent(this, HeartActivity::class.java)) }
         gear.setOnClickListener { startActivity(Intent(this, SettingsActivity::class.java)) }
         help.setOnClickListener { setHelp(!helpOn) }
+        share.setOnClickListener { startActivity(Intent(this, ShareActivity::class.java)) }
 
         // composed once: the compositions are not edited on the phone any more
         val store = CompositionStore(this)

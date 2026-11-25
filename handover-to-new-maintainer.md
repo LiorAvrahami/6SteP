@@ -343,6 +343,24 @@ commit (there is no diff step any more: the editor's file is the only version). 
   tempo (user 2026-10-28: "all the elements that we learned one after the other without repetitions": made in the app
   from the daily exercise, every entry once, the quiet bridges kept, so it follows the exercise when that changes); help swaps
   the little floor for the draft's two explanations and draws arrows to the tiles (`HelpArrows`).
+  **The share button** (since v82; the user, 2026-11-25: "I want this app to be easy for people to share between one
+  another"): a white box with Lucide's "qr-code" icon (`ic_qr`, `icons/qr.svg`), "To the right of the question mark
+  button and to the left of the full screen button" (the web page's fourth button; the app has none). It opens the
+  share page (`ShareActivity`, the web page's `Share`, route `#share`): the web page's address, `Texts.WEB_APP_URL`,
+  as a QR code in a white box (220 dp in the app; on the web page as large as the page allows, 120 to 360 px, 305 px
+  on a phone held sideways), and under it as a link that copies itself when tapped ("if you click the link then it
+  copies this link to your clipboard"): `ClipboardManager` and a toast in the app (no toast on Android 13 and later,
+  which show their own note of what was copied); `navigator.clipboard` and a toast on the web page, and where the
+  browser has no clipboard to give, a hidden text box selected and copied (`copyText`). The code is made by
+  `tools/make_qr.py` (with `segno`, `pip install segno`) from the address in `Texts.kt`, into
+  `web/src/jsMain/resources/share_qr.svg` and `app/src/main/res/drawable/share_qr.xml`: version 3, error correction
+  M, 37 modules a side with the quiet zone. `ShareTest` checks that both files name the address in Texts: run the
+  script again if it changes. Checked: both files and screenshots of the web page's share page, held sideways and
+  upright, read back as the address with a QR reader (zxing-cpp). **The left column is 52 parts of the width to the
+  right one's 48** since then (38 to 62 before; the user: "Don't make the buttons smaller. Make the left column of
+  the main page, make it a bit wider ... the right column, which is the daily exercise and the explore buttons ... a
+  bit less wide"): the app's four small buttons are as wide as its three were (51 parts would do), and the web page's
+  five a little wider than its four (65 to 72 px on a phone 831 px wide, 73 to 81 at 915, 57 to 62 at 740).
 - **Explore.** Groups Elements (the user's list and order, `ExploreActivity.ELEMENTS`, 2026-10-29: elements and
   sub-compositions alike, only the page's grouping), Compositions (plus the quick recap, which `CompositionStore` makes
   from the daily exercise and never saves) and Building Blocks (everything else). One row per element; its versions
@@ -717,6 +735,8 @@ commit (there is no diff step any more: the editor's file is the only version). 
   down's top bar 36 dp deep and out 1.5 times as long, with a little red arrow on it, under the bar's empty stretch.
   v80: the hints are a hand (Lucide's pointer) that hovers two seconds, then presses: ripples for a tap; two circles
   round the fingertip, a slide with a trail and a lift for a swipe. v81: the hand hovers one second, not two.
+  2026-11-25, v82: a share button on the launcher, right of help: the web page's address as a QR code and as a link
+  that copies itself; the launcher's left column 52 parts to the right one's 48 (was 38 to 62).
 - The 2026-10-19 batch (sounds, variants, options bar, explore jump, dimming fix) was written by several agents and
   reviewed statically only; a logic review of the clock hand-overs did not finish. **Nobody has run it on a phone yet.**
   The first things to check with the user: the variant switch while the music plays (does the beat stay put, is the

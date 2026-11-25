@@ -53,6 +53,7 @@ object App {
             parts[0] == "explore" -> Explore()
             parts[0] == "settings" -> Settings()
             parts[0] == "heart" -> Heart()
+            parts[0] == "share" -> Share()
             parts[0] == "floor" && parts.size >= 4 -> FloorScreen(parts[1], dec(parts[2]), parts[3].toIntOrNull() ?: 0, parts.getOrNull(4) == "play")
             else -> Launcher()
         }

@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- The launcher (the user's draft, 2026-10-28): left, the title, the little floor (or, in help mode, the two
-     explanations) and the heart, settings and help buttons; right, the daily exercise and explore. The boxes' colours
-     and outlines are set in MainActivity (Ui.box). -->
+     explanations) and the heart, settings, help and share buttons; right, the daily exercise and explore. The boxes'
+     colours and outlines are set in MainActivity (Ui.box). The left column is 52 parts of the width to the right one's
+     48 since the share button came (user 2026-11-25: "Don't make the buttons smaller. Make the left column of the main
+     page ... a bit wider"; 38 to 62 until then, with three buttons): the four buttons are as wide as the three were. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/root"
     android:layout_width="match_parent"
@@ -16,7 +18,7 @@
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="38"
+            android:layout_weight="52"
             android:orientation="vertical">
 
             <TextView
@@ -132,13 +134,25 @@
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_help"
                     android:contentDescription="@string/help" />
+
+                <!-- sharing the app: the web page's address as a QR code and a link (ShareActivity) -->
+                <ImageButton
+                    android:id="@+id/share"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:layout_marginStart="12dp"
+                    android:padding="12dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_qr"
+                    android:contentDescription="@string/share" />
             </LinearLayout>
         </LinearLayout>
 
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="match_parent"
-            android:layout_weight="62"
+            android:layout_weight="48"
             android:layout_marginStart="16dp"
             android:orientation="vertical">
 

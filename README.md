@@ -39,8 +39,9 @@ not a stop for the swipes (a bridge between two elements that do not fit togethe
 ## The screens (the user's layout draft, `design/app_layout.free`, 2026-10-28)
 
 - **Launcher**: the daily exercise (with how long it takes at the chosen song and tempo), explore, and a little floor that
-  dances the "quick recap" (every element once, in the order they were learned) at 1.5 times its speed; the heart (thanks and links), settings, and help (two explanations
-  with arrows where the little floor is); on the web page a fourth small button, the full screen.
+  dances the "quick recap" (every element once, in the order they were learned) at 1.5 times its speed; the heart (thanks and links), settings, help (two explanations
+  with arrows where the little floor is), and share (the web page's address as a QR code, and as a link that copies
+  itself when tapped); on the web page one more small button, the full screen.
 - **Explore**: three groups that fold. Elements: the user's own list, in their order, whether each is an element or a
   building block underneath (rock step, rock triple triple, triple step, side to side, follower underarm and back,
   follower underarm pass, rock back cutoff, lead underarm pass, circle, follower underarm to arrow); Compositions, with

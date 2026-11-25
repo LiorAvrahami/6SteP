@@ -98,6 +98,9 @@ down without doing it. When one is finished, move it to "Done" with the date and
 
 ## Done
 
+- **2026-11-25, v82:** a share button on the main page (right of help, left of full screen): a page with the web
+  page's address as a QR code and, under it, as a link that copies itself; the main page's left column wider (52
+  parts to 48, from 38 to 62) so that no button got smaller.
 - **2026-11-23, v81:** the hand hovers one second before every gesture (was two).
 - **2026-11-23, v80:** the hints are a hand (Lucide's pointer): it hovers two seconds, then presses; ripples for
   the taps; for the swipes two circles round the fingertip, a slide with a trail, the finger lifting.

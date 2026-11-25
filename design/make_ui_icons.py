@@ -27,6 +27,7 @@ ICONS = {
     'ic_heart': ('heart', 2.25, {0: '#DE0707'}),
     'ic_settings': ('settings', 2.25, {0: '#A3A3A3', 1: '#DBDBDB'}),
     'ic_help': ('circle-question-mark', 2.25, {}),
+    'ic_qr': ('qr-code', 2.25, {}),           # the launcher's share button (user 2026-11-25)
     'ic_at': ('at-sign', 2.25, {}),
     'ic_globe': ('globe', 2.25, {}),
     'ic_dollar': ('circle-dollar-sign', 2.25, {}),

@@ -13,6 +13,13 @@ object Texts {
     const val HEART = "Say thanks"
     const val SETTINGS = "Settings"
     const val HELP = "What is what"
+    const val SHARE = "Share"
+    /** the web page's own address: the share page shows it as a QR code (tools/make_qr.py makes the code from this line)
+     *  and as a link that copies itself when tapped (user 2026-11-25: "I want this app to be easy for people to share
+     *  between one another") */
+    const val WEB_APP_URL = "https://lioravrahami.github.io/6SteP/"
+    const val QR_CODE = "A QR code of the 6SteP web page"
+    const val LINK_COPIED = "Link copied"
     const val QUICK_RECAP = "Quick recap"
     const val HELP_DAILY = "Click this to start a daily exercise! Three minutes a day is the optimal way to create muscle memory!"
     const val HELP_EXPLORE = "Click this if you need a refresher on a specific element that you are confused about."
